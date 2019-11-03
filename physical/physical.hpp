@@ -1,6 +1,6 @@
 /********************************************************************************
  *  File Name:
- *    nrf24l01.hpp
+ *    physical.hpp
  *
  *  Description:
  *    Interface to the NRF24L01 radio hardware driver. Originally based upon the work done by James Coliz
@@ -16,8 +16,8 @@
  ********************************************************************************/
 
 #pragma once
-#ifndef NRF24L01_HPP
-#define NRF24L01_HPP
+#ifndef NRF24L01_PHYSICAL_LAYER_HPP
+#define NRF24L01_PHYSICAL_LAYER_HPP
 
 /* C++ Includes */
 #include <cstdint>
@@ -26,13 +26,9 @@
 #include <memory>
 
 /* Chimera Includes */
-#include <Chimera/extensions/spi_ext.hpp>
 #include <Chimera/gpio.hpp>
-#include <Chimera/spi.hpp>
 
 /* Driver Includes */
-#include <RF24Node/physical/definitions.hpp>
-
 
 namespace RF24Phy
 {
@@ -40,37 +36,7 @@ namespace RF24Phy
   using Phy_sPtr = std::shared_ptr<Phy>;
   using Phy_uPtr = std::unique_ptr<Phy>;
 
-  /**
-   *  Register level interface to provide common functionality to the networking 
-   *  layer without having it mess with the SPI driver managment.
-   */
-  class Driver : public Chimera::SPI::SPIAcceptor
-  {
-  public:
-    /*-------------------------------------------------
-    SPI Acceptor Functions
-    -------------------------------------------------*/
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi ) final override;
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup ) final override;
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_uPtr spi ) final override;
-
-    /*-------------------------------------------------
-    Driver Functions
-    -------------------------------------------------*/
-    /**
-     *
-     * 
-     */
-    Chimera::Status_t resetDevice();
-
-    /**
-     * 
-     * 
-     */
-    Chimera::Status_t setDefaults();
-
-  };
-
+  
   /**
    *   Base class for interacting with an NRF24L01 wireless module.
    *   Most of this was taken from https://github.com/nRF24/RF24 and modified to accommodate my
@@ -852,4 +818,4 @@ namespace RF24Phy
   };
 }  // namespace RF24Phy
 
-#endif /* NRF24L01_HPP */
+#endif /* NRF24L01_PHYSICAL_LAYER_HPP */
