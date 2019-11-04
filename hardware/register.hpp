@@ -16,8 +16,41 @@
 #include <cstdint>
 #include <cstdlib>
 
+/* Chimera Includes */
+#include <Chimera/types/common_types.hpp>
+
 namespace RF24::Hardware
 {
+  struct RegisterMap
+  {
+    Reg8_t config;
+    Reg8_t en_aa;
+    Reg8_t en_rx_addr;
+    Reg8_t setup_aw;
+    Reg8_t setup_retr;
+    Reg8_t rf_ch;
+    Reg8_t rf_setup;
+    Reg8_t status;
+    Reg8_t observe_tx;
+    Reg8_t rpd;
+    Reg64_t rx_addr_p0;
+    Reg64_t rx_addr_p1;
+    Reg8_t rx_addr_p2;
+    Reg8_t rx_addr_p3;
+    Reg8_t rx_addr_p4;
+    Reg8_t rx_addr_p5;
+    Reg64_t tx_addr;
+    Reg8_t rx_pw_p0;
+    Reg8_t rx_pw_p1;
+    Reg8_t rx_pw_p2;
+    Reg8_t rx_pw_p3;
+    Reg8_t rx_pw_p4;
+    Reg8_t rx_pw_p5;
+    Reg8_t fifo_status;
+    Reg8_t dynpd;
+    Reg8_t feature;
+  };
+
   /*----------------------------------------------
   Command Instructions
   ----------------------------------------------*/

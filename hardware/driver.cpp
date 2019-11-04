@@ -1,6 +1,6 @@
 /********************************************************************************
 *   File Name:
-*     hardware.cpp
+*     driver.cpp
 *
 *   Description:
 *     NRF24L01(+) low level hardware driver implementation
@@ -16,7 +16,7 @@
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
-#include <RF24Node/hardware/hardware.hpp>
+#include <RF24Node/hardware/driver.hpp>
 #include <RF24Node/hardware/register.hpp>
 #include <RF24Node/hardware/types.hpp>
 
@@ -27,7 +27,8 @@ namespace RF24::Hardware
   -------------------------------------------------*/
   Driver::Driver()
   {
-
+    spi = nullptr;
+    memset( &spiConfig, 0, sizeof( spiConfig ) );
   }
 
   Driver::~Driver()
@@ -45,9 +46,35 @@ namespace RF24::Hardware
 
   Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup )
   {
-    this->spi = spi;
+    auto result = Chimera::CommonStatusCodes::OK;
+    this->spi   = spi;
     memcpy( &spiConfig, &setup, sizeof( Chimera::SPI::DriverConfig ) );
-    return Chimera::CommonStatusCodes::OK;
+
+    /*------------------------------------------------
+    Ensure that the configuration options are ok
+    ------------------------------------------------*/
+    if ( spiConfig.HWInit.bitOrder != SPI_BIT_ORDER )
+    {
+      spiConfig.HWInit.bitOrder = SPI_BIT_ORDER;
+    }
+
+    if ( spiConfig.HWInit.clockFreq > SPI_MAX_CLOCK ) 
+    {
+      spiConfig.HWInit.clockFreq = SPI_MAX_CLOCK;
+    }
+
+    if ( spiConfig.HWInit.clockMode != SPI_CLOCK_MODE )
+    {
+      spiConfig.HWInit.clockMode = SPI_CLOCK_MODE;
+    }
+
+    /*------------------------------------------------
+    Perform the final initialization steps
+    ------------------------------------------------*/
+    result |= this->spi->init( spiConfig );
+    result |= this->spi->setChipSelectControlMode( Chimera::SPI::CSMode::MANUAL );
+
+    return result;
   }
 
   Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_uPtr spi )
@@ -60,6 +87,8 @@ namespace RF24::Hardware
   -------------------------------------------------*/
   Chimera::Status_t Driver::initialize()
   {
+    //Try and talk to the dadgum thing.
+
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 

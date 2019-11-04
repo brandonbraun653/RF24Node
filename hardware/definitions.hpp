@@ -17,7 +17,10 @@
 #include <cstdlib>
 #include <limits>
 
-namespace NRF24::Hardware
+/* Chimera Includes */
+#include <Chimera/types/spi_types.hpp>
+
+namespace RF24::Hardware
 {
   /*----------------------------------------------
   General Definitions
@@ -30,6 +33,13 @@ namespace NRF24::Hardware
       COMMAND_WIDTH + MAX_PAYLOAD_WIDTH;    /**< Accounts for max payload of 32 bytes + 1 byte for the command */
   static constexpr uint32_t MIN_TIMEOUT_MS  = 1;   /**< The absolute lowest resolution timeout we want to achieve */
   static constexpr uint32_t DFLT_TIMEOUT_MS = 100; /**< Default timeout for general operations */
+
+  /*------------------------------------------------
+  Hardware Configuration
+  ------------------------------------------------*/
+  static constexpr Chimera::SPI::BitOrder SPI_BIT_ORDER = Chimera::SPI::BitOrder::MSB_FIRST;
+  static constexpr Chimera::SPI::ClockFreq SPI_MAX_CLOCK = 8000000;
+  static constexpr Chimera::SPI::ClockMode SPI_CLOCK_MODE = Chimera::SPI::ClockMode::MODE0;
 
   /*-------------------------------------------------
   RX Pipes

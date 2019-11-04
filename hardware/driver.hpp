@@ -1,6 +1,6 @@
 /********************************************************************************
 *   File Name:
-*     hardware.hpp
+*     driver.hpp
 *
 *   Description:
 *     Hardware driver for the NRF24L01(+)
