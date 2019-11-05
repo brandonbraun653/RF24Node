@@ -71,6 +71,8 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Perform the final initialization steps
     ------------------------------------------------*/
+    spiConfig.externalCS = true;
+
     result |= this->spi->init( spiConfig );
     result |= this->spi->setChipSelectControlMode( Chimera::SPI::CSMode::MANUAL );
 
@@ -82,14 +84,52 @@ namespace RF24::Hardware
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
+  Chimera::Status_t Driver::attachCS( Chimera::GPIO::PinInit &CSConfig )
+  {
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+  }
+
+  Chimera::Status_t Driver::attachCS( Chimera::GPIO::GPIOClass_sPtr &CSPin )
+  {
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+  }
+
+  Chimera::Status_t Driver::attachCS( Chimera::GPIO::GPIOClass_uPtr CSPin )
+  {
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+  }
+
   /*-------------------------------------------------
   Driver Functions
   -------------------------------------------------*/
-  Chimera::Status_t Driver::initialize()
+  Chimera::Status_t Driver::initialize( const Chimera::GPIO::PinInit &CE, const Chimera::GPIO::PinInit &CS )
   {
-    //Try and talk to the dadgum thing.
+    /*------------------------------------------------
+    Input Protection
+    ------------------------------------------------*/
+    if ( !CE.validity || !CS.validity )
+    {
+      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
+    }
+    else if ( !spi )
+    {
+      return Chimera::CommonStatusCodes::FAIL;
+    }
 
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+    /*------------------------------------------------
+    Configure the GPIO pins. SPI should already be initialized.
+    ------------------------------------------------*/
+    auto result = Chimera::CommonStatusCodes::OK;
+
+    CEPin = std::make_unique<Chimera::GPIO::GPIOClass>();
+    result |= CEPin->init( CE );
+    CEPin->setState( Chimera::GPIO::State::HIGH );
+
+    CSPin = std::make_unique<Chimera::GPIO::GPIOClass>();
+    result |= CSPin->init( CS );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
+
+    return result;
   }
 
   Chimera::Status_t resetDevice()

@@ -16,6 +16,7 @@
 
 /* Chimera Includes */
 #include <Chimera/extensions/spi_ext.hpp>
+#include <Chimera/gpio.hpp>
 #include <Chimera/spi.hpp>
 #include <Chimera/threading.hpp>
 
@@ -45,6 +46,9 @@ namespace RF24::Hardware
     Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi ) final override;
     Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup ) final override;
     Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_uPtr spi ) final override;
+    Chimera::Status_t attachCS( Chimera::GPIO::PinInit &CSConfig ) final override;
+    Chimera::Status_t attachCS( Chimera::GPIO::GPIOClass_sPtr &CSPin ) final override;
+    Chimera::Status_t attachCS( Chimera::GPIO::GPIOClass_uPtr CSPin ) final override;
 
     /*-------------------------------------------------
     Driver Functions
@@ -52,6 +56,11 @@ namespace RF24::Hardware
     /**
      *  Initializes the driver and any preliminary configurations for the NRF24 chip. Upon
      *  exiting, the driver will be ready for use and sitting in an idle state.
+     *
+     *  @note If the SPI configuration specifies a CS config, it will be overwritten here
+     *
+     *  @param[in]  CE      The pin configuration for the Chip Enable pin (sets Rx/Tx modes)
+     *  @param[in]  CS      The pin configuration for the Chip Select pin (SPI)
      * 
      *  @return Chimera::Status_t
      * 
@@ -61,7 +70,7 @@ namespace RF24::Hardware
      *  | NOT_INITIALIZED | The initialization sequence failed for some reason |
      *  |          LOCKED | The hardware is currently unavailabe               |
      */
-    Chimera::Status_t initialize();
+    Chimera::Status_t initialize( const Chimera::GPIO::PinInit &CE, const Chimera::GPIO::PinInit &CS );
 
     /**
      *  Wipes out all configuration from the hardware registers and 
@@ -118,6 +127,8 @@ namespace RF24::Hardware
 
 
   private:
+    Chimera::GPIO::GPIOClass_uPtr CSPin;
+    Chimera::GPIO::GPIOClass_uPtr CEPin;
     Chimera::SPI::SPIClass_sPtr spi;
     Chimera::SPI::DriverConfig spiConfig;
   };
