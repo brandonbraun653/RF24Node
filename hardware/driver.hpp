@@ -25,10 +25,19 @@
 
 namespace RF24::Hardware
 {
-  
-/**
-   *  Register level interface to provide common functionality to the networking 
+  /**
+   *  Register level interface to provide common functionality to the networking
    *  layer without having it mess with the SPI driver managment.
+   *
+   *  @note SPI Interface Requirements:
+   *
+   *        | Config Option | Expected Value |
+   *        |:-------------:|:--------------:|
+   *        |     Bit Order | MSB First      |
+   *        |     Data Mode | MODE0          |
+   *        |    Data Width | 8 Bits         |
+   *        |     Max Clock | 8MHz           |
+   *        |    CS Control | Manual         |
    */
   class Driver : public Chimera::SPI::SPIAcceptor,
                  public Chimera::Threading::Lockable
@@ -106,6 +115,11 @@ namespace RF24::Hardware
      */
     Chimera::Status_t selfTest( const bool rpd );
 
+    Reg8_t readRegister( const Reg8_t reg );
+    Reg8_t readRegister( const Reg8_t reg, uint8_t *const buf, size_t len );
+
+    Chimera::Status_t toggleRFPower( const bool state );
+
     /**
      *  Enables/Disables the given RX pipe for listening on the currently 
      *  configured address for that pipe.
@@ -131,6 +145,9 @@ namespace RF24::Hardware
     Chimera::GPIO::GPIOClass_uPtr CEPin;
     Chimera::SPI::SPIClass_sPtr spi;
     Chimera::SPI::DriverConfig spiConfig;
+
+    std::array<uint8_t, SPI_BUFFER_LEN> spi_txbuff; /**< Internal transmit buffer */
+    std::array<uint8_t, SPI_BUFFER_LEN> spi_rxbuff; /**< Internal receive buffer */
   };
 
 

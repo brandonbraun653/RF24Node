@@ -13,6 +13,7 @@
 
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
+#include <Chimera/types/event_types.hpp>
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
@@ -41,42 +42,13 @@ namespace RF24::Hardware
   -------------------------------------------------*/
   Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_sPtr &spi )
   {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+    this->spi = spi;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup )
   {
-    auto result = Chimera::CommonStatusCodes::OK;
-    this->spi   = spi;
-    memcpy( &spiConfig, &setup, sizeof( Chimera::SPI::DriverConfig ) );
-
-    /*------------------------------------------------
-    Ensure that the configuration options are ok
-    ------------------------------------------------*/
-    if ( spiConfig.HWInit.bitOrder != SPI_BIT_ORDER )
-    {
-      spiConfig.HWInit.bitOrder = SPI_BIT_ORDER;
-    }
-
-    if ( spiConfig.HWInit.clockFreq > SPI_MAX_CLOCK ) 
-    {
-      spiConfig.HWInit.clockFreq = SPI_MAX_CLOCK;
-    }
-
-    if ( spiConfig.HWInit.clockMode != SPI_CLOCK_MODE )
-    {
-      spiConfig.HWInit.clockMode = SPI_CLOCK_MODE;
-    }
-
-    /*------------------------------------------------
-    Perform the final initialization steps
-    ------------------------------------------------*/
-    spiConfig.externalCS = true;
-
-    result |= this->spi->init( spiConfig );
-    result |= this->spi->setChipSelectControlMode( Chimera::SPI::CSMode::MANUAL );
-
-    return result;
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
   Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_uPtr spi )
@@ -129,20 +101,72 @@ namespace RF24::Hardware
     result |= CSPin->init( CS );
     CSPin->setState( Chimera::GPIO::State::HIGH );
 
+    /*------------------------------------------------
+    Power down the device and make sure we actually achieve it
+    ------------------------------------------------*/
+    Reg8_t configState = 0xFF;
+
+    toggleRFPower( false );
+    readRegister( REG_CONFIG, &configState, 1 );
+
+    if ( configState & CONFIG_PWR_UP )
+    {
+      return Chimera::CommonStatusCodes::FAILED_INIT;
+    }
+
     return result;
   }
 
-  Chimera::Status_t resetDevice()
+  Reg8_t Driver::readRegister( const Reg8_t reg )
+  {
+    Reg8_t tempBuffer = std::numeric_limits<Reg8_t>::max();
+    readRegister( reg, &tempBuffer, 1 );
+    return tempBuffer;
+  }
+
+  Reg8_t Driver::readRegister( const Reg8_t reg, uint8_t *const buf, size_t len )
+  {
+    if ( len > MAX_PAYLOAD_WIDTH )
+    {
+      len = MAX_PAYLOAD_WIDTH;
+    }
+
+    spi_txbuff[ 0 ] = ( CMD_R_REGISTER | ( reg & CMD_REGISTER_MASK ) );
+    memset( &spi_txbuff[ 1 ], CMD_NOP, len );
+
+    /*------------------------------------------------
+    Read the data out, adding 1 byte for the command instruction
+    ------------------------------------------------*/
+    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
+    {
+      CSPin->setState( Chimera::GPIO::State::LOW );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
+      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      CSPin->setState( Chimera::GPIO::State::HIGH );
+
+      memcpy( buf, &spi_rxbuff[ 1 ], len );
+
+      /* Return only the status code of the chip. The register values will be in the rx buff */
+      return spi_rxbuff[ 0 ];
+    }
+  }
+
+  Chimera::Status_t Driver::toggleRFPower( const bool state )
+  {
+    do this thing 
+  }
+
+  Chimera::Status_t Driver::resetDevice()
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
-  Chimera::Status_t selfTest( const bool rpd )
+  Chimera::Status_t Driver::selfTest( const bool rpd )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
-  Chimera::Status_t toggleRXDataPipe( const size_t pipe, const bool state )
+  Chimera::Status_t Driver::toggleRXDataPipe( const size_t pipe, const bool state )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
