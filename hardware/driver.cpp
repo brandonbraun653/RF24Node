@@ -117,21 +117,27 @@ namespace RF24::Hardware
     return result;
   }
 
-  Reg8_t Driver::readRegister( const Reg8_t reg )
+  Reg8_t Driver::readRegister( const Reg8_t addr )
   {
     Reg8_t tempBuffer = std::numeric_limits<Reg8_t>::max();
-    readRegister( reg, &tempBuffer, 1 );
+    readRegister( addr, &tempBuffer, 1 );
     return tempBuffer;
   }
 
-  Reg8_t Driver::readRegister( const Reg8_t reg, uint8_t *const buf, size_t len )
+  Reg8_t Driver::readRegister( const Reg8_t addr, uint8_t *const buf, size_t len )
   {
+    /*------------------------------------------------
+    Input protection
+    ------------------------------------------------*/
     if ( len > MAX_PAYLOAD_WIDTH )
     {
       len = MAX_PAYLOAD_WIDTH;
     }
 
-    spi_txbuff[ 0 ] = ( CMD_R_REGISTER | ( reg & CMD_REGISTER_MASK ) );
+    /*------------------------------------------------
+    Populate the read command
+    ------------------------------------------------*/
+    spi_txbuff[ 0 ] = ( CMD_R_REGISTER | ( addr & CMD_REGISTER_MASK ) );
     memset( &spi_txbuff[ 1 ], CMD_NOP, len );
 
     /*------------------------------------------------
@@ -149,11 +155,72 @@ namespace RF24::Hardware
       /* Return only the status code of the chip. The register values will be in the rx buff */
       return spi_rxbuff[ 0 ];
     }
+
+    return std::numeric_limits<Reg8_t>::max();
   }
 
-  Chimera::Status_t Driver::toggleRFPower( const bool state )
+  Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t value )
   {
-    do this thing 
+    return writeRegister( addr, &value, 1u );
+  }
+
+  Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t *const buffer, size_t len )
+  {
+    /*------------------------------------------------
+    Input protection
+    ------------------------------------------------*/
+    if ( len > MAX_PAYLOAD_WIDTH )
+    {
+      len = MAX_PAYLOAD_WIDTH;
+    }
+
+    /*------------------------------------------------
+    Prepare the write command
+    ------------------------------------------------*/
+    spi_txbuff[ 0 ] = ( CMD_W_REGISTER | ( addr & CMD_REGISTER_MASK ) );
+    memcpy( &spi_txbuff[ 1 ], buffer, len );
+
+    /*------------------------------------------------
+    Write the data out, adding 1 byte for the command instruction
+    ------------------------------------------------*/
+    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
+    {
+      CSPin->setState( Chimera::GPIO::State::LOW );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
+      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      CSPin->setState( Chimera::GPIO::State::HIGH );
+
+      /* Return only the status code of the chip. The register values will be in the rx buff */
+      return spi_rxbuff[ 0 ];
+    }
+    
+    return std::numeric_limits<Reg8_t>::max();
+  }
+
+  Reg8_t Driver::setRegisterBits( const Reg8_t addr, const Reg8_t mask )
+  {
+    Reg8_t current = readRegister( addr );
+    current |= mask;
+    return writeRegister( addr, current );
+  }
+
+  Reg8_t Driver::clrRegisterBits( const Reg8_t addr, const Reg8_t mask )
+  {
+    Reg8_t current = readRegister( addr );
+    current &= ~mask;
+    return writeRegister( addr, current );
+  }
+
+  void Driver::toggleRFPower( const bool state )
+  {
+    if ( state )
+    {
+      setRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
+    }
+    else
+    {
+      clrRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
+    }
   }
 
   Chimera::Status_t Driver::resetDevice()

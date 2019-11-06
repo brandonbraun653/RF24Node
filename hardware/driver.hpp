@@ -115,10 +115,16 @@ namespace RF24::Hardware
      */
     Chimera::Status_t selfTest( const bool rpd );
 
-    Reg8_t readRegister( const Reg8_t reg );
-    Reg8_t readRegister( const Reg8_t reg, uint8_t *const buf, size_t len );
+    Reg8_t readRegister( const Reg8_t addr );
+    Reg8_t readRegister( const Reg8_t addr, uint8_t *const buf, size_t len );
 
-    Chimera::Status_t toggleRFPower( const bool state );
+    Reg8_t writeRegister( const Reg8_t addr, const Reg8_t value );
+    Reg8_t writeRegister( const Reg8_t addr, const Reg8_t *const buffer, size_t len );
+
+    Reg8_t setRegisterBits( const Reg8_t addr, const Reg8_t mask );
+    Reg8_t clrRegisterBits( const Reg8_t addr, const Reg8_t mask );
+
+    void toggleRFPower( const bool state );
 
     /**
      *  Enables/Disables the given RX pipe for listening on the currently 
