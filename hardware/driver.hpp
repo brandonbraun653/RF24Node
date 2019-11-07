@@ -13,6 +13,7 @@
 #define NRF24L01_HARDWARE_DRIVER_HPP
 
 /* C++ Includes */
+#include <memory>
 
 /* Chimera Includes */
 #include <Chimera/extensions/spi_ext.hpp>
@@ -22,6 +23,7 @@
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
+#include <RF24Node/hardware/types.hpp>
 
 namespace RF24::Hardware
 {
@@ -182,6 +184,8 @@ namespace RF24::Hardware
      */
     void toggleRFPower( const bool state );
 
+    void toggleFeatures( const bool state );
+
     /**
      *  Enables/Disables the given RX pipe for listening on the currently 
      *  configured address for that pipe.
@@ -199,7 +203,133 @@ namespace RF24::Hardware
      *  | INVAL_FUNC_PARAM | Function input parameter was invalid |
      *  |           LOCKED | The hardware is currently unavailabe |
      */
-    Chimera::Status_t toggleRXDataPipe( const size_t pipe, const bool state ); 
+    Chimera::Status_t toggleRXDataPipe( const size_t pipe, const bool state );
+
+    void toggleCE( const bool state );
+
+    uint8_t writePayload( const uint8_t *const buf, size_t len, const uint8_t writeType );
+
+    /**
+     *   Read the receive payload
+     *
+     *   The size of data read is the fixed payload size, see getPayloadSize()
+     *
+     *   @param[in]  buffer  Where to put the data
+     *   @param[in]  len     Maximum number of bytes to read
+     *   @return Current value of status register
+     */
+    uint8_t readPayload( uint8_t *const buffer, size_t len );
+
+    uint8_t writeCMD( const uint8_t cmd );
+    uint8_t getStatus();
+
+
+    void setCRCLength( const CRCLength length );
+    CRCLength getCRCLength();
+    void disableCRC();
+
+    /**
+     *   Set the device's address width from 3 to 5 bytes (24, 32 or 40 bit)
+     *
+     *   @param[in]  address_width   The address width to use
+     *   @return void
+     */
+    void setAddressWidth( const AddressWidth address_width );
+
+    /**
+     *   Get the device's address width
+     *
+     *   @return The current address width
+     */
+    AddressWidth getAddressWidth();
+
+    /**
+     *   Get the number of bytes used in the device address width
+     *
+     *   @return The current address width byte size
+     */
+    uint8_t getAddressBytes();
+
+    
+
+    /**
+     *   Get the current RF communication channel
+     *
+     *   @return The currently configured RF Channel
+     */
+    uint8_t getChannel();
+
+    /**
+     *   Activates the ability to use features defined in Register::FEATURES
+     *
+     *   @return void
+     */
+    void activateFeatures();
+
+    /**
+     *   Deactivates the features defined in Register::FEATURES
+     *
+     *   @return void
+     */
+    void deactivateFeatures();
+
+    /**
+     *   Determine whether the hardware is an nRF24L01+ or not.
+     *
+     *   @return true if the hardware is an NRF24L01+
+     */
+    bool isPVariant();
+
+    /**
+     *   Mask interrupt generation for various signals. (true==disabled, false==enabled)
+     *
+     *   @param[in]  tx_ok       Mask transmission complete interrupts
+     *   @param[in]  tx_fail     Mask transmit failure interrupts
+     *   @param[in]  rx_ready    Mask payload received interrupts
+     *   @return void
+     */
+    void maskIRQ( const bool tx_ok, const bool tx_fail, const bool rx_ready );
+
+    /**
+     *   Check if the RX FIFO is full
+     *
+     *   @return true if full, false if not
+     */
+    bool rxFifoFull();
+
+    /**
+     *   Check if the RX FIFO is empty
+     *
+     *   @return true if empty, false if data is available
+     */
+    bool rxFifoEmpty();
+
+    /**
+     *   Check if the TX FIFO is full
+     *
+     *   @return true if full, false if not
+     */
+    bool txFifoFull();
+
+    /**
+     *   Check if the TX FIFO is empty
+     *
+     *   @return true if empty, false if not
+     */
+    bool txFifoEmpty();
+
+    /**
+     *   Place the radio into Standby-I mode
+     *
+     *   Waits for all TX transfers to complete (or for max retries interrupt)
+     *   before actually transitioning to the standby mode.
+     *
+     *   @return True if waiting transfers were successful, false if not
+     */
+    bool txStandBy();
+
+  protected:
+    void writeCommand();
 
 
   private:
@@ -212,6 +342,8 @@ namespace RF24::Hardware
     std::array<uint8_t, SPI_BUFFER_LEN> spi_rxbuff; /**< Internal receive buffer */
   };
 
+  using Driver_sPtr = std::shared_ptr<Driver>;
+  using Driver_uPtr = std::unique_ptr<Driver>;
 
 } // namespace RF24::Hardware
 

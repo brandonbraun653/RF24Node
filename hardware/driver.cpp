@@ -215,12 +215,21 @@ namespace RF24::Hardware
 
   void Driver::toggleRFPower( const bool state )
   {
-    if ( state )
+    if ( state && !( readRegister( REG_CONFIG ) & CONFIG_PWR_UP ) )
     {
+      /*-------------------------------------------------
+      If not powered up already, do it. The worst startup 
+      delay is about 5mS, so just wait that amount.
+      -------------------------------------------------*/
       setRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
+      Chimera::delayMilliseconds( 5 );
     }
     else
     {
+      /*-------------------------------------------------
+      Force standby mode and power down the chip
+      -------------------------------------------------*/
+      CEPin->setState( Chimera::GPIO::State::LOW );
       clrRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
     }
   }
@@ -265,5 +274,176 @@ namespace RF24::Hardware
   Chimera::Status_t Driver::toggleRXDataPipe( const size_t pipe, const bool state )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+  }
+
+  void Driver::toggleCE( const bool state )
+  {
+    if ( state )
+    {
+      CEPin->setState( Chimera::GPIO::State::HIGH );
+    }
+    else
+    {
+      CEPin->setState( Chimera::GPIO::State::LOW );
+    }
+  }
+
+  uint8_t Driver::writePayload( const uint8_t *const buf, size_t len, const uint8_t writeType )
+  {
+    if ( ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD ) )
+    {
+      return 0u;
+    }
+
+    /*-------------------------------------------------
+    Calculate the number of bytes that do nothing. When dynamic payloads are enabled, the length
+    doesn't matter as long as it is less than the max payload width (32).
+    -------------------------------------------------*/
+    len               = std::min( len, payloadSize );
+    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
+    size_t size       = len + blank_len + 1;
+
+    /*-------------------------------------------------
+    Format the write command and fill the rest with zeros
+    -------------------------------------------------*/
+    memset( spi_txbuff.data(), 0xff, spi_txbuff.size() );
+
+    spi_txbuff[ 0 ] = writeType;                    /* Write command type */
+    memcpy( &spi_txbuff[ 1 ], buf, len );           /* Payload information */
+    memset( &spi_txbuff[ len + 1 ], 0, blank_len ); /* Null out the remaining buffer space */
+
+    beginTransaction();
+    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size );
+    endTransaction();
+
+    return spi_rxbuff[ 0 ];
+  }
+
+  uint8_t Driver::readPayload( uint8_t *const buffer, size_t len )
+  {
+    uint8_t status = 0u;
+
+    /*-------------------------------------------------
+    The chip enable pin must be low to read out data
+    -------------------------------------------------*/
+    CEPin->setState( Chimera::GPIO::State::LOW );
+
+    /*-------------------------------------------------
+    Cap the data length
+    -------------------------------------------------*/
+    len = std::min( len, MAX_PAYLOAD_WIDTH );
+
+    /*-------------------------------------------------
+    Calculate the number of bytes that do nothing. This is important for
+    fixed payload widths as the full width must be read out each time.
+    -------------------------------------------------*/
+    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
+    size_t size       = len + blank_len;
+
+    /*-------------------------------------------------
+    Format the read command and fill the rest with NOPs
+    -------------------------------------------------*/
+    spi_txbuff[ 0 ] = RF24::Hardware::CMD_R_RX_PAYLOAD;
+    memset( &spi_txbuff[ 1 ], RF24::Hardware::CMD_NOP, size );
+    memset( spi_rxbuff.data(), 0, spi_rxbuff.size() );
+
+    /*-------------------------------------------------
+    Read out the payload. The +1 is for the read command.
+    -------------------------------------------------*/
+    beginTransaction();
+    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size + 1 );
+    endTransaction();
+
+    status = spi_rxbuff[ 0 ];
+    memcpy( buffer, &spi_rxbuff[ 1 ], len );
+
+    /*------------------------------------------------
+    Clear (by setting) the RX_DR flag to signal we've read data
+    ------------------------------------------------*/
+    setRegisterBits( REG_STATUS, STATUS_RX_DR );
+
+    /*-------------------------------------------------
+    Reset the chip enable back to the initial RX state
+    -------------------------------------------------*/
+    CEPin->setState( Chimera::GPIO::State::HIGH );
+
+    return status;
+  }
+
+  uint8_t Driver::writeCMD( const uint8_t cmd )
+  {
+    size_t txLength = 1;
+    spi_txbuff[ 0 ] = cmd;
+
+    /*------------------------------------------------
+    Write the data out, adding 1 byte for the command instruction
+    ------------------------------------------------*/
+    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
+    {
+      CSPin->setState( Chimera::GPIO::State::LOW );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
+      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      CSPin->setState( Chimera::GPIO::State::HIGH );
+
+      /* Return only the status code of the chip */
+      return spi_rxbuff[ 0 ];
+    }
+
+    return std::numeric_limits<Reg8_t>::max();
+  }
+
+  uint8_t Driver::getStatus()
+  {
+    return writeCMD( CMD_NOP );
+  }
+
+  void Driver::setCRCLength( const CRCLength length )
+  {
+    uint8_t config = readRegister( RF24::Hardware::REG_CONFIG ) & ~( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
+
+    switch ( length )
+    {
+      case CRCLength::CRC_8:
+        config |= RF24::Hardware::CONFIG_EN_CRC;
+        config &= ~RF24::Hardware::CONFIG_CRCO;
+        break;
+
+      case CRCLength::CRC_16:
+        config |= RF24::Hardware::CONFIG_EN_CRC | RF24::Hardware::CONFIG_CRCO;
+        break;
+
+      default:
+        break;
+    }
+
+    writeRegister( RF24::Hardware::REG_CONFIG, config );
+  }
+
+  CRCLength Driver::getCRCLength()
+  {
+    CRCLength result = CRCLength::CRC_DISABLED;
+
+    uint8_t config = readRegister( RF24::Hardware::REG_CONFIG ) & ( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
+    uint8_t en_aa  = readRegister( RF24::Hardware::REG_EN_AA );
+
+    if ( ( config & RF24::Hardware::CONFIG_EN_CRC ) || en_aa )
+    {
+      if ( config & RF24::Hardware::CONFIG_CRCO )
+      {
+        result = CRCLength::CRC_16;
+      }
+      else
+      {
+        result = CRCLength::CRC_8;
+      }
+    }
+
+    return result;
+  }
+
+  void Driver::disableCRC()
+  {
+    uint8_t disable = readRegister( RF24::Hardware::REG_CONFIG ) & ~RF24::Hardware::CONFIG_EN_CRC;
+    writeRegister( RF24::Hardware::REG_CONFIG, disable );
   }
 }    // namespace RF24::Hardware

@@ -24,7 +24,7 @@ namespace RF24::Hardware
   struct RegisterMap
   {
     Reg8_t config;
-    Reg8_t en_aa;
+    Reg8_t en_aa; 
     Reg8_t en_rx_addr;
     Reg8_t setup_aw;
     Reg8_t setup_retr;
