@@ -64,7 +64,7 @@ namespace RF24::Hardware
     -------------------------------------------------*/
     /**
      *  Initializes the driver and any preliminary configurations for the NRF24 chip. Upon
-     *  exiting, the driver will be ready for use and sitting in an idle state.
+     *  exiting, the driver will be ready for use and sitting in a powered off state.
      *
      *  @note If the SPI configuration specifies a CS config, it will be overwritten here
      *
@@ -115,15 +115,71 @@ namespace RF24::Hardware
      */
     Chimera::Status_t selfTest( const bool rpd );
 
+    /**
+     *  Reads a register on the device and returns the current value of that register
+     *
+     *  @param[in]  addr    The address of the register to read
+     *  @return Reg8_t
+     */
     Reg8_t readRegister( const Reg8_t addr );
+
+    /**
+     *  Reads a multibyte register into a buffer
+     *
+     *  @param[in]  addr    The address of the register to read
+     *  @param[out] buf     The buffer to read into
+     *  @param[in]  len     The total number of bytes to read from the register
+     *  @return Reg8_t      The chip's status register
+     */
     Reg8_t readRegister( const Reg8_t addr, uint8_t *const buf, size_t len );
 
+    /**
+     *  Writes a register on the device with a given value
+     *
+     *  @warning This operation overwrites the entire register
+     *
+     *  @param[in]  addr    The address of the register to write
+     *  @param[in]  value   The data to write to that register
+     *  @return Reg8_t      The chip's status register
+     */
     Reg8_t writeRegister( const Reg8_t addr, const Reg8_t value );
+
+    /**
+     *  Writes a register on the device with multiple bytes
+     *
+     *  @warning This operation overwrites the entire register
+     *
+     *  @param[in]  addr    The address of the register to write
+     *  @param[in]  buffer  The data to write to that register
+     *  @param[in]  len     The number of bytes to write from the buffer
+     *  @return Reg8_t      The chip's status register
+     */
     Reg8_t writeRegister( const Reg8_t addr, const Reg8_t *const buffer, size_t len );
 
+    /**
+     *  Performs a read/modify/write operation on a register to set specific bits
+     *
+     *  @param[in]  addr    The address of the register to write
+     *  @param[in]  mask    Mask of which bits should be set
+     *  @return Reg8_t      The chip's status register
+     */
     Reg8_t setRegisterBits( const Reg8_t addr, const Reg8_t mask );
+
+    /**
+     *  Performs a read/modify/write operation on a register to clear specific bits
+     *
+     *  @param[in]  addr    The address of the register to write
+     *  @param[in]  mask    Mask of which bits should be cleared
+     *  @return Reg8_t      The chip's status register
+     */
     Reg8_t clrRegisterBits( const Reg8_t addr, const Reg8_t mask );
 
+    /**
+     *  Toggles the PWRUP bit in the CONFIG register to enable/disable the chip
+     *
+     *  @param[in]  state   Turn the chip on (true) or off (false)
+     *  @return void
+     */
     void toggleRFPower( const bool state );
 
     /**

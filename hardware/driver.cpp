@@ -1,12 +1,12 @@
 /********************************************************************************
-*   File Name:
-*     driver.cpp
-*
-*   Description:
-*     NRF24L01(+) low level hardware driver implementation
-*
-*   2019 | Brandon Braun | brandonbraun653@gmail.com
-********************************************************************************/
+ *   File Name:
+ *     driver.cpp
+ *
+ *   Description:
+ *     NRF24L01(+) low level hardware driver implementation
+ *
+ *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
 
 /* C++ Includes */
 #include <cstring>
@@ -30,11 +30,13 @@ namespace RF24::Hardware
   {
     spi = nullptr;
     memset( &spiConfig, 0, sizeof( spiConfig ) );
+
+    spi_txbuff.fill( 0u );
+    spi_rxbuff.fill( 0u );
   }
 
   Driver::~Driver()
   {
-
   }
 
   /*-------------------------------------------------
@@ -104,9 +106,9 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Power down the device and make sure we actually achieve it
     ------------------------------------------------*/
-    Reg8_t configState = 0xFF;
+    Reg8_t configState = CONFIG_PWR_UP;
 
-    toggleRFPower( false );
+    resetDevice();
     readRegister( REG_CONFIG, &configState, 1 );
 
     if ( configState & CONFIG_PWR_UP )
@@ -193,7 +195,7 @@ namespace RF24::Hardware
       /* Return only the status code of the chip. The register values will be in the rx buff */
       return spi_rxbuff[ 0 ];
     }
-    
+
     return std::numeric_limits<Reg8_t>::max();
   }
 
@@ -225,7 +227,34 @@ namespace RF24::Hardware
 
   Chimera::Status_t Driver::resetDevice()
   {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+    toggleRFPower( false );
+    writeRegister( REG_CONFIG, CONFIG_Reset );
+    writeRegister( REG_EN_AA, EN_AA_Reset );
+    writeRegister( REG_EN_RXADDR, EN_RXADDR_Reset );
+    writeRegister( REG_SETUP_AW, SETUP_AW_Reset );
+    writeRegister( REG_SETUP_RETR, SETUP_RETR_Reset );
+    writeRegister( REG_RF_CH, RF_CH_Reset );
+    writeRegister( REG_RF_SETUP, RF_SETUP_Reset );
+    writeRegister( REG_OBSERVE_TX, OBSERVE_TX_Reset );
+    writeRegister( REG_CD, RPD_Reset );
+    writeRegister( REG_RX_ADDR_P0, reinterpret_cast<const uint8_t *>( &RX_ADDR_P0_Reset ), RX_ADDR_P0_byteWidth );
+    writeRegister( REG_RX_ADDR_P1, reinterpret_cast<const uint8_t *>( &RX_ADDR_P1_Reset ), RX_ADDR_P1_byteWidth );
+    writeRegister( REG_RX_ADDR_P2, RX_ADDR_P2_Reset );
+    writeRegister( REG_RX_ADDR_P3, RX_ADDR_P3_Reset );
+    writeRegister( REG_RX_ADDR_P4, RX_ADDR_P4_Reset );
+    writeRegister( REG_RX_ADDR_P5, RX_ADDR_P5_Reset );
+    writeRegister( REG_TX_ADDR, reinterpret_cast<const uint8_t *>( &TX_ADDR_Reset ), TX_ADDR_byteWidth );
+    writeRegister( REG_RX_PW_P0, RX_PW_P0_Reset );
+    writeRegister( REG_RX_PW_P1, RX_PW_P1_Reset );
+    writeRegister( REG_RX_PW_P2, RX_PW_P2_Reset );
+    writeRegister( REG_RX_PW_P3, RX_PW_P3_Reset );
+    writeRegister( REG_RX_PW_P4, RX_PW_P4_Reset );
+    writeRegister( REG_RX_PW_P5, RX_PW_P5_Reset );
+    writeRegister( REG_FIFO_STATUS, FIFO_STATUS_Reset );
+    writeRegister( REG_DYNPD, DYNPD_Reset );
+    writeRegister( REG_FEATURE, FEATURE_Reset );
+
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t Driver::selfTest( const bool rpd )
@@ -237,4 +266,4 @@ namespace RF24::Hardware
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
-}
+}    // namespace RF24::Hardware
