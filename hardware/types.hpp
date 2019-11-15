@@ -19,28 +19,42 @@
 namespace RF24::Hardware
 {
   
-  enum PipeNum_t : uint8_t
+  enum PipeBitField_t : size_t
   {
-    PIPE_0 = ( 1u << 0 ),
-    PIPE_1 = ( 1u << 1 ),
-    PIPE_2 = ( 1u << 2 ),
-    PIPE_3 = ( 1u << 3 ),
-    PIPE_4 = ( 1u << 4 ),
-    PIPE_5 = ( 1u << 5 ),
+    PIPE_BF_0 = ( 1u << 0 ),
+    PIPE_BF_1 = ( 1u << 1 ),
+    PIPE_BF_2 = ( 1u << 2 ),
+    PIPE_BF_3 = ( 1u << 3 ),
+    PIPE_BF_4 = ( 1u << 4 ),
+    PIPE_BF_5 = ( 1u << 5 ),
 
-    PIPE_MASK = 0x3Fu
+    PIPE_BF_MASK = 0x3Fu
   };
+
+  enum PipeNumber_t : size_t
+  {
+    PIPE_NUM_0   = 0u,
+    PIPE_NUM_1   = 1u,
+    PIPE_NUM_2   = 2u,
+    PIPE_NUM_3   = 3u,
+    PIPE_NUM_4   = 4u,
+    PIPE_NUM_5   = 5u,
+    PIPE_NUM_MAX = 6u,
+    PIPE_NUM_ALL = PIPE_NUM_MAX,
+    PIPE_INVALID = std::numeric_limits<size_t>::max()
+  };
+
 
   /**
    *   Definitions for tracking the hardware state machine mode
    */
-  enum class Mode : uint8_t
+  enum Mode : size_t
   {
-    POWER_DOWN = 0,
-    STANDBY_I,
-    STANDBY_II,
-    RX,
-    TX,
+    MODE_POWER_DOWN = 0,
+    MODE_STANDBY_I,
+    MODE_STANDBY_II,
+    MODE_RX,
+    MODE_TX,
 
     MAX_MODES,
     UNKNOWN_MODE
@@ -49,18 +63,18 @@ namespace RF24::Hardware
   /**
    *   Definitions for allowed TX power levels
    */
-  enum class PowerAmplitude : uint8_t
+  enum PowerAmplitude : size_t
   {
-    MIN  = 0u, /**< -18 dBm */
-    LOW  = 2u, /**< -12 dBm */
-    HIGH = 4u, /**<  -6 dBm */
-    MAX  = 6u  /**<   0 dBm */
+    PA_MIN  = 0u, /**< -18 dBm */
+    PA_LOW  = 2u, /**< -12 dBm */
+    PA_HIGH = 4u, /**<  -6 dBm */
+    PA_MAX  = 6u  /**<   0 dBm */
   };
 
   /**
    *   Definitions for allowed data rates
    */
-  enum class DataRate : uint8_t
+  enum DataRate : size_t
   {
     DR_1MBPS,  /**< 1 MBPS */
     DR_2MBPS,  /**< 2 MBPS */
@@ -70,7 +84,7 @@ namespace RF24::Hardware
   /**
    *   Definitions for CRC settings
    */
-  enum class CRCLength : uint8_t
+  enum CRCLength : size_t
   {
     CRC_DISABLED, /**< No CRC */
     CRC_8,        /**< 8 Bit CRC */
@@ -82,7 +96,7 @@ namespace RF24::Hardware
    *   numerical value here is NOT the number of bytes. This is the
    *   register level definition.
    */
-  enum class AddressWidth : uint8_t
+  enum AddressWidth : size_t
   {
     AW_3Byte = 0x01,
     AW_4Byte = 0x02,
@@ -92,46 +106,28 @@ namespace RF24::Hardware
   /**
    *   Definitions for the auto retransmit delay register field
    */
-  enum class AutoRetransmitDelay : uint8_t
+  enum AutoRetransmitDelay : size_t
   {
-    w250uS  = 0,
-    w500uS  = 1,
-    w750uS  = 2,
-    w1000uS = 3,
-    w1250uS = 4,
-    w1500uS = 5,
-    w1750uS = 6,
-    w2000uS = 7,
-    w2250uS = 8,
-    w2500uS = 9,
-    w2750uS = 10,
-    w3000uS = 11,
-    w3250uS = 12,
-    w3500uS = 13,
-    w3750uS = 14,
-    w4000uS = 15,
+    ART_DELAY_250uS  = 0,
+    ART_DELAY_500uS  = 1,
+    ART_DELAY_750uS  = 2,
+    ART_DELAY_1000uS = 3,
+    ART_DELAY_1250uS = 4,
+    ART_DELAY_1500uS = 5,
+    ART_DELAY_1750uS = 6,
+    ART_DELAY_2000uS = 7,
+    ART_DELAY_2250uS = 8,
+    ART_DELAY_2500uS = 9,
+    ART_DELAY_2750uS = 10,
+    ART_DELAY_3000uS = 11,
+    ART_DELAY_3250uS = 12,
+    ART_DELAY_3500uS = 13,
+    ART_DELAY_3750uS = 14,
+    ART_DELAY_4000uS = 15,
 
-    MIN = w250uS,
-    MED = w2250uS,
-    MAX = w4000uS
-  };
-
-  /**
-   *   Provide reasons for why something has failed.
-   */
-  enum class FailureCode : uint8_t
-  {
-    NO_FAILURE = 0,
-    CLEARED    = NO_FAILURE,
-    MAX_RETRY_TIMEOUT,
-    TX_FIFO_FULL_TIMEOUT,
-    TX_FIFO_EMPTY_TIMEOUT,
-    RADIO_IN_TX_MODE,
-    RADIO_IN_RX_MODE,
-    INVALID_PIPE,
-    NOT_CONNECTED,
-    REGISTER_WRITE_FAILURE,
-    COULD_NOT_ERASE,
+    ART_DELAY_MIN = ART_DELAY_250uS,
+    ART_DELAY_MED = ART_DELAY_2250uS,
+    ART_DELAY_MAX = ART_DELAY_4000uS
   };
 
   

@@ -41,17 +41,6 @@ namespace RF24::Hardware
   static constexpr Chimera::SPI::BitOrder SPI_BIT_ORDER = Chimera::SPI::BitOrder::MSB_FIRST;
   static constexpr Chimera::SPI::ClockFreq SPI_MAX_CLOCK = 8000000;
   static constexpr Chimera::SPI::ClockMode SPI_CLOCK_MODE = Chimera::SPI::ClockMode::MODE0;
-
-  /*-------------------------------------------------
-  RX Pipes
-  -------------------------------------------------*/
-  static constexpr size_t RX_PIPE_0 = 0u;
-  static constexpr size_t RX_PIPE_1 = 1u;
-  static constexpr size_t RX_PIPE_2 = 2u;
-  static constexpr size_t RX_PIPE_3 = 3u;
-  static constexpr size_t RX_PIPE_4 = 4u;
-  static constexpr size_t RX_PIPE_5 = 5u;
-  static constexpr size_t RX_PIPE_ALL = std::numeric_limits<size_t>::max();
   
 }
 

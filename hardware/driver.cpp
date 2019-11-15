@@ -23,6 +23,46 @@
 
 namespace RF24::Hardware
 {
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = { REG_RX_ADDR_P0, REG_RX_ADDR_P1, REG_RX_ADDR_P2,
+                                                                    REG_RX_ADDR_P3, REG_RX_ADDR_P4, REG_RX_ADDR_P5 };
+
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister = { REG_RX_PW_P0, REG_RX_PW_P1, REG_RX_PW_P2,
+                                                                         REG_RX_PW_P3, REG_RX_PW_P4, REG_RX_PW_P5 };
+
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = { EN_RXADDR_P0, EN_RXADDR_P1, EN_RXADDR_P2,
+                                                                   EN_RXADDR_P3, EN_RXADDR_P4, EN_RXADDR_P5 };
+
+  size_t pipeResourceIndex( const PipeBitField_t pipe )
+  {
+    switch ( pipe )
+    {
+      case PIPE_0:
+
+        break;
+
+      case PIPE_1:
+
+        break;
+      case PIPE_2:
+
+        break;
+
+      case PIPE_3:
+
+        break;
+      case PIPE_4:
+
+        break;
+      case PIPE_5:
+
+        break;
+
+      default:
+        return 0u;
+        break;
+    }
+  }
+
   /*-------------------------------------------------
   Constructors/Destructors
   -------------------------------------------------*/
@@ -218,7 +258,7 @@ namespace RF24::Hardware
     if ( state && !( readRegister( REG_CONFIG ) & CONFIG_PWR_UP ) )
     {
       /*-------------------------------------------------
-      If not powered up already, do it. The worst startup 
+      If not powered up already, do it. The worst startup
       delay is about 5mS, so just wait that amount.
       -------------------------------------------------*/
       setRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
@@ -319,56 +359,7 @@ namespace RF24::Hardware
     return spi_rxbuff[ 0 ];
   }
 
-  uint8_t Driver::readPayload( uint8_t *const buffer, size_t len )
-  {
-    uint8_t status = 0u;
-
-    /*-------------------------------------------------
-    The chip enable pin must be low to read out data
-    -------------------------------------------------*/
-    CEPin->setState( Chimera::GPIO::State::LOW );
-
-    /*-------------------------------------------------
-    Cap the data length
-    -------------------------------------------------*/
-    len = std::min( len, MAX_PAYLOAD_WIDTH );
-
-    /*-------------------------------------------------
-    Calculate the number of bytes that do nothing. This is important for
-    fixed payload widths as the full width must be read out each time.
-    -------------------------------------------------*/
-    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
-    size_t size       = len + blank_len;
-
-    /*-------------------------------------------------
-    Format the read command and fill the rest with NOPs
-    -------------------------------------------------*/
-    spi_txbuff[ 0 ] = RF24::Hardware::CMD_R_RX_PAYLOAD;
-    memset( &spi_txbuff[ 1 ], RF24::Hardware::CMD_NOP, size );
-    memset( spi_rxbuff.data(), 0, spi_rxbuff.size() );
-
-    /*-------------------------------------------------
-    Read out the payload. The +1 is for the read command.
-    -------------------------------------------------*/
-    beginTransaction();
-    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size + 1 );
-    endTransaction();
-
-    status = spi_rxbuff[ 0 ];
-    memcpy( buffer, &spi_rxbuff[ 1 ], len );
-
-    /*------------------------------------------------
-    Clear (by setting) the RX_DR flag to signal we've read data
-    ------------------------------------------------*/
-    setRegisterBits( REG_STATUS, STATUS_RX_DR );
-
-    /*-------------------------------------------------
-    Reset the chip enable back to the initial RX state
-    -------------------------------------------------*/
-    CEPin->setState( Chimera::GPIO::State::HIGH );
-
-    return status;
-  }
+  
 
   uint8_t Driver::writeCMD( const uint8_t cmd )
   {
@@ -399,7 +390,8 @@ namespace RF24::Hardware
 
   void Driver::setCRCLength( const CRCLength length )
   {
-    uint8_t config = readRegister( RF24::Hardware::REG_CONFIG ) & ~( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
+    uint8_t config =
+        readRegister( RF24::Hardware::REG_CONFIG ) & ~( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
 
     switch ( length )
     {
@@ -423,8 +415,9 @@ namespace RF24::Hardware
   {
     CRCLength result = CRCLength::CRC_DISABLED;
 
-    uint8_t config = readRegister( RF24::Hardware::REG_CONFIG ) & ( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
-    uint8_t en_aa  = readRegister( RF24::Hardware::REG_EN_AA );
+    uint8_t config =
+        readRegister( RF24::Hardware::REG_CONFIG ) & ( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
+    uint8_t en_aa = readRegister( RF24::Hardware::REG_EN_AA );
 
     if ( ( config & RF24::Hardware::CONFIG_EN_CRC ) || en_aa )
     {

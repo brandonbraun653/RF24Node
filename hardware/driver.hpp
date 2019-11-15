@@ -13,6 +13,7 @@
 #define NRF24L01_HARDWARE_DRIVER_HPP
 
 /* C++ Includes */
+#include <array>
 #include <memory>
 
 /* Chimera Includes */
@@ -27,7 +28,17 @@
 
 namespace RF24::Hardware
 {
-  extern std::array<Reg8_t, MAX_NUM_PIPES> rxPipeRegisterAddress;
+  extern const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister;
+  extern const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister;
+  extern const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField;
+
+  /**
+   *  Looks up the resource index associated with a given pipe identifier
+   *
+   *  @param[in]  pipe    The pipe bitfield to process
+   *  @return size_t      Resource index
+   */
+  size_t pipeResourceIndex( const PipeBitField_t pipe );
 
   /**
    *  Register level interface to provide common functionality to the networking
@@ -135,7 +146,7 @@ namespace RF24::Hardware
      *  @param[in]  len     The total number of bytes to read from the register
      *  @return Reg8_t      The chip's status register
      */
-    Reg8_t readRegister( const Reg8_t addr, uint8_t *const buf, size_t len );
+    Reg8_t readRegister( const Reg8_t addr, void *const buf, size_t len );
 
     /**
      *  Writes a register on the device with a given value
@@ -158,7 +169,7 @@ namespace RF24::Hardware
      *  @param[in]  len     The number of bytes to write from the buffer
      *  @return Reg8_t      The chip's status register
      */
-    Reg8_t writeRegister( const Reg8_t addr, const Reg8_t *const buffer, size_t len );
+    Reg8_t writeRegister( const Reg8_t addr, const void *const buffer, size_t len );
 
     /**
      *  Performs a read/modify/write operation on a register to set specific bits

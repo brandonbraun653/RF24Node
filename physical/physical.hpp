@@ -205,7 +205,7 @@ namespace RF24::Physical
      *   @param[in]  validate    Optionally validate the address was set properly
      *   @return Chimera::Status_t
      */
-    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNum_t pipe, const uint64_t address, const bool validate = false );
+    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address, const bool validate = false );
 
     /**
      *  Close a pipe after it has been previously opened.
@@ -214,7 +214,7 @@ namespace RF24::Physical
      *  @param[in]  pipe    Which pipe number to close, 0-5.
      *  @return Chimera::Status_t
      */
-    Chimera::Status_t closeReadPipe( const uint8_t pipe );
+    Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber_t pipe );
 
     /**
      *  Check if data is available to be read on any pipe. If so, returns a bitfield that indicates
@@ -222,35 +222,51 @@ namespace RF24::Physical
      *
      *  @return RF24::Hardware::PipeNum_t
      */
-    RF24::Hardware::PipeNum_t payloadAvailable();
+    RF24::Hardware::PipeNumber_t payloadAvailable();
+
+    /**
+     *  Checks how many bytes are available in the RX payload for the given pipe
+     *
+     *  @note   This function really isn't that useful unless used in conjunction with payloadAvailable()
+     *  @see    payloadAvailable()
+     *
+     *  @param[in]  pipe    The pipe to check
+     *  @return size_t      The number of bytes in the pipe's payload buffer
+     */
+    size_t getPayloadSize( const RF24::Hardware::PipeNumber_t pipe );
 
     /**
      *  Read the available payload into a buffer
      *
-     *  The size of data read is the fixed payload size, see getPayloadSize()
+     *  @note   Call payloadAvailable() to know which pipe the payload data corresponds to 
+     *  @note   Call getPayloadSize() to know how much data is in the pipe payload
+     *
+     *  @see    payloadAvailable()
+     *  @see    getPayloadSize()
      *
      *  @param[out] buffer      Pointer to a buffer where the data should be written
      *  @param[in]  len         Maximum number of bytes to read into the buffer
      *
      *  @return void
      */
-    Chimera::Status_t readPayload( RF24::Hardware::PipeNum_t pipe, void *const buffer, size_t len );
+    Chimera::Status_t readPayload( void *const buffer, size_t len );
 
     /**
      *  Immediately writes data to pipe 0 under the assumption that the hardware has already
-     *  been configured for TX transfers.
+     *  been configured for TX transfers. This prevents the software from going through the 
+     *  full TX configuration process each time a packet needs to be sent.
      *
      *  Prerequisite Calls:
      *    1. openWritePipe()
      *    2. setChannel()
-     *    3. stopListening()
+     *    3. stopListening() [Pipe 0 only]
      *
      *   @param[in]  buffer          Array of data to be sent
      *   @param[in]  len             Number of bytes to be sent
      *   @param[in]  multicast       If true, disables Auto-Acknowledgment feature for just this packet
      *   @return True if the payload was delivered successfully false if not
      */
-    Chimera::Status_t writeFast( const void *const buffer, const size_t len, const bool multicast = false );
+    Chimera::Status_t immediateWrite( const void *const buffer, const size_t len, const bool multicast = false );
 
     /**
      * This function allows extended blocking and auto-retries per a user defined timeout
@@ -282,7 +298,7 @@ namespace RF24::Physical
      *
      *   @return True if an ACK payload is available, false if not
      */
-    RF24::Hardware::PipeNum_t isAckPayloadAvailable();
+    RF24::Hardware::PipeNumber_t isAckPayloadAvailable();
 
     /**
      *   Clears out the TX FIFO
@@ -307,7 +323,7 @@ namespace RF24::Physical
      *
      *   @return void
      */
-    Chimera::Status_t toggleDynamicPayloads( const RF24::Hardware::PipeNum_t pipe, const bool state );
+    Chimera::Status_t toggleDynamicPayloads( const RF24::Hardware::PipeNumber_t pipe, const bool state );
 
     /**
      *   Set the power amplifier level
@@ -374,8 +390,8 @@ namespace RF24::Physical
     bool mDynamicPayloadsEnabled;             /**< Are our payloads configured as variable width? */
     bool mCurrentlyListening;                 /**< Track if the radio is listening or not */
     bool mListeningPaused;                    /**< Track if the radio has paused listening */
-    size_t mAddressWidth;                     /**< Keep track of the user's address width preference */
-    size_t mPayloadSize;                      /**< Keep track of the user's payload width preference */
+    uint8_t mAddressWidth;                    /**< Keep track of the user's address width preference */
+    uint8_t mPayloadSize;                     /**< Keep track of the user's payload width preference */
     uint64_t mCachedPipe0RXAddress;           /**< Remembers a previously set Pipe0 listening address */
     RF24::Hardware::Mode mCurrentMode;        /**< Keep track of which HW mode of the radio is likely to be in */
     RF24::Hardware::Driver_sPtr mHWDriver;    /**< Low level radio module hardware driver */

@@ -9,8 +9,9 @@
  ********************************************************************************/
 
 /* C++ Includes */
-#include <cstring>
 #include <algorithm>
+#include <cstring>
+#include <limits>
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
@@ -248,7 +249,7 @@ namespace RF24::Physical
     mHWDriver->setRegisterBits( REG_CONFIG, CONFIG_PRIM_RX );
     toggleChipEnablePin( true );
     Chimera::delayMilliseconds( 1 );
-    mCurrentMode = Mode::RX;
+    mCurrentMode = MODE_RX;
 
     /*------------------------------------------------
     If we clobbered the old pipe 0 listening address so 
@@ -256,7 +257,7 @@ namespace RF24::Physical
     ------------------------------------------------*/
     if ( mCachedPipe0RXAddress )
     {
-      openReadPipe( PIPE_0, mCachedPipe0RXAddress );
+      openReadPipe( PIPE_NUM_0, mCachedPipe0RXAddress );
     }
 
     mCurrentlyListening = true;
@@ -276,7 +277,7 @@ namespace RF24::Physical
       toggleChipEnablePin( false );
       mListeningPaused    = true;
       mCurrentlyListening = false;
-      mCurrentMode        = RF24::Hardware::Mode::STANDBY_I;
+      mCurrentMode        = RF24::Hardware::MODE_STANDBY_I;
       return Chimera::CommonStatusCodes::OK;
     }
 
@@ -298,7 +299,7 @@ namespace RF24::Physical
 
       /* The transition requires an RX settling period of ~130uS */
       Chimera::delayMilliseconds( 1 );
-      mCurrentMode = RF24::Hardware::Mode::RX;
+      mCurrentMode = RF24::Hardware::MODE_RX;
       return Chimera::CommonStatusCodes::OK;
     }
 
@@ -316,7 +317,7 @@ namespace RF24::Physical
       -------------------------------------------------*/
       toggleChipEnablePin( false );
       mHWDriver->clrRegisterBits( REG_CONFIG, CONFIG_PRIM_RX );
-      mCurrentMode = Mode::STANDBY_I;
+      mCurrentMode = MODE_STANDBY_I;
 
       /*-------------------------------------------------
       If we are auto-acknowledging RX packets with a payload, make sure the TX FIFO is clean so
@@ -377,7 +378,7 @@ namespace RF24::Physical
     /*-------------------------------------------------
     If it's safe, clobber the RX Pipe 0 address too
     -------------------------------------------------*/
-    if ( ( mCurrentMode == Mode::TX ) || ( !mCurrentlyListening && !mListeningPaused ) )
+    if ( ( mCurrentMode == MODE_TX ) || ( !mCurrentlyListening && !mListeningPaused ) )
     {
       mHWDriver->writeRegister( REG_RX_ADDR_P0, reinterpret_cast<const uint8_t *>( &address ), MAX_ADDRESS_WIDTH );
     }
@@ -385,14 +386,14 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::openReadPipe( const RF24::Hardware::PipeNum_t pipe, const uint64_t address, const bool validate )
+  Chimera::Status_t Driver::openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address, const bool validate )
   {
     using namespace RF24::Hardware;
 
     /*------------------------------------------------
     Make sure the pipe is ok
     ------------------------------------------------*/
-    if ( pipe & ( ~PIPE_MASK ) )
+    if ( pipe < PIPE_NUM_ALL )
     {
       mFailureCode = Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
       return mFailureCode;
@@ -401,19 +402,19 @@ namespace RF24::Physical
     /*-------------------------------------------------
     Assign the address for the pipe to listen against
     -------------------------------------------------*/
-    if ( ( pipe == PIPE_0 ) || ( pipe == PIPE_1 ) )
+    if ( ( pipe == PIPE_NUM_0 ) || ( pipe == PIPE_NUM_1 ) )
     {
       /*-------------------------------------------------
       Write only as many address bytes as were set in SETUP_AW
       -------------------------------------------------*/
-      uint8_t addressWidth = static_cast<uint8_t>( mHWDriver->getAddressWidth() );
-      mHWDriver->writeRegister( RF24::Hardware::rxPipeRegisterAddress[ pipe ], reinterpret_cast<const uint8_t *>( &address ), addressWidth );
+      auto addressWidth = mHWDriver->getAddressWidth();
+      mHWDriver->writeRegister( rxPipeAddressRegister[ pipe ], &address, addressWidth );
 
       /*------------------------------------------------
       Save the pipe 0 address because it can be clobbered by openWritePipe() and
       will need to be restored later when we start listening again.
       ------------------------------------------------*/
-      if ( pipe == PIPE_0 )
+      if ( pipe == PIPE_NUM_0 )
       {
         memcpy( &mCachedPipe0RXAddress, &address, addressWidth );
       }
@@ -424,9 +425,9 @@ namespace RF24::Physical
       if ( validate )
       {
         uint64_t setVal = 0u;
-        mHWDriver->readRegister( RF24::Hardware::rxPipeRegisterAddress[ pipe ], reinterpret_cast<uint8_t *>( &setVal ), addressWidth );
+        mHWDriver->readRegister( rxPipeAddressRegister[ pipe ], &setVal, addressWidth );
 
-        if ( setVal != ( address & 0xFFFFFFFFFF ) )
+        if ( setVal != ( address & 0xFFFFFFFFFFu ) )
         {
           mFailureCode = Chimera::CommonStatusCodes::FAIL;
           return mFailureCode;
@@ -436,9 +437,10 @@ namespace RF24::Physical
     else
     {
       /*------------------------------------------------
-      These pipes only need their LSB set
+      These pipes only need the first bytes assigned as 
+      they take the rest of their address from PIPE_NUM_0.
       ------------------------------------------------*/
-      mHWDriver->writeRegister( RF24::Hardware::rxPipeRegisterAddress[ pipe ], reinterpret_cast<const uint8_t *>( &address ), 1 );
+      mHWDriver->writeRegister( rxPipeAddressRegister[ pipe ], &address, 1u );
 
       /*------------------------------------------------
       Optionally validate the write
@@ -446,12 +448,12 @@ namespace RF24::Physical
       if ( validate )
       {
         uint8_t setVal = 0u;
-        mHWDriver->readRegister( RF24::Hardware::rxPipeRegisterAddress[ pipe ], &setVal, 1 );
+        mHWDriver->readRegister( rxPipeAddressRegister[ pipe ], &setVal, 1u );
 
         if ( setVal != ( address & 0xFF ) )
         {
-          mFailureCode = RF24::Hardware::FailureCode::REGISTER_WRITE_FAILURE;
-          return false;
+          mFailureCode = Chimera::CommonStatusCodes::FAIL;
+          return mFailureCode;
         }
       }
     }
@@ -459,40 +461,117 @@ namespace RF24::Physical
     /*-------------------------------------------------
     Let the pipe know how wide the payload will be, then turn it on
     -------------------------------------------------*/
-    mHWDriver->writeRegister( pipeRXPayloadWidthReg[ pipe ], static_cast<uint8_t>( mPayloadSize ) );
-    mHWDriver->setRegisterBits( RF24::Hardware::REG_EN_RXADDR, pipeEnableRXAddressReg[ pipe ] );
+    mHWDriver->writeRegister( rxPipePayloadWidthRegister[ pipe ], mPayloadSize );
+    mHWDriver->setRegisterBits( REG_EN_RXADDR, rxPipeEnableBitField[ pipe ] );
 
-    return true;
+    return Chimera::CommonStatusCodes::OK;
   }
 
+  Chimera::Status_t Driver::closeReadPipe( const RF24::Hardware::PipeNumber_t pipe )
+  {
+    using namespace RF24::Hardware;
 
+    if ( pipe < MAX_NUM_PIPES )
+    {
+      Reg8_t rxaddrVal = mHWDriver->readRegister( REG_EN_RXADDR ) & ( ~rxPipeEnableBitField[ pipe ] );
+      mHWDriver->writeRegister( REG_EN_RXADDR, rxaddrVal );
 
+      return Chimera::CommonStatusCodes::OK;
+    }
+
+    return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
+  }
+
+  RF24::Hardware::PipeNumber_t Driver::payloadAvailable()
+  {
+    using namespace RF24::Hardware;
+
+    PipeNumber_t pipeWithPayload = PIPE_NUM_MAX;
+
+    /*-------------------------------------------------
+    Figure out which pipe has data available, as reported
+    by the device's status register
+    -------------------------------------------------*/
+    if ( !mHWDriver->rxFifoEmpty() )
+    {
+      pipeWithPayload = static_cast<PipeNumber_t>( ( mHWDriver->getStatus() >> STATUS_RX_P_NO_Pos ) & STATUS_RX_P_NO_Wid );
+    }
+
+    return pipeWithPayload;
+  }
+
+  size_t Driver::getPayloadSize( const RF24::Hardware::PipeNumber_t pipe )
+  {
+    using namespace RF24::Hardware;
+
+    if ( pipe < MAX_NUM_PIPES )
+    {
+      /* The mask is the same across all pipes */
+      auto payloadWidth = mHWDriver->readRegister( rxPipePayloadWidthRegister[ pipe ] );
+      return payloadWidth & RX_PW_P0_Mask;
+    }
+
+    /* A value of zero indicates the pipe is not used or no data is available */
+    return 0u;
+  }
+
+  Chimera::Status_t Driver::readPayload( uint8_t *const buffer, size_t len )
+  {
+    using namespace RF24::Hardware;
+
+    uint8_t status = 0u;
+
+    /*-------------------------------------------------
+    The chip enable pin must be low to read out data
+    -------------------------------------------------*/
+    mHWDriver->toggleCE( false );
+
+    /*-------------------------------------------------
+    Cap the data length
+    -------------------------------------------------*/
+    len = std::min( len, MAX_PAYLOAD_WIDTH );
+
+    /*-------------------------------------------------
+    Calculate the number of bytes that do nothing. This is important for
+    fixed payload widths as the full width must be read out each time.
+    -------------------------------------------------*/
+    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
+    size_t size       = len + blank_len;
+
+    /*-------------------------------------------------
+    Format the read command and fill the rest with NOPs
+    -------------------------------------------------*/
+    spi_txbuff[ 0 ] = RF24::Hardware::CMD_R_RX_PAYLOAD;
+    memset( &spi_txbuff[ 1 ], RF24::Hardware::CMD_NOP, size );
+    memset( spi_rxbuff.data(), 0, spi_rxbuff.size() );
+
+    /*-------------------------------------------------
+    Read out the payload. The +1 is for the read command.
+    -------------------------------------------------*/
+    beginTransaction();
+    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size + 1 );
+    endTransaction();
+
+    status = spi_rxbuff[ 0 ];
+    memcpy( buffer, &spi_rxbuff[ 1 ], len );
+
+    /*------------------------------------------------
+    Clear (by setting) the RX_DR flag to signal we've read data
+    ------------------------------------------------*/
+    setRegisterBits( REG_STATUS, STATUS_RX_DR );
+
+    /*-------------------------------------------------
+    Reset the chip enable back to the initial RX state
+    -------------------------------------------------*/
+    CEPin->setState( Chimera::GPIO::State::HIGH );
+
+    return status;
+  }
 
 
   void Driver::toggleChipEnablePin( const bool state )
   {
     mHWDriver->toggleCE( state );
-  }
-
-  bool Driver::available()
-  {
-    return !rxFifoEmpty();
-  }
-
-  bool Driver::available( uint8_t &pipe_num )
-  {
-    pipe_num = 0xFF;
-
-    /*-------------------------------------------------
-    Figure out which pipe has data available
-    -------------------------------------------------*/
-    if ( available() )
-    {
-      pipe_num = ( getStatus() >> RF24::Hardware::STATUS_RX_P_NO_Pos ) & RF24::Hardware::STATUS_RX_P_NO_Wid;
-      return true;
-    }
-
-    return false;
   }
 
   void Driver::read( uint8_t *const buffer, size_t len )
@@ -764,18 +843,7 @@ namespace RF24::Physical
     rx_ready = statusActual & RF24::Hardware::STATUS_RX_DR;
   }
 
-  void Driver::closeReadPipe( const uint8_t pipe )
-  {
-    if ( pipe < MAX_NUM_PIPES )
-    {
-      uint8_t rxaddrVal = mHWDriver->readRegister( RF24::Hardware::REG_EN_RXADDR ) & ~pipeEnableRXAddressReg[ pipe ];
-      mHWDriver->writeRegister( RF24::Hardware::REG_EN_RXADDR, rxaddrVal );
-
-#if defined( TRACK_REGISTER_STATES )
-      registers.en_rxaddr = rxaddrVal;
-#endif
-    }
-  }
+  
 
   void Driver::setAddressWidth( const AddressWidth address_width )
   {
