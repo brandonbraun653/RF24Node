@@ -27,6 +27,8 @@
 
 namespace RF24::Hardware
 {
+  extern std::array<Reg8_t, MAX_NUM_PIPES> rxPipeRegisterAddress;
+
   /**
    *  Register level interface to provide common functionality to the networking
    *  layer without having it mess with the SPI driver managment.
@@ -220,7 +222,10 @@ namespace RF24::Hardware
      */
     uint8_t readPayload( uint8_t *const buffer, size_t len );
 
-    uint8_t writeCMD( const uint8_t cmd );
+    void writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length );
+
+    void readCMD( const Reg8_t cmd, void *const buffer, const size_t length );
+
     uint8_t getStatus();
 
 
@@ -250,14 +255,25 @@ namespace RF24::Hardware
      */
     uint8_t getAddressBytes();
 
-    
-
     /**
-     *   Get the current RF communication channel
+     *   Enable or disable auto-acknowledge packets on a per pipeline basis.
      *
-     *   @return The currently configured RF Channel
+     *   If enabled, the pipe will immediately go into RX mode after transmitting its payload
+     *   so that it can listen for the receiver's ACK packet. If no ACK is received and the auto
+     *   retransmit feature is enabled, it will retry until it either succeeds or it hits a retry
+     *   limit (defined in SETUP_RETR::ARC).
+     *
+     *   @note The auto-acknowledge behavior can be temporarily disabled for one packet by enabling
+     *           the feature register and using the W_TX_PAYLOAD_NO_ACK command. (ie multicast = true)
+     *
+     *   @param[in]  pipe        Which pipeline to modify
+     *   @param[in]  enable      Whether to enable (true) or disable (false) auto-ACKs
+     *   @param[in]  validate    Check if the value was set correctly
+     *   @return True if success, false if not
      */
-    uint8_t getChannel();
+    bool setAutoAck( const uint8_t pipe, const bool enable, const bool validate = false );
+
+    
 
     /**
      *   Activates the ability to use features defined in Register::FEATURES

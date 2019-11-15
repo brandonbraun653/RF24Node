@@ -19,6 +19,17 @@
 namespace RF24::Hardware
 {
   
+  enum PipeNum_t : uint8_t
+  {
+    PIPE_0 = ( 1u << 0 ),
+    PIPE_1 = ( 1u << 1 ),
+    PIPE_2 = ( 1u << 2 ),
+    PIPE_3 = ( 1u << 3 ),
+    PIPE_4 = ( 1u << 4 ),
+    PIPE_5 = ( 1u << 5 ),
+
+    PIPE_MASK = 0x3Fu
+  };
 
   /**
    *   Definitions for tracking the hardware state machine mode
