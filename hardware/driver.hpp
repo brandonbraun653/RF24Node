@@ -199,6 +199,14 @@ namespace RF24::Hardware
 
     void toggleFeatures( const bool state );
 
+    void toggleDynamicPayloads( const bool state );
+
+    void toggleDynamicAck( const bool state );
+
+    void toggleAutoAck( const bool state, const PipeNumber_t pipe );
+
+    void toggleAckPayloads( const bool state );
+
     /**
      *  Enables/Disables the given RX pipe for listening on the currently 
      *  configured address for that pipe.
@@ -220,7 +228,11 @@ namespace RF24::Hardware
 
     void toggleCE( const bool state );
 
-    uint8_t writePayload( const uint8_t *const buf, size_t len, const uint8_t writeType );
+    /**
+     *
+     *
+     */
+    Reg8_t writePayload( const void *const buf, size_t len, const uint8_t writeType );
 
     /**
      *   Read the receive payload
@@ -231,7 +243,7 @@ namespace RF24::Hardware
      *   @param[in]  len     Maximum number of bytes to read
      *   @return Current value of status register
      */
-    uint8_t readPayload( uint8_t *const buffer, size_t len );
+    Reg8_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength );
 
     void writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length );
 
@@ -367,6 +379,9 @@ namespace RF24::Hardware
 
     std::array<uint8_t, SPI_BUFFER_LEN> spi_txbuff; /**< Internal transmit buffer */
     std::array<uint8_t, SPI_BUFFER_LEN> spi_rxbuff; /**< Internal receive buffer */
+
+    bool mDynamicPayloadsEnabled;
+    bool mFeaturesActivated;
   };
 
   using Driver_sPtr = std::shared_ptr<Driver>;

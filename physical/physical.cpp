@@ -21,7 +21,6 @@
 
 namespace RF24::Physical
 {
-
   Driver::Driver()
   {
     /*-------------------------------------------------
@@ -515,58 +514,15 @@ namespace RF24::Physical
     return 0u;
   }
 
-  Chimera::Status_t Driver::readPayload( uint8_t *const buffer, size_t len )
+  Chimera::Status_t Driver::readPayload( void *const buffer, size_t len )
   {
-    using namespace RF24::Hardware;
-
-    uint8_t status = 0u;
-
-    /*-------------------------------------------------
-    The chip enable pin must be low to read out data
-    -------------------------------------------------*/
-    mHWDriver->toggleCE( false );
-
-    /*-------------------------------------------------
-    Cap the data length
-    -------------------------------------------------*/
-    len = std::min( len, MAX_PAYLOAD_WIDTH );
-
-    /*-------------------------------------------------
-    Calculate the number of bytes that do nothing. This is important for
-    fixed payload widths as the full width must be read out each time.
-    -------------------------------------------------*/
-    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
-    size_t size       = len + blank_len;
-
-    /*-------------------------------------------------
-    Format the read command and fill the rest with NOPs
-    -------------------------------------------------*/
-    spi_txbuff[ 0 ] = RF24::Hardware::CMD_R_RX_PAYLOAD;
-    memset( &spi_txbuff[ 1 ], RF24::Hardware::CMD_NOP, size );
-    memset( spi_rxbuff.data(), 0, spi_rxbuff.size() );
-
-    /*-------------------------------------------------
-    Read out the payload. The +1 is for the read command.
-    -------------------------------------------------*/
-    beginTransaction();
-    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size + 1 );
-    endTransaction();
-
-    status = spi_rxbuff[ 0 ];
-    memcpy( buffer, &spi_rxbuff[ 1 ], len );
-
-    /*------------------------------------------------
-    Clear (by setting) the RX_DR flag to signal we've read data
-    ------------------------------------------------*/
-    setRegisterBits( REG_STATUS, STATUS_RX_DR );
-
-    /*-------------------------------------------------
-    Reset the chip enable back to the initial RX state
-    -------------------------------------------------*/
-    CEPin->setState( Chimera::GPIO::State::HIGH );
-
-    return status;
+    auto status = mHWDriver->readPayload( buffer, len );
+    return Chimera::CommonStatusCodes::OK;
   }
+
+
+
+
 
 
   void Driver::toggleChipEnablePin( const bool state )
@@ -638,49 +594,7 @@ namespace RF24::Physical
 
   
 
-  bool Driver::rxFifoFull()
-  {
-    uint8_t reg = hwDriver->readRegister( RF24::Hardware::REG_FIFO_STATUS );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.fifo_status = reg;
-#endif
-
-    return reg & FIFO_STATUS::RX_FULL;
-  }
-
-  bool Driver::rxFifoEmpty()
-  {
-    uint8_t reg = hwDriver->readRegister( RF24::Hardware::REG_FIFO_STATUS );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.fifo_status = reg;
-#endif
-
-    return reg & FIFO_STATUS::RX_EMPTY;
-  }
-
-  bool Driver::txFifoFull()
-  {
-    uint8_t reg = hwDriver->readRegister( RF24::Hardware::REG_FIFO_STATUS );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.fifo_status = reg;
-#endif
-
-    return reg & FIFO_STATUS::TX_FULL;
-  }
-
-  bool Driver::txFifoEmpty()
-  {
-    uint8_t reg = hwDriver->readRegister( RF24::Hardware::REG_FIFO_STATUS );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.fifo_status = reg;
-#endif
-
-    return reg & FIFO_STATUS::TX_EMPTY;
-  }
+  
 
   void Driver::startFastWrite( const uint8_t *const buffer, size_t len, const bool multicast, const bool startTX )
   {
@@ -902,16 +816,6 @@ namespace RF24::Physical
     }
   }
 
-  
-
-  
-
-  
-
-  
-
-  
-
   uint8_t Driver::flushTX()
   {
     return _writeCMD( RF24::Hardware::CMD_FLUSH_TX );
@@ -922,236 +826,48 @@ namespace RF24::Physical
     return _writeCMD( RF24::Hardware::CMD_FLUSH_RX );
   }
 
-  void Driver::activateFeatures()
+  Chimera::Status_t Driver::setPALevel( const RF24::Hardware::PowerAmplitude level, const bool validate )
   {
-    if ( !featuresActivated )
-    {
-      spi_txbuff[ 0 ] = RF24::Hardware::CMD_ACTIVATE;
-      spi_txbuff[ 1 ] = 0x73;
+    using namespace RF24::Hardware;
 
-      spiWrite( spi_txbuff.data(), 2 );
-      featuresActivated = true;
-    }
-  }
-
-  void Driver::deactivateFeatures()
-  {
-    if ( featuresActivated )
-    {
-      /*-------------------------------------------------
-      Sending the activation command sequence again also disables the features
-      -------------------------------------------------*/
-      activateFeatures();
-      featuresActivated = false;
-    }
-  }
-
-  void Driver::enableAckPayload()
-  {
-    activateFeatures();
-    hwDriver->setRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_ACK_PAY | RF24::Hardware::FEATURE_EN_DPL );
-    hwDriver->setRegisterBits( RF24::Hardware::REG_DYNPD, DYNPD::DPL_P0 | DYNPD::DPL_P1 );
-
-    dynamicPayloadsEnabled = true;
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.dynpd.update( this );
-    registers.feature.update( this );
-#endif
-  }
-
-  void Driver::disableAckPayload()
-  {
-    if ( featuresActivated )
-    {
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_ACK_PAY | RF24::Hardware::FEATURE_EN_DPL );
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_DYNPD, DYNPD::DPL_P0 | DYNPD::DPL_P1 );
-
-      dynamicPayloadsEnabled = false;
-
-#if defined( TRACK_REGISTER_STATES )
-      registers.dynpd.update( this );
-      registers.feature.update( this );
-#endif
-    }
-  }
-
-  void Driver::enableDynamicPayloads()
-  {
-    /*-------------------------------------------------
-    Send the activate command to enable selection of features
-    -------------------------------------------------*/
-    activateFeatures();
-
-    /*-------------------------------------------------
-    Enable the dynamic payload feature bit
-    -------------------------------------------------*/
-    hwDriver->setRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_DPL );
-
-    /*-------------------------------------------------
-    Enable dynamic payload on all pipes. This requires that
-    auto-acknowledge be enabled.
-    -------------------------------------------------*/
-    hwDriver->setRegisterBits( RF24::Hardware::REG_EN_AA, EN_AA::Mask );
-    hwDriver->setRegisterBits( RF24::Hardware::REG_DYNPD, DYNPD::Mask );
-
-    dynamicPayloadsEnabled = true;
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.dynpd.update( this );
-    registers.en_aa.update( this );
-    registers.feature.update( this );
-#endif
-  }
-
-  void Driver::disableDynamicPayloads()
-  {
-    /*-------------------------------------------------
-    Disable for all pipes
-    -------------------------------------------------*/
-    if ( featuresActivated )
-    {
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_DYNPD, DYNPD::Mask );
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_EN_AA, EN_AA::Mask );
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_DPL );
-
-      dynamicPayloadsEnabled = false;
-
-#if defined( TRACK_REGISTER_STATES )
-      registers.dynpd.update( this );
-      registers.en_aa.update( this );
-      registers.feature.update( this );
-#endif
-    }
-  }
-
-  void Driver::enableDynamicAck()
-  {
-    activateFeatures();
-    hwDriver->setRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_DYN_ACK );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.feature.update( this );
-#endif
-  }
-
-  void Driver::disableDynamicAck()
-  {
-    if ( featuresActivated )
-    {
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_FEATURE, RF24::Hardware::FEATURE_EN_DYN_ACK );
-
-#if defined( TRACK_REGISTER_STATES )
-      registers.feature.update( this );
-#endif
-    }
-  }
-
-  bool Driver::isPVariant()
-  {
-    return pVariant;
-  }
-
-  void Driver::setAutoAckAll( const bool enable )
-  {
-    if ( enable )
-    {
-      hwDriver->setRegisterBits( RF24::Hardware::REG_EN_AA, EN_AA::Mask );
-    }
-    else
-    {
-      hwDriver->clrRegisterBits( RF24::Hardware::REG_EN_AA, EN_AA::Mask );
-    }
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.en_aa.update( this );
-#endif
-  }
-
-  bool Driver::setAutoAck( const uint8_t pipe, const bool enable, const bool validate )
-  {
-    bool returnVal = true;
-
-    if ( pipe < MAX_NUM_PIPES )
-    {
-      uint8_t en_aa = hwDriver->readRegister( RF24::Hardware::REG_EN_AA );
-
-      if ( enable )
-      {
-        en_aa |= 1u << pipe;
-      }
-      else
-      {
-        en_aa &= ~( 1u << pipe );
-      }
-
-      hwDriver->writeRegister( RF24::Hardware::REG_EN_AA, en_aa );
-
-      if ( validate )
-      {
-        returnVal = ( hwDriver->readRegister( RF24::Hardware::REG_EN_AA ) == en_aa );
-      }
-
-#if defined( TRACK_REGISTER_STATES )
-      if ( returnVal )
-      {
-        registers.en_aa = en_aa;
-      }
-#endif
-    }
-    else
-    {
-      returnVal = false;
-    }
-
-    return returnVal;
-  }
-
-  bool Driver::setPALevel( const PowerAmplitude level, const bool validate )
-  {
     /*-------------------------------------------------
     Merge bits from level into setup according to a mask
     https://graphics.stanford.edu/~seander/bithacks.html#MaskedMerge
     -------------------------------------------------*/
-    uint8_t setup = mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP );
-    setup ^= ( setup ^ static_cast<uint8_t>( level ) ) & RF_SETUP::RF_PWR_Msk;
+    uint8_t setup = mHWDriver->readRegister( REG_RF_SETUP );
+    setup ^= ( setup ^ static_cast<uint8_t>( level ) ) & RF_SETUP_RF_PWR_Msk;
 
-    mHWDriver->writeRegister( RF24::Hardware::REG_RF_SETUP, setup );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.rf_setup = setup;
-#endif
+    mHWDriver->writeRegister( REG_RF_SETUP, setup );
 
     if ( validate )
     {
-      return ( mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP ) == setup );
+      return ( mHWDriver->readRegister( REG_RF_SETUP ) == setup );
     }
 
     return true;
   }
 
-  PowerAmplitude Driver::getPALevel()
+  RF24::Hardware::PowerAmplitude Driver::getPALevel()
   {
-    uint8_t setup = mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP );
+    using namespace RF24::Hardware;
 
-#if defined( TRACK_REGISTER_STATES )
-    registers.rf_setup = setup;
-#endif
-
-    return static_cast<PowerAmplitude>( ( setup & RF_SETUP::RF_PWR ) >> 1 );
+    uint8_t setup = mHWDriver->readRegister( REG_RF_SETUP );
+    return static_cast<PowerAmplitude>( ( setup & RF_SETUP_RF_PWR ) >> 1 );
   }
 
-  bool Driver::setDataRate( const DataRate speed )
+  Chimera::Status_t Driver::setDataRate( const RF24::Hardware::DataRate speed )
   {
-    uint8_t setup = mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP );
+    using namespace RF24::Hardware;
+
+    uint8_t setup = mHWDriver->readRegister( REG_RF_SETUP );
 
     switch ( speed )
     {
-      case RF24::Hardware::DataRate::DR_250KBPS:
+      case DataRate::DR_250KBPS:
         if ( mPlusVariant )
         {
-          setup |= RF_SETUP::RF_DR_LOW;
-          setup &= ~RF_SETUP::RF_DR_HIGH;
+          setup |= RF_SETUP_RF_DR_LOW;
+          setup &= ~RF_SETUP_RF_DR_HIGH;
         }
         else
         {
@@ -1159,58 +875,33 @@ namespace RF24::Physical
         }
         break;
 
-      case RF24::Hardware::DataRate::DR_1MBPS:
-        setup &= ~( RF_SETUP::RF_DR_HIGH | RF_SETUP::RF_DR_LOW );
+      case DataRate::DR_1MBPS:
+        setup &= ~( RF_SETUP_RF_DR_HIGH | RF_SETUP_RF_DR_LOW );
         break;
 
-      case RF24::Hardware::DataRate::DR_2MBPS:
-        setup &= ~RF_SETUP::RF_DR_LOW;
-        setup |= RF_SETUP::RF_DR_HIGH;
+      case DataRate::DR_2MBPS:
+        setup &= ~RF_SETUP_RF_DR_LOW;
+        setup |= RF_SETUP_RF_DR_HIGH;
         break;
 
       default:
         break;
     }
 
-    mHWDriver->writeRegister( RF24::Hardware::REG_RF_SETUP, setup );
-    auto result = mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP );
+    mHWDriver->writeRegister( REG_RF_SETUP, setup );
+    auto result = mHWDriver->readRegister( REG_RF_SETUP );
 
-#if defined( TRACK_REGISTER_STATES )
-    registers.rf_setup = result;
-#endif
-
-    return ( result == setup );
+    return Chimera::CommonStatusCodes::FAIL;
   }
 
-  DataRate Driver::getDataRate()
+  RF24::Hardware::DataRate Driver::getDataRate()
   {
-    uint8_t reg = mHWDriver->readRegister( RF24::Hardware::REG_RF_SETUP );
+    using namespace RF24::Hardware;
 
-#if defined( TRACK_REGISTER_STATES )
-    registers.rf_setup = reg;
-#endif
-
-    return static_cast<DataRate>( reg & ( RF_SETUP::RF_DR_HIGH | RF_SETUP::RF_DR_LOW ) );
+    uint8_t reg = mHWDriver->readRegister( REG_RF_SETUP );
+    return static_cast<DataRate>( reg & ( RF_SETUP_RF_DR_HIGH | RF_SETUP_RF_DR_LOW ) );
   }
 
-  
-
-  void Driver::maskIRQ( const bool tx_ok, const bool tx_fail, const bool rx_ready )
-  {
-    uint8_t config = hwDriver->readRegister( RF24::Hardware::REG_CONFIG );
-
-    config &= ~( RF24::Hardware::CONFIG_MASK_MAX_RT | RF24::Hardware::CONFIG_MASK_TX_DS | RF24::Hardware::CONFIG_MASK_RX_DR );
-    config |= ( tx_fail << RF24::Hardware::CONFIG_MASK_MAX_RT_Pos ) | ( tx_ok << RF24::Hardware::CONFIG_MASK_TX_DS_Pos )
-              | ( rx_ready << RF24::Hardware::CONFIG_MASK_RX_DR_Pos );
-
-    hwDriver->writeRegister( RF24::Hardware::REG_CONFIG, config );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.config = config;
-#endif
-  }
-
- 
   bool Driver::_registerIsBitmaskSet( const uint8_t reg, const uint8_t bitmask )
   {
     return ( mHWDriver->readRegister( reg ) & bitmask ) == bitmask;

@@ -73,6 +73,9 @@ namespace RF24::Hardware
 
     spi_txbuff.fill( 0u );
     spi_rxbuff.fill( 0u );
+
+    mDynamicPayloadsEnabled = false;
+    mFeaturesActivated      = false;
   }
 
   Driver::~Driver()
@@ -166,7 +169,7 @@ namespace RF24::Hardware
     return tempBuffer;
   }
 
-  Reg8_t Driver::readRegister( const Reg8_t addr, uint8_t *const buf, size_t len )
+  Reg8_t Driver::readRegister( const Reg8_t addr, void *const buf, size_t len )
   {
     /*------------------------------------------------
     Input protection
@@ -206,7 +209,7 @@ namespace RF24::Hardware
     return writeRegister( addr, &value, 1u );
   }
 
-  Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t *const buffer, size_t len )
+  Reg8_t Driver::writeRegister( const Reg8_t addr, const void *const buffer, size_t len )
   {
     /*------------------------------------------------
     Input protection
@@ -274,6 +277,122 @@ namespace RF24::Hardware
     }
   }
 
+  void Driver::toggleFeatures( const bool state )
+  {
+    if ( !mFeaturesActivated )
+    {
+      spi_txbuff[ 0 ] = RF24::Hardware::CMD_ACTIVATE;
+      spi_txbuff[ 1 ] = 0x73;
+
+      spiWrite( spi_txbuff.data(), 2 );
+      mFeaturesActivated = true;
+    }
+    else if ( mFeaturesActivated && !state )
+    {
+      /*-------------------------------------------------
+      Sending the activation command sequence again also disables the features
+      -------------------------------------------------*/
+      activateFeatures();
+      featuresActivated = false;
+    }
+  }
+
+  void Driver::toggleDynamicPayloads( const bool state )
+  {
+    if ( state ) 
+    {
+      /*-------------------------------------------------
+      Send the activate command to enable selection of features
+      -------------------------------------------------*/
+      activateFeatures();
+
+      /*-------------------------------------------------
+      Enable the dynamic payload feature bit
+      -------------------------------------------------*/
+      setRegisterBits( REG_FEATURE, FEATURE_EN_DPL );
+
+      /*-------------------------------------------------
+      Enable dynamic payload on all pipes. This requires that
+      auto-acknowledge be enabled.
+      -------------------------------------------------*/
+      setRegisterBits( REG_EN_AA, EN_AA_Mask );
+      setRegisterBits( REG_DYNPD, DYNPD_Mask );
+
+      mDynamicPayloadsEnabled = true;
+    }
+    else if ( mFeaturesActivated && !state )
+    {
+      /*-------------------------------------------------
+      Disable for all pipes
+      -------------------------------------------------*/
+      clrRegisterBits( REG_DYNPD, DYNPD_Mask );
+      clrRegisterBits( REG_EN_AA, EN_AA_Mask );
+      clrRegisterBits( REG_FEATURE, FEATURE_EN_DPL );
+
+      mDynamicPayloadsEnabled = false;
+    }
+  }
+
+  void Driver::toggleDynamicAck( const bool state )
+  {
+    if ( state )
+    {
+      activateFeatures();
+      setRegisterBits( REG_FEATURE, FEATURE_EN_DYN_ACK );
+    }
+    else if( mFeaturesActivated )
+    {
+      clrRegisterBits( REG_FEATURE, FEATURE_EN_DYN_ACK );
+    }
+  }
+
+  void Driver::toggleAutoAck( const bool state, const PipeNumber_t pipe )
+  {
+    if ( ( pipe == PIPE_NUM_ALL ) && state )
+    {
+      setRegisterBits( REG_EN_AA, EN_AA_Mask );
+    }
+    else if ( ( pipe == PIPE_NUM_ALL ) && !state )
+    {
+      clrRegisterBits( REG_EN_AA, EN_AA_Mask );
+    }
+    else if ( pipe < MAX_NUM_PIPES )
+    {
+      Reg8_t en_aa = readRegister( REG_EN_AA );
+
+      if ( state )
+      {
+        en_aa |= 1u << pipe;
+      }
+      else
+      {
+        en_aa &= ~( 1u << pipe );
+      }
+
+      writeRegister( REG_EN_AA, en_aa );
+    }
+    /* Else invalid pipe input parameters */
+  }
+
+  void Driver::toggleAckPayloads( const bool state )
+  {
+    if ( !mDynamicPayloadsEnabled && state )
+    {
+      activateFeatures();
+      setRegisterBits( REG_FEATURE, FEATURE_EN_ACK_PAY | FEATURE_EN_DPL );
+      setRegisterBits( REG_DYNPD, DYNPD_DPL_P0 | DYNPD_DPL_P1 );
+
+      mDynamicPayloadsEnabled = true;
+    }
+    else if ( mDynamicPayloadsEnabled && !state )
+    {
+      clrRegisterBits( REG_FEATURE, FEATURE_EN_ACK_PAY | FEATURE_EN_DPL );
+      clrRegisterBits( REG_DYNPD, DYNPD_DPL_P0 | DYNPD_DPL_P1 );
+
+      mDynamicPayloadsEnabled = false;
+    }
+  }
+
   Chimera::Status_t Driver::resetDevice()
   {
     toggleRFPower( false );
@@ -328,7 +447,12 @@ namespace RF24::Hardware
     }
   }
 
-  uint8_t Driver::writePayload( const uint8_t *const buf, size_t len, const uint8_t writeType )
+
+
+
+
+
+  Reg8_t Driver::writePayload( const void *const buf, const size_t len, const uint8_t writeType )
   {
     if ( ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD ) )
     {
@@ -339,9 +463,9 @@ namespace RF24::Hardware
     Calculate the number of bytes that do nothing. When dynamic payloads are enabled, the length
     doesn't matter as long as it is less than the max payload width (32).
     -------------------------------------------------*/
-    len               = std::min( len, payloadSize );
-    uint8_t blank_len = static_cast<uint8_t>( dynamicPayloadsEnabled ? 0 : ( payloadSize - len ) );
-    size_t size       = len + blank_len + 1;
+    size_t payload_len = std::min( len, MAX_PAYLOAD_WIDTH );
+    size_t blank_len   = static_cast<uint8_t>( mDynamicPayloadsEnabled ? 0u : ( payload_len - len ) );
+    size_t size        = len + blank_len + 1;
 
     /*-------------------------------------------------
     Format the write command and fill the rest with zeros
@@ -352,14 +476,67 @@ namespace RF24::Hardware
     memcpy( &spi_txbuff[ 1 ], buf, len );           /* Payload information */
     memset( &spi_txbuff[ len + 1 ], 0, blank_len ); /* Null out the remaining buffer space */
 
-    beginTransaction();
-    spiWriteRead( spi_txbuff.data(), spi_rxbuff.data(), size );
-    endTransaction();
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
 
     return spi_rxbuff[ 0 ];
   }
 
-  
+  Reg8_t Driver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
+  {
+    using namespace RF24::Hardware;
+
+    uint8_t status = 0u;
+
+    /*-------------------------------------------------
+    The chip enable pin must be low to read out data
+    -------------------------------------------------*/
+    toggleCE( false );
+
+    /*-------------------------------------------------
+    Cap the data length
+    -------------------------------------------------*/
+    auto len = std::min( bufferLength, MAX_PAYLOAD_WIDTH );
+
+    /*-------------------------------------------------
+    Calculate the number of bytes that do nothing. This is important for
+    fixed payload widths as the full width must be read out each time.
+    -------------------------------------------------*/
+    uint8_t blank_len = static_cast<uint8_t>( mDynamicPayloadsEnabled ? 0 : ( payloadLength - bufferLength ) );
+    size_t size       = bufferLength + blank_len;
+
+    /*-------------------------------------------------
+    Format the read command and fill the rest with NOPs
+    -------------------------------------------------*/
+    spi_txbuff[ 0 ] = RF24::Hardware::CMD_R_RX_PAYLOAD;
+    memset( &spi_txbuff[ 1 ], RF24::Hardware::CMD_NOP, size );
+    memset( spi_rxbuff.data(), 0, spi_rxbuff.size() );
+
+    /*-------------------------------------------------
+    Read out the payload. The +1 is for the read command.
+    -------------------------------------------------*/
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size + 1u, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
+
+    status = spi_rxbuff[ 0 ];
+    memcpy( buffer, &spi_rxbuff[ 1 ], len );
+
+    /*------------------------------------------------
+    Clear (by setting) the RX_DR flag to signal we've read data
+    ------------------------------------------------*/
+    setRegisterBits( REG_STATUS, STATUS_RX_DR );
+
+    /*-------------------------------------------------
+    Reset the chip enable back to the initial RX state
+    -------------------------------------------------*/
+    CEPin->setState( Chimera::GPIO::State::HIGH );
+
+    return status;
+  }
 
   uint8_t Driver::writeCMD( const uint8_t cmd )
   {
@@ -390,38 +567,36 @@ namespace RF24::Hardware
 
   void Driver::setCRCLength( const CRCLength length )
   {
-    uint8_t config =
-        readRegister( RF24::Hardware::REG_CONFIG ) & ~( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
+    uint8_t config = readRegister( REG_CONFIG ) & ~( CONFIG_CRCO | CONFIG_EN_CRC );
 
     switch ( length )
     {
       case CRCLength::CRC_8:
-        config |= RF24::Hardware::CONFIG_EN_CRC;
-        config &= ~RF24::Hardware::CONFIG_CRCO;
+        config |= CONFIG_EN_CRC;
+        config &= ~CONFIG_CRCO;
         break;
 
       case CRCLength::CRC_16:
-        config |= RF24::Hardware::CONFIG_EN_CRC | RF24::Hardware::CONFIG_CRCO;
+        config |= CONFIG_EN_CRC | CONFIG_CRCO;
         break;
 
       default:
         break;
     }
 
-    writeRegister( RF24::Hardware::REG_CONFIG, config );
+    writeRegister( REG_CONFIG, config );
   }
 
   CRCLength Driver::getCRCLength()
   {
     CRCLength result = CRCLength::CRC_DISABLED;
 
-    uint8_t config =
-        readRegister( RF24::Hardware::REG_CONFIG ) & ( RF24::Hardware::CONFIG_CRCO | RF24::Hardware::CONFIG_EN_CRC );
-    uint8_t en_aa = readRegister( RF24::Hardware::REG_EN_AA );
+    uint8_t config = readRegister( REG_CONFIG ) & ( CONFIG_CRCO | CONFIG_EN_CRC );
+    uint8_t en_aa  = readRegister( REG_EN_AA );
 
-    if ( ( config & RF24::Hardware::CONFIG_EN_CRC ) || en_aa )
+    if ( ( config & CONFIG_EN_CRC ) || en_aa )
     {
-      if ( config & RF24::Hardware::CONFIG_CRCO )
+      if ( config & CONFIG_CRCO )
       {
         result = CRCLength::CRC_16;
       }
@@ -436,7 +611,42 @@ namespace RF24::Hardware
 
   void Driver::disableCRC()
   {
-    uint8_t disable = readRegister( RF24::Hardware::REG_CONFIG ) & ~RF24::Hardware::CONFIG_EN_CRC;
-    writeRegister( RF24::Hardware::REG_CONFIG, disable );
+    uint8_t disable = readRegister( REG_CONFIG ) & ~CONFIG_EN_CRC;
+    writeRegister( REG_CONFIG, disable );
+  }
+
+  void Driver::maskIRQ( const bool tx_ok, const bool tx_fail, const bool rx_ready )
+  {
+    uint8_t config = readRegister( REG_CONFIG );
+
+    config &= ~( CONFIG_MASK_MAX_RT | CONFIG_MASK_TX_DS | CONFIG_MASK_RX_DR );
+    config |=
+        ( tx_fail << CONFIG_MASK_MAX_RT_Pos ) | ( tx_ok << CONFIG_MASK_TX_DS_Pos ) | ( rx_ready << CONFIG_MASK_RX_DR_Pos );
+
+    writeRegister( REG_CONFIG, config );
+  }
+
+  bool Driver::rxFifoFull()
+  {
+    Reg8_t status = readRegister( REG_FIFO_STATUS );
+    return status & FIFO_STATUS_RX_FULL;
+  }
+
+  bool Driver::rxFifoEmpty()
+  {
+    Reg8_t status = readRegister( REG_FIFO_STATUS );
+    return status & FIFO_STATUS_RX_EMPTY;
+  }
+
+  bool Driver::txFifoFull()
+  {
+    Reg8_t status = readRegister( REG_FIFO_STATUS );
+    return status & FIFO_STATUS_TX_FULL;
+  }
+
+  bool Driver::txFifoEmpty()
+  {
+    Reg8_t status = readRegister( REG_FIFO_STATUS );
+    return status & FIFO_STATUS_TX_EMPTY;
   }
 }    // namespace RF24::Hardware
