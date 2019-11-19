@@ -12,7 +12,8 @@
 #include <cstring>
 
 /* Driver Includes */
-#include <RF24Node/network/path.hpp>
+#include <RF24Node/network/path/path.hpp>
+#include <RF24Node/network/frame/frame_definitions.hpp>
 
 namespace RF24::Network
 {

@@ -18,6 +18,7 @@
 
 /* Driver Includes */
 #include <RF24Node/network/definitions.hpp>
+#include <RF24Node/network/frame/frame_definitions.hpp>
 
 namespace RF24::Network
 {

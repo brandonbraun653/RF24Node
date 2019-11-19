@@ -1,12 +1,12 @@
 /********************************************************************************
-*   File Name:
-*     driver.hpp
-*
-*   Description:
-*     Hardware driver for the NRF24L01(+)
-*
-*   2019 | Brandon Braun | brandonbraun653@gmail.com
-********************************************************************************/
+ *   File Name:
+ *     driver.hpp
+ *
+ *   Description:
+ *     Hardware driver for the NRF24L01(+)
+ *
+ *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
 
 #pragma once
 #ifndef NRF24L01_HARDWARE_DRIVER_HPP
@@ -33,14 +33,6 @@ namespace RF24::Hardware
   extern const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField;
 
   /**
-   *  Looks up the resource index associated with a given pipe identifier
-   *
-   *  @param[in]  pipe    The pipe bitfield to process
-   *  @return size_t      Resource index
-   */
-  size_t pipeResourceIndex( const PipeBitField_t pipe );
-
-  /**
    *  Register level interface to provide common functionality to the networking
    *  layer without having it mess with the SPI driver managment.
    *
@@ -54,8 +46,7 @@ namespace RF24::Hardware
    *        |     Max Clock | 8MHz           |
    *        |    CS Control | Manual         |
    */
-  class Driver : public Chimera::SPI::SPIAcceptor,
-                 public Chimera::Threading::Lockable
+  class Driver : public Chimera::SPI::SPIAcceptor, public Chimera::Threading::Lockable
   {
   public:
     /*-------------------------------------------------
@@ -85,9 +76,9 @@ namespace RF24::Hardware
      *
      *  @param[in]  CE      The pin configuration for the Chip Enable pin (sets Rx/Tx modes)
      *  @param[in]  CS      The pin configuration for the Chip Select pin (SPI)
-     * 
+     *
      *  @return Chimera::Status_t
-     * 
+     *
      *  |   Return Value  |                     Explanation                    |
      *  |:---------------:|:--------------------------------------------------:|
      *  |              OK | The initialization sequence succeeded              |
@@ -97,12 +88,12 @@ namespace RF24::Hardware
     Chimera::Status_t initialize( const Chimera::GPIO::PinInit &CE, const Chimera::GPIO::PinInit &CS );
 
     /**
-     *  Wipes out all configuration from the hardware registers and 
-     *  resets them back to hardware defaults, as if the unit had 
+     *  Wipes out all configuration from the hardware registers and
+     *  resets them back to hardware defaults, as if the unit had
      *  just powered off and then back on again.
-     * 
+     *
      *  @return Chimera::Status_t
-     * 
+     *
      *  | Return Value |              Explanation             |
      *  |:------------:|:------------------------------------:|
      *  |           OK | The reset succeeded                  |
@@ -118,10 +109,10 @@ namespace RF24::Hardware
      *        a. Checks if any surrounding devices are transmitting
      *        b. Sets a flag indicating if other devices are detected
      *    3. TBD?
-     * 
+     *
      *  @param[in]  rpd     Received power detection check enable/disable
      *  @return Chimera::Status_t
-     * 
+     *
      *  | Return Value |              Explanation             |
      *  |:------------:|:------------------------------------:|
      *  |           OK | The self test passed                 |
@@ -208,15 +199,15 @@ namespace RF24::Hardware
     void toggleAckPayloads( const bool state );
 
     /**
-     *  Enables/Disables the given RX pipe for listening on the currently 
+     *  Enables/Disables the given RX pipe for listening on the currently
      *  configured address for that pipe.
-     * 
+     *
      *  @note To act on all pipes, pass the function RX_PIPE_ALL
-     * 
+     *
      *  @param[in]  pipe    The pipe to act upon
      *  @param[in]  state   The state to set the pipe(s) to. True==Enabled, False==Disabled
-     *  @return Chimera::Status_t 
-     * 
+     *  @return Chimera::Status_t
+     *
      *  |   Return Value   |              Explanation             |
      *  |:----------------:|:------------------------------------:|
      *  |               OK | The setting applied successfully     |
@@ -229,10 +220,15 @@ namespace RF24::Hardware
     void toggleCE( const bool state );
 
     /**
+     *   Write the transmit payload. If the TX FIFO is full when this is called, the data will simply be lost.
+     *   The size of data written is capped at the max payload size.
      *
-     *
+     *   @param[in]  buffer      Where to get the data
+     *   @param[in]  len         Number of bytes to be sent
+     *   @param[in]  writeType   Write using ACK (Command::W_TX_PAYLOAD) or NACK (Command::W_TX_PAYLOAD_NO_ACK)
+     *   @return Current value of status register
      */
-    Reg8_t writePayload( const void *const buf, size_t len, const uint8_t writeType );
+    Reg8_t writePayload( const void *const buf, const size_t len, const uint8_t writeType );
 
     /**
      *   Read the receive payload
@@ -244,6 +240,8 @@ namespace RF24::Hardware
      *   @return Current value of status register
      */
     Reg8_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength );
+
+    Reg8_t writeCMD( const uint8_t cmd );
 
     void writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length );
 
@@ -296,7 +294,6 @@ namespace RF24::Hardware
      */
     bool setAutoAck( const uint8_t pipe, const bool enable, const bool validate = false );
 
-    
 
     /**
      *   Activates the ability to use features defined in Register::FEATURES
@@ -367,6 +364,8 @@ namespace RF24::Hardware
      */
     bool txStandBy();
 
+    Chimera::Status_t writeAckPayload( const PipeNumber_t pipe, const void *const buffer, const size_t len );
+
   protected:
     void writeCommand();
 
@@ -382,13 +381,13 @@ namespace RF24::Hardware
 
     bool mDynamicPayloadsEnabled;
     bool mFeaturesActivated;
+    size_t mAddressWidth;
   };
 
   using Driver_sPtr = std::shared_ptr<Driver>;
   using Driver_uPtr = std::unique_ptr<Driver>;
 
-} // namespace RF24::Hardware
+}    // namespace RF24::Hardware
 
 
-
-#endif  /* NRF24L01_HARDWARE_DRIVER_HPP */
+#endif /* NRF24L01_HARDWARE_DRIVER_HPP */

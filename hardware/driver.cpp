@@ -32,37 +32,6 @@ namespace RF24::Hardware
   const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = { EN_RXADDR_P0, EN_RXADDR_P1, EN_RXADDR_P2,
                                                                    EN_RXADDR_P3, EN_RXADDR_P4, EN_RXADDR_P5 };
 
-  size_t pipeResourceIndex( const PipeBitField_t pipe )
-  {
-    switch ( pipe )
-    {
-      case PIPE_0:
-
-        break;
-
-      case PIPE_1:
-
-        break;
-      case PIPE_2:
-
-        break;
-
-      case PIPE_3:
-
-        break;
-      case PIPE_4:
-
-        break;
-      case PIPE_5:
-
-        break;
-
-      default:
-        return 0u;
-        break;
-    }
-  }
-
   /*-------------------------------------------------
   Constructors/Destructors
   -------------------------------------------------*/
@@ -76,6 +45,7 @@ namespace RF24::Hardware
 
     mDynamicPayloadsEnabled = false;
     mFeaturesActivated      = false;
+    mAddressWidth           = 0u;
   }
 
   Driver::~Driver()
@@ -284,7 +254,11 @@ namespace RF24::Hardware
       spi_txbuff[ 0 ] = RF24::Hardware::CMD_ACTIVATE;
       spi_txbuff[ 1 ] = 0x73;
 
-      spiWrite( spi_txbuff.data(), 2 );
+      CSPin->setState( Chimera::GPIO::State::LOW );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), 2, 100 );
+      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      CSPin->setState( Chimera::GPIO::State::HIGH );
+
       mFeaturesActivated = true;
     }
     else if ( mFeaturesActivated && !state )
@@ -293,13 +267,13 @@ namespace RF24::Hardware
       Sending the activation command sequence again also disables the features
       -------------------------------------------------*/
       activateFeatures();
-      featuresActivated = false;
+      mFeaturesActivated = false;
     }
   }
 
   void Driver::toggleDynamicPayloads( const bool state )
   {
-    if ( state ) 
+    if ( state )
     {
       /*-------------------------------------------------
       Send the activate command to enable selection of features
@@ -340,7 +314,7 @@ namespace RF24::Hardware
       activateFeatures();
       setRegisterBits( REG_FEATURE, FEATURE_EN_DYN_ACK );
     }
-    else if( mFeaturesActivated )
+    else if ( mFeaturesActivated )
     {
       clrRegisterBits( REG_FEATURE, FEATURE_EN_DYN_ACK );
     }
@@ -448,13 +422,9 @@ namespace RF24::Hardware
   }
 
 
-
-
-
-
   Reg8_t Driver::writePayload( const void *const buf, const size_t len, const uint8_t writeType )
   {
-    if ( ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != RF24::Hardware::CMD_W_TX_PAYLOAD ) )
+    if ( ( writeType != CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != CMD_W_TX_PAYLOAD ) )
     {
       return 0u;
     }
@@ -538,7 +508,23 @@ namespace RF24::Hardware
     return status;
   }
 
-  uint8_t Driver::writeCMD( const uint8_t cmd )
+  Chimera::Status_t Driver::writeAckPayload( const PipeNumber_t pipe, const void *const buffer, const size_t len )
+  {
+    // TODO: Magic numbers abound in this function. Get rid of them.
+    size_t size = std::min( len, static_cast<size_t>( 32 ) ) + 1u;
+
+    spi_txbuff[ 0 ] = RF24::Hardware::CMD_W_ACK_PAYLOAD | ( pipe & 0x07 );
+    memcpy( &spi_txbuff[ 1 ], buffer, size );
+
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
+
+    return Chimera::CommonStatusCodes::OK;
+  }
+
+  Reg8_t Driver::writeCMD( const uint8_t cmd )
   {
     size_t txLength = 1;
     spi_txbuff[ 0 ] = cmd;
@@ -648,5 +634,39 @@ namespace RF24::Hardware
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
     return status & FIFO_STATUS_TX_EMPTY;
+  }
+
+  void Driver::setAddressWidth( const AddressWidth address_width )
+  {
+    writeRegister( REG_SETUP_AW, static_cast<Reg8_t>( address_width ) );
+    mAddressWidth = getAddressBytes();
+  }
+
+  AddressWidth Driver::getAddressWidth()
+  {
+    auto reg = readRegister( REG_SETUP_AW );
+    return static_cast<AddressWidth>( reg );
+  }
+
+  uint8_t Driver::getAddressBytes()
+  {
+    switch ( getAddressWidth() )
+    {
+      case AddressWidth::AW_3Byte:
+        return 3;
+        break;
+
+      case AddressWidth::AW_4Byte:
+        return 4;
+        break;
+
+      case AddressWidth::AW_5Byte:
+        return 5;
+        break;
+
+      default:
+        return 0;
+        break;
+    }
   }
 }    // namespace RF24::Hardware

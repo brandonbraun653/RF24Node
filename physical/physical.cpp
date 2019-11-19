@@ -41,7 +41,6 @@ namespace RF24::Physical
 
   Driver::~Driver()
   {
-
   }
 
   Chimera::Status_t Driver::initialize()
@@ -67,16 +66,16 @@ namespace RF24::Physical
     Set 1500uS timeout and 3 retry attempts. Don't lower
     or the 250KBS mode will break.
     -------------------------------------------------*/
-    setRetries( RF24::Hardware::AutoRetransmitDelay::w1500uS, 3 );
+    setRetries( RF24::Hardware::AutoRetransmitDelay::ART_DELAY_1500uS, 3 );
 
     /*-------------------------------------------------
-    If we can set the data rate to 250kbps, we have a 
+    If we can set the data rate to 250kbps, we have a
     plus variant of the chip
     -------------------------------------------------*/
     mPlusVariant = ( setDataRate( RF24::Hardware::DataRate::DR_250KBPS ) == Chimera::CommonStatusCodes::OK );
 
     /*-------------------------------------------------
-    Set data rate to the slowest, most reliable speed 
+    Set data rate to the slowest, most reliable speed
     supported by all NRF24L01 chip variants
     -------------------------------------------------*/
     setDataRate( RF24::Hardware::DataRate::DR_1MBPS );
@@ -87,7 +86,7 @@ namespace RF24::Physical
     mHWDriver->setAddressWidth( RF24::Hardware::AddressWidth::AW_5Byte );
 
     /*-------------------------------------------------
-    Set the default channel to a value that likely won't 
+    Set the default channel to a value that likely won't
     congest the spectrum.
     -------------------------------------------------*/
     setChannel( 76 );
@@ -144,7 +143,8 @@ namespace RF24::Physical
     }
   }
 
-  Chimera::Status_t Driver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count, const bool validate )
+  Chimera::Status_t Driver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
+                                        const bool validate )
   {
     bool returnVal    = true;
     Reg8_t ard        = ( static_cast<Reg8_t>( delay ) & 0x0F ) << RF24::Hardware::SETUP_RETR_ARD_Pos;
@@ -153,7 +153,7 @@ namespace RF24::Physical
 
     mHWDriver->writeRegister( RF24::Hardware::REG_SETUP_RETR, setup_retr );
 
-    if ( validate && ( mHWDriver->readRegister( RF24::Hardware::REG_SETUP_RETR ) != setup_retr ))
+    if ( validate && ( mHWDriver->readRegister( RF24::Hardware::REG_SETUP_RETR ) != setup_retr ) )
     {
       return Chimera::CommonStatusCodes::FAIL;
     }
@@ -231,7 +231,7 @@ namespace RF24::Physical
 
     /*-------------------------------------------------
     If we are auto-acknowledging RX packets with a payload,
-    make sure the TX FIFO is clean so we don't accidently 
+    make sure the TX FIFO is clean so we don't accidently
     transmit data on the next transition back to TX mode.
     -------------------------------------------------*/
     if ( _registerIsBitmaskSet( REG_FEATURE, FEATURE_EN_ACK_PAY ) )
@@ -240,7 +240,7 @@ namespace RF24::Physical
     }
 
     /*-------------------------------------------------
-    Clear interrupt flags and transition to RX mode by 
+    Clear interrupt flags and transition to RX mode by
     setting PRIM_RX=1 and CE=1. Wait the required ~130uS
     RX settling time needed to get into RX mode.
     -------------------------------------------------*/
@@ -251,7 +251,7 @@ namespace RF24::Physical
     mCurrentMode = MODE_RX;
 
     /*------------------------------------------------
-    If we clobbered the old pipe 0 listening address so 
+    If we clobbered the old pipe 0 listening address so
     we could transmit something, restore it.
     ------------------------------------------------*/
     if ( mCachedPipe0RXAddress )
@@ -340,7 +340,7 @@ namespace RF24::Physical
     using namespace RF24::Hardware;
 
     /*-------------------------------------------------
-    Set pipe 0 RX address == TX address. This allows the 
+    Set pipe 0 RX address == TX address. This allows the
     reception of an ACK packet from the node at the TX
     address. Cache the currently configured RX address.
     -------------------------------------------------*/
@@ -357,7 +357,7 @@ namespace RF24::Physical
     Set a static payload length for all receptions on pipe 0. There must also be
     an equal number of bytes clocked into the TX_FIFO when data is transmitted out.
 
-    This setting only takes effect if static payloads are configured. Otherwise 
+    This setting only takes effect if static payloads are configured. Otherwise
     the dynamic payload setting ignores this.
     -------------------------------------------------*/
     mHWDriver->writeRegister( REG_RX_PW_P0, static_cast<uint8_t>( mPayloadSize ) );
@@ -436,7 +436,7 @@ namespace RF24::Physical
     else
     {
       /*------------------------------------------------
-      These pipes only need the first bytes assigned as 
+      These pipes only need the first bytes assigned as
       they take the rest of their address from PIPE_NUM_0.
       ------------------------------------------------*/
       mHWDriver->writeRegister( rxPipeAddressRegister[ pipe ], &address, 1u );
@@ -514,59 +514,49 @@ namespace RF24::Physical
     return 0u;
   }
 
-  Chimera::Status_t Driver::readPayload( void *const buffer, size_t len )
+  Chimera::Status_t Driver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
   {
-    auto status = mHWDriver->readPayload( buffer, len );
-    return Chimera::CommonStatusCodes::OK;
-  }
+    using namespace RF24::Hardware;
 
-
-
-
-
-
-  void Driver::toggleChipEnablePin( const bool state )
-  {
-    mHWDriver->toggleCE( state );
-  }
-
-  void Driver::read( uint8_t *const buffer, size_t len )
-  {
-    readPayload( buffer, len );
+    auto status = mHWDriver->readPayload( buffer, bufferLength, payloadLength );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1
     ------------------------------------------------*/
-    uint8_t statusVal = RF24::Hardware::STATUS_RX_DR | RF24::Hardware::STATUS_MAX_RT | RF24::Hardware::STATUS_TX_DS;
-    hwDriver->writeRegister( RF24::Hardware::REG_STATUS, statusVal );
+    Reg8_t statusVal = STATUS_RX_DR | STATUS_MAX_RT | STATUS_TX_DS;
+    mHWDriver->writeRegister( REG_STATUS, statusVal );
+
+    return Chimera::CommonStatusCodes::OK;
   }
 
-  bool Driver::writeFast( const uint8_t *const buffer, uint8_t len, const bool multicast )
+  Chimera::Status_t Driver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
   {
+    using namespace RF24::Hardware;
+
     /*------------------------------------------------
     Don't clobber the RX if we are listening
     ------------------------------------------------*/
     if ( mCurrentlyListening )
     {
-      mFailureCode = RF24::Hardware::FailureCode::RADIO_IN_RX_MODE;
-      return false;
+      mFailureCode = Chimera::CommonStatusCodes::NOT_READY;
+      return mFailureCode;
     }
 
     /*-------------------------------------------------
     Wait for the FIFO to have room for one more packet
     -------------------------------------------------*/
-    uint32_t startTime = Chimera::millis();
+    auto startTime = Chimera::millis();
 
-    while ( txFifoFull() )
+    while ( mHWDriver->txFifoFull() )
     {
       /*-------------------------------------------------
       If max retries hit from a previous transmission, we screwed up
       -------------------------------------------------*/
-      if ( _registerIsBitmaskSet( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT ) )
+      if ( _registerIsBitmaskSet( REG_STATUS, STATUS_MAX_RT ) )
       {
-        mHWDriver->setRegisterBits( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT );
-        mFailureCode = RF24::Hardware::FailureCode::MAX_RETRY_TIMEOUT;
-        return false;
+        mHWDriver->setRegisterBits( REG_STATUS, STATUS_MAX_RT );
+        mFailureCode = Chimera::CommonStatusCodes::TIMEOUT;
+        return mFailureCode;
       }
 
       /*------------------------------------------------
@@ -574,30 +564,24 @@ namespace RF24::Physical
       ------------------------------------------------*/
       if ( ( Chimera::millis() - startTime ) > DFLT_TIMEOUT_MS )
       {
-        mFailureCode = RF24::Hardware::FailureCode::TX_FIFO_FULL_TIMEOUT;
-        return false;
+        mFailureCode = Chimera::CommonStatusCodes::TIMEOUT;
+        return mFailureCode;
       }
 
-      delayMilliseconds( MIN_TIMEOUT_MS );
+      Chimera::delayMilliseconds( MIN_TIMEOUT_MS );
     }
 
     /*------------------------------------------------
     We're free! Load the data into the FIFO and kick off the transfer
     ------------------------------------------------*/
-    startFastWrite( buffer, len, multicast, true );
-    return true;
+    return startFastWrite( buffer, len, multicast, true );
   }
 
-
-
-  
-
-  
-
-  
-
-  void Driver::startFastWrite( const uint8_t *const buffer, size_t len, const bool multicast, const bool startTX )
+  Chimera::Status_t Driver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
+                                            const bool startTX )
   {
+    using namespace RF24::Hardware;
+
     uint8_t payloadType = 0u;
 
     if ( multicast )
@@ -606,8 +590,8 @@ namespace RF24::Physical
       Transmit one packet without waiting for an ACK from the RX device. In order for
       this to work, the Features register has to be enabled and EN_DYN_ACK set.
       -------------------------------------------------*/
-      enableDynamicAck();
-      payloadType = RF24::Hardware::CMD_W_TX_PAYLOAD_NO_ACK;
+      mHWDriver->toggleDynamicAck( true );
+      payloadType = CMD_W_TX_PAYLOAD_NO_ACK;
     }
     else
     {
@@ -615,60 +599,37 @@ namespace RF24::Physical
       Force waiting for the RX device to send an ACK packet. Don't bother disabling Dynamic Ack
       (should it even be enabled) as this command overrides it.
       -------------------------------------------------*/
-      payloadType = RF24::Hardware::CMD_W_TX_PAYLOAD;
+      payloadType = CMD_W_TX_PAYLOAD;
     }
 
     /*-------------------------------------------------
     Write the payload to the TX FIFO and optionally start the transfer
     -------------------------------------------------*/
-    writePayload( buffer, len, payloadType );
+    mHWDriver->writePayload( buffer, len, payloadType );
 
     if ( startTX )
     {
-      toggleChipEnablePin( true);
-      mCurrentMode = Mode::TX;
+      toggleChipEnablePin( true );
+      mCurrentMode = MODE_TX;
     }
   }
 
-  bool Driver::txStandBy()
+  void Driver::toggleChipEnablePin( const bool state )
   {
-    /*-------------------------------------------------
-    Wait for the TX FIFO to signal it's empty
-    -------------------------------------------------*/
-    while ( !txFifoEmpty() )
-    {
-      /*-------------------------------------------------
-      If we hit the Max Retries, we have a problem and the whole TX FIFO is screwed.
-      Go back to standby mode and clear out the FIFO.
-      -------------------------------------------------*/
-      if ( _registerIsBitmaskSet( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT ) )
-      {
-        mHWDriver->setRegisterBits( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT );
-        toggleChipEnablePin( false );
-        flushTX();
-
-        mCurrentMode = Mode::STANDBY_I;
-        return false;
-      }
-    }
-
-    /*------------------------------------------------
-    Sends the chip back to standby mode now that the FIFO is empty
-    ------------------------------------------------*/
-    toggleChipEnablePin( false );
-    mCurrentMode = Mode::STANDBY_I;
-    return true;
+    mHWDriver->toggleCE( state );
   }
 
-  bool Driver::txStandBy( const uint32_t timeout, const bool startTx )
+  Chimera::Status_t Driver::txStandBy( const size_t timeout, const bool startTx )
   {
+    using namespace RF24::Hardware;
+
     /*------------------------------------------------
     Optionally start a new transfer
     ------------------------------------------------*/
     if ( startTx )
     {
       stopListening();
-      toggleChipEnablePin( true);
+      toggleChipEnablePin( true );
     }
 
     /*------------------------------------------------
@@ -677,40 +638,40 @@ namespace RF24::Physical
     ------------------------------------------------*/
     if ( mCurrentlyListening )
     {
-      mFailureCode = RF24::Hardware::FailureCode::RADIO_IN_RX_MODE;
-      return false;
+      mFailureCode = Chimera::CommonStatusCodes::NOT_READY;
+      return mFailureCode;
     }
 
     /*------------------------------------------------
     Wait for the TX FIFO to empty, retrying packet transmissions as needed.
     ------------------------------------------------*/
-    uint32_t start = Chimera::millis();
+    auto startTime = Chimera::millis();
 
-    while ( !txFifoEmpty() )
+    while ( !mHWDriver->txFifoEmpty() )
     {
       /*------------------------------------------------
       If max retries interrupt occurs, retry transmission. The data is
       automatically kept in the TX FIFO.
       ------------------------------------------------*/
-      if ( _registerIsBitmaskSet( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT ) )
+      if ( _registerIsBitmaskSet( REG_STATUS, STATUS_MAX_RT ) )
       {
         toggleChipEnablePin( false );
-        mHWDriver->setRegisterBits( RF24::Hardware::REG_STATUS, RF24::Hardware::STATUS_MAX_RT );
+        mHWDriver->setRegisterBits( REG_STATUS, STATUS_MAX_RT );
 
-        delayMilliseconds( 1 );
-        toggleChipEnablePin( true);
+        Chimera::delayMilliseconds( 1 );
+        toggleChipEnablePin( true );
       }
 
       /*------------------------------------------------
       Automatic timeout failure
       ------------------------------------------------*/
-      if ( ( Chimera::millis() - start ) > timeout )
+      if ( ( Chimera::millis() - startTime ) > timeout )
       {
         toggleChipEnablePin( false );
         flushTX();
-        mFailureCode     = RF24::Hardware::FailureCode::TX_FIFO_EMPTY_TIMEOUT;
-        mCurrentMode = Mode::STANDBY_I;
-        return false;
+        mFailureCode = Chimera::CommonStatusCodes::TIMEOUT;
+        mCurrentMode = MODE_STANDBY_I;
+        return mFailureCode;
       }
     }
 
@@ -718,112 +679,19 @@ namespace RF24::Physical
     Transition back to Standby Mode I
     ------------------------------------------------*/
     toggleChipEnablePin( false );
-    mCurrentMode = Mode::STANDBY_I;
-    return true;
+    mCurrentMode = MODE_STANDBY_I;
+    return Chimera::CommonStatusCodes::OK;
   }
 
-  void Driver::writeAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len )
-  {
-    // TODO: Magic numbers abound in this function. Get rid of them.
-    size_t size = std::min( len, static_cast<size_t>( 32 ) ) + 1u;
-
-    spi_txbuff[ 0 ] = RF24::Hardware::CMD_W_ACK_PAYLOAD | ( pipe & 0x07 );
-    memcpy( &spi_txbuff[ 1 ], buffer, size );
-
-    beginTransaction();
-    spiWrite( spi_txbuff.data(), size );
-    endTransaction();
-  }
-
-  bool Driver::isAckPayloadAvailable()
-  {
-    uint8_t reg = mHWDriver->readRegister( RF24::Hardware::REG_FIFO_STATUS );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.fifo_status = reg;
-#endif
-
-    return !( reg & FIFO_STATUS::RX_EMPTY );
-  }
-
-  void Driver::whatHappened( bool &tx_ok, bool &tx_fail, bool &rx_ready )
-  {
-    uint8_t statusActual  = hwDriver->readRegister( RF24::Hardware::REG_STATUS );
-    uint8_t statusCleared = statusActual | RF24::Hardware::STATUS_RX_DR | RF24::Hardware::STATUS_TX_DS | RF24::Hardware::STATUS_MAX_RT;
-    hwDriver->writeRegister( RF24::Hardware::REG_STATUS, statusCleared );
-
-    tx_ok    = statusActual & RF24::Hardware::STATUS_TX_DS;
-    tx_fail  = statusActual & RF24::Hardware::STATUS_MAX_RT;
-    rx_ready = statusActual & RF24::Hardware::STATUS_RX_DR;
-  }
-
-  
-
-  void Driver::setAddressWidth( const AddressWidth address_width )
-  {
-    hwDriver->writeRegister( RF24::Hardware::REG_SETUP_AW, static_cast<uint8_t>( address_width ) );
-
-    switch ( address_width )
-    {
-      case RF24Phy::AddressWidth::AW_3Byte:
-        addressWidth = 3;
-        break;
-
-      case RF24Phy::AddressWidth::AW_4Byte:
-        addressWidth = 4;
-        break;
-
-      case RF24Phy::AddressWidth::AW_5Byte:
-        addressWidth = 5;
-        break;
-    }
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.setup_aw.update( this );
-#endif
-  }
-
-  AddressWidth Driver::getAddressWidth()
-  {
-    auto reg = hwDriver->readRegister( RF24::Hardware::REG_SETUP_AW );
-
-#if defined( TRACK_REGISTER_STATES )
-    registers.setup_aw = reg;
-#endif
-
-    return static_cast<AddressWidth>( reg );
-  }
-
-  uint8_t Driver::getAddressBytes()
-  {
-    switch ( getAddressWidth() )
-    {
-      case RF24Phy::AddressWidth::AW_3Byte:
-        return 3;
-        break;
-
-      case RF24Phy::AddressWidth::AW_4Byte:
-        return 4;
-        break;
-
-      case RF24Phy::AddressWidth::AW_5Byte:
-        return 5;
-        break;
-
-      default:
-        return 0;
-        break;
-    }
-  }
 
   uint8_t Driver::flushTX()
   {
-    return _writeCMD( RF24::Hardware::CMD_FLUSH_TX );
+    return mHWDriver->writeCMD( RF24::Hardware::CMD_FLUSH_TX );
   }
 
   uint8_t Driver::flushRX()
   {
-    return _writeCMD( RF24::Hardware::CMD_FLUSH_RX );
+    return mHWDriver->writeCMD( RF24::Hardware::CMD_FLUSH_RX );
   }
 
   Chimera::Status_t Driver::setPALevel( const RF24::Hardware::PowerAmplitude level, const bool validate )
@@ -911,4 +779,9 @@ namespace RF24::Physical
   {
     return mHWDriver->readRegister( reg ) & bitmask;
   }
-}  // namespace RF24Phy
+
+  bool Driver::setAutoAck( const uint8_t pipe, const bool enable, const bool validate )
+  {
+    return mHWDriver->setAutoAck( pipe, enable, validate );
+  }
+}    // namespace RF24::Physical

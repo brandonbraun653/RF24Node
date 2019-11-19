@@ -55,6 +55,8 @@ namespace RF24::Network
   bool Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
                        const RF24::Hardware::PowerAmplitude pwr )
   {
+    using namespace RF24::Hardware;
+
     /*------------------------------------------------
     Check error conditions that would prevent a solid startup.
     ------------------------------------------------*/
@@ -78,7 +80,7 @@ namespace RF24::Network
       IF_SERIAL_DEBUG( printf( "ERR: Radio pre-initialized\r\n" ); );
       return false;
     }
-    else if ( !radio->begin() )
+    else if ( radio->initialize() != Chimera::CommonStatusCodes::OK )
     {
       /*------------------------------------------------
       More than likely a register read/write failed.
@@ -123,9 +125,10 @@ namespace RF24::Network
     /*------------------------------------------------
     Open all the listening pipes
     ------------------------------------------------*/
-    for ( uint8_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
+    for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
     {
-      initialized &= radio->openReadPipe( i, pipeAddress( nodeAddress, i ), true );
+      auto pipe = static_cast<PipeNumber_t>( i );
+      initialized &= radio->openReadPipe( pipe, pipeAddress( nodeAddress, pipe ), true );
     }
     radio->startListening();
 
@@ -167,7 +170,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Process the incoming/outgoing data
     ------------------------------------------------*/
-    while ( radio->available( pipeNum ) )
+    while ( radio->payloadAvailable() < RF24::Hardware::PIPE_NUM_MAX )
     {
       radioPayloadSize = radio->getDynamicPayloadSize();
       if ( radioPayloadSize < FRAME_PREAMBLE_SIZE )
@@ -180,7 +183,7 @@ namespace RF24::Network
       Dump the payloads until we've gotten everything.
       Fetch the payload, and see if this was the last one.
       ------------------------------------------------*/
-      radio->read( frameBuffer.begin(), radioPayloadSize );
+      radio->readPayload( frameBuffer.begin(), frameBuffer.size(), radioPayloadSize );
 
       /*------------------------------------------------
       Read the beginning of the frame as the header
@@ -701,7 +704,7 @@ namespace RF24::Network
 
     radio->openWritePipe( writePipeAddress );
 
-    ok = radio->writeFast( frameBuffer.begin(), radioPayloadSize, false );
+    ok = radio->immediateWrite( frameBuffer.begin(), radioPayloadSize, false );
 
     if ( !( networkFlags & static_cast<uint8_t>( FlagType::FAST_FRAG ) ) )
     {
@@ -870,9 +873,9 @@ namespace RF24::Network
       /*------------------------------------------------
       Close all the previously opened pipes
       ------------------------------------------------*/
-      for ( uint8_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
+      for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
       {
-        radio->closeReadPipe( i );
+        radio->closeReadPipe( static_cast<RF24::Hardware::PipeNumber_t>( i ) );
       }
 
       /*------------------------------------------------
@@ -883,9 +886,9 @@ namespace RF24::Network
       /*------------------------------------------------
       Open all the listening pipes
       ------------------------------------------------*/
-      for ( uint8_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
+      for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
       {
-        initialized &= radio->openReadPipe( i, pipeAddress( address, i ), true );
+        initialized &= radio->openReadPipe( static_cast<RF24::Hardware::PipeNumber_t>( i ), pipeAddress( address, i ), true );
       }
       radio->startListening();
 
@@ -906,7 +909,7 @@ namespace RF24::Network
   void Network::setMulticastLevel( uint8_t level )
   {
     multicastLevel = level;
-    radio->openReadPipe( 0, pipeAddress( levelToAddress( level ), 0 ), true );
+    radio->openReadPipe( static_cast<RF24::Hardware::PipeNumber_t>( 0u ), pipeAddress( levelToAddress( level ), 0 ), true );
   }
 
   uint16_t Network::levelToAddress( uint8_t level )

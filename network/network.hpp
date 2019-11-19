@@ -71,7 +71,7 @@ namespace RF24::Network
      */
     bool begin( const uint8_t channel, const uint16_t nodeAddress,
                 const RF24::Hardware::DataRate dataRate  = RF24::Hardware::DataRate::DR_1MBPS,
-                const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::MAX );
+                const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX );
 
     /**
      *   Updates the internal network processing stack. This function must be called regularly to

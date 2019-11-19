@@ -48,8 +48,8 @@ namespace RF24::Physical
     ~Driver();
 
     /**
-     *  Attaches a low level hardware driver for the Physical layer to consume. 
-     * 
+     *  Attaches a low level hardware driver for the Physical layer to consume.
+     *
      *  @param[in]  driver    Hardware interface to the NRF24L01
      *  @return Chimera::Status_t
      */
@@ -75,7 +75,7 @@ namespace RF24::Physical
      *   @return true if connected, false if not
      */
     Chimera::Status_t isConnected();
-    
+
     /**
      *   Set the number and delay of retries upon failed transfer
      *
@@ -84,7 +84,8 @@ namespace RF24::Physical
      *   @param[in]  validate    Check if the value was set correctly
      *   @return True if success, false if not
      */
-    Chimera::Status_t setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count, const bool validate = false );
+    Chimera::Status_t setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
+                                  const bool validate = false );
 
     /**
      *   Set RF communication channel
@@ -94,7 +95,7 @@ namespace RF24::Physical
      *   @return True if success, false if not
      */
     Chimera::Status_t setChannel( const size_t channel, const bool validate = false );
-    
+
     /**
      *  Get the current RF communication channel
      *
@@ -142,7 +143,7 @@ namespace RF24::Physical
      *   @return Chimera::Status_t
      */
     Chimera::Status_t startListening();
-    
+
     /**
      *   Stop listening for RX messages and switch to transmit mode. Does nothing if already
      *   stopped listening.
@@ -175,7 +176,7 @@ namespace RF24::Physical
 
     /**
      *  Closes pipe 0 for writing. Can be safely called without previously calling open.
-     *  
+     *
      *  @return Chimera::Status_t
      */
     Chimera::Status_t closeWritePipe();
@@ -192,11 +193,11 @@ namespace RF24::Physical
      *    only store a single byte, borrowing up to 4 additional bytes from pipe #1 per the
      *    assigned address width.
      *
-     *   @warning 
+     *   @warning
      *      Pipes 1-5 should share the same address, except the first byte. Only the first byte in the array should be
      *      unique
      *
-     *   @warning 
+     *   @warning
      *      Pipe 0 is also used by the writing pipe.  So if you open pipe 0 for reading, and then startListening(), it
      *      will overwrite the writing pipe.  Ergo, do an openWritingPipe() again before write().
      *
@@ -205,7 +206,8 @@ namespace RF24::Physical
      *   @param[in]  validate    Optionally validate the address was set properly
      *   @return Chimera::Status_t
      */
-    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address, const bool validate = false );
+    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+                                    const bool validate = false );
 
     /**
      *  Close a pipe after it has been previously opened.
@@ -218,7 +220,7 @@ namespace RF24::Physical
 
     /**
      *  Check if data is available to be read on any pipe. If so, returns a bitfield that indicates
-     *  which pipe is ready. 
+     *  which pipe is ready.
      *
      *  @return RF24::Hardware::PipeNum_t
      */
@@ -238,7 +240,7 @@ namespace RF24::Physical
     /**
      *  Read the available payload into a buffer
      *
-     *  @note   Call payloadAvailable() to know which pipe the payload data corresponds to 
+     *  @note   Call payloadAvailable() to know which pipe the payload data corresponds to
      *  @note   Call getPayloadSize() to know how much data is in the pipe payload
      *
      *  @see    payloadAvailable()
@@ -249,11 +251,11 @@ namespace RF24::Physical
      *
      *  @return void
      */
-    Chimera::Status_t readPayload( void *const buffer, size_t len );
+    Chimera::Status_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength );
 
     /**
      *  Immediately writes data to pipe 0 under the assumption that the hardware has already
-     *  been configured for TX transfers. This prevents the software from going through the 
+     *  been configured for TX transfers. This prevents the software from going through the
      *  full TX configuration process each time a packet needs to be sent.
      *
      *  Prerequisite Calls:
@@ -291,14 +293,6 @@ namespace RF24::Physical
      * setPayloadSize().
      */
     Chimera::Status_t stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len );
-
-    /**
-     *   Determine if an ACK payload was received in the most recent call to
-     *   write(). The alternate function available() can also be used.
-     *
-     *   @return True if an ACK payload is available, false if not
-     */
-    RF24::Hardware::PipeNumber_t isAckPayloadAvailable();
 
     /**
      *   Clears out the TX FIFO
@@ -358,6 +352,8 @@ namespace RF24::Physical
      */
     RF24::Hardware::DataRate getDataRate();
 
+    bool setAutoAck( const uint8_t pipe, const bool enable, const bool validate = false );
+
   protected:
     /**
      *   Non-blocking write to an open TX pipe. If the TX FIFO is full when called, the data will simply be lost.
@@ -369,33 +365,24 @@ namespace RF24::Physical
      *   @param[in] startTX      Starts the transfer immediately if true
      *   @return True if the payload was delivered successfully false if not
      */
-    void startFastWrite( const uint8_t *const buffer, size_t len, const bool multicast, const bool startTX = true );
+    Chimera::Status_t startFastWrite( const void *const buffer, const size_t len, const bool multicast,
+                                      const bool startTX = true );
 
-    /**
-     *   Write the transmit payload. If the TX FIFO is full when this is called, the data will simply be lost.
-     *   The size of data written is capped at the max payload size.
-     *
-     *   @param[in]  buffer      Where to get the data
-     *   @param[in]  len         Number of bytes to be sent
-     *   @param[in]  writeType   Write using ACK (Command::W_TX_PAYLOAD) or NACK (Command::W_TX_PAYLOAD_NO_ACK)
-     *   @return Current value of status register
-     */
-    uint8_t writePayload( const uint8_t *const buffer, size_t len, const uint8_t writeType );
 
     void toggleChipEnablePin( const bool state );
 
   private:
-    bool mInitialized;                        /**< Track initialization state */
-    bool mPlusVariant;                        /**< NRF24L01+ variant device? */
-    bool mDynamicPayloadsEnabled;             /**< Are our payloads configured as variable width? */
-    bool mCurrentlyListening;                 /**< Track if the radio is listening or not */
-    bool mListeningPaused;                    /**< Track if the radio has paused listening */
-    uint8_t mAddressWidth;                    /**< Keep track of the user's address width preference */
-    uint8_t mPayloadSize;                     /**< Keep track of the user's payload width preference */
-    uint64_t mCachedPipe0RXAddress;           /**< Remembers a previously set Pipe0 listening address */
-    RF24::Hardware::Mode mCurrentMode;        /**< Keep track of which HW mode of the radio is likely to be in */
-    RF24::Hardware::Driver_sPtr mHWDriver;    /**< Low level radio module hardware driver */
-    Chimera::Status_t mFailureCode;           /**< Latest reason why something failed. */
+    bool mInitialized;                     /**< Track initialization state */
+    bool mPlusVariant;                     /**< NRF24L01+ variant device? */
+    bool mDynamicPayloadsEnabled;          /**< Are our payloads configured as variable width? */
+    bool mCurrentlyListening;              /**< Track if the radio is listening or not */
+    bool mListeningPaused;                 /**< Track if the radio has paused listening */
+    uint8_t mAddressWidth;                 /**< Keep track of the user's address width preference */
+    uint8_t mPayloadSize;                  /**< Keep track of the user's payload width preference */
+    uint64_t mCachedPipe0RXAddress;        /**< Remembers a previously set Pipe0 listening address */
+    RF24::Hardware::Mode mCurrentMode;     /**< Keep track of which HW mode of the radio is likely to be in */
+    RF24::Hardware::Driver_sPtr mHWDriver; /**< Low level radio module hardware driver */
+    Chimera::Status_t mFailureCode;        /**< Latest reason why something failed. */
 
     bool _registerIsBitmaskSet( const uint8_t reg, const uint8_t bitmask );
     bool _registerIsAnySet( const uint8_t reg, const uint8_t bitmask );
