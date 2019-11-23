@@ -194,6 +194,22 @@ namespace RF24::Hardware
 
     void toggleDynamicAck( const bool state );
 
+    /**
+     *   Enable or disable auto-acknowledge packets on a per pipeline basis.
+     *
+     *   If enabled, the pipe will immediately go into RX mode after transmitting its payload
+     *   so that it can listen for the receiver's ACK packet. If no ACK is received and the auto
+     *   retransmit feature is enabled, it will retry until it either succeeds or it hits a retry
+     *   limit (defined in SETUP_RETR::ARC).
+     *
+     *   @note The auto-acknowledge behavior can be temporarily disabled for one packet by enabling
+     *           the feature register and using the W_TX_PAYLOAD_NO_ACK command. (ie multicast = true)
+     *
+     *   @param[in]  pipe        Which pipeline to modify
+     *   @param[in]  enable      Whether to enable (true) or disable (false) auto-ACKs
+     *   @param[in]  validate    Check if the value was set correctly
+     *   @return True if success, false if not
+     */
     void toggleAutoAck( const bool state, const PipeNumber_t pipe );
 
     void toggleAckPayloads( const bool state );
@@ -263,51 +279,15 @@ namespace RF24::Hardware
     void setAddressWidth( const AddressWidth address_width );
 
     /**
-     *   Get the device's address width
-     *
-     *   @return The current address width
-     */
-    AddressWidth getAddressWidth();
-
-    /**
      *   Get the number of bytes used in the device address width
      *
      *   @return The current address width byte size
      */
-    uint8_t getAddressBytes();
+    size_t getAddressWidthAsBytes();
 
-    /**
-     *   Enable or disable auto-acknowledge packets on a per pipeline basis.
-     *
-     *   If enabled, the pipe will immediately go into RX mode after transmitting its payload
-     *   so that it can listen for the receiver's ACK packet. If no ACK is received and the auto
-     *   retransmit feature is enabled, it will retry until it either succeeds or it hits a retry
-     *   limit (defined in SETUP_RETR::ARC).
-     *
-     *   @note The auto-acknowledge behavior can be temporarily disabled for one packet by enabling
-     *           the feature register and using the W_TX_PAYLOAD_NO_ACK command. (ie multicast = true)
-     *
-     *   @param[in]  pipe        Which pipeline to modify
-     *   @param[in]  enable      Whether to enable (true) or disable (false) auto-ACKs
-     *   @param[in]  validate    Check if the value was set correctly
-     *   @return True if success, false if not
-     */
+    
     bool setAutoAck( const uint8_t pipe, const bool enable, const bool validate = false );
 
-
-    /**
-     *   Activates the ability to use features defined in Register::FEATURES
-     *
-     *   @return void
-     */
-    void activateFeatures();
-
-    /**
-     *   Deactivates the features defined in Register::FEATURES
-     *
-     *   @return void
-     */
-    void deactivateFeatures();
 
     /**
      *   Determine whether the hardware is an nRF24L01+ or not.
@@ -366,6 +346,8 @@ namespace RF24::Hardware
 
     Chimera::Status_t writeAckPayload( const PipeNumber_t pipe, const void *const buffer, const size_t len );
 
+    size_t getDynamicPayloadSize();
+
   protected:
     void writeCommand();
 
@@ -381,7 +363,7 @@ namespace RF24::Hardware
 
     bool mDynamicPayloadsEnabled;
     bool mFeaturesActivated;
-    size_t mAddressWidth;
+    size_t mAddressBytes;
   };
 
   using Driver_sPtr = std::shared_ptr<Driver>;

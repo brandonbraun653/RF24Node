@@ -18,6 +18,7 @@
 
 /* Boost Includes */
 #include <boost/circular_buffer_fwd.hpp>
+#include <boost/circular_buffer.hpp>
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>

@@ -22,6 +22,8 @@ namespace RF24::Network
   {
     memcpy( &data.header, &header, sizeof( Header_t ) );
     memcpy( &data.messageLength, &msgLen, sizeof( FrameLength_t ) );
+
+    memset( data.message.begin(), 0, data.message.size() );
     memcpy( data.message.begin(), message, msgLen );
   }
 

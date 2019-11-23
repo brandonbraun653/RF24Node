@@ -45,7 +45,7 @@ namespace RF24::Hardware
 
     mDynamicPayloadsEnabled = false;
     mFeaturesActivated      = false;
-    mAddressWidth           = 0u;
+    mAddressBytes           = 0u;
   }
 
   Driver::~Driver()
@@ -266,7 +266,7 @@ namespace RF24::Hardware
       /*-------------------------------------------------
       Sending the activation command sequence again also disables the features
       -------------------------------------------------*/
-      activateFeatures();
+      toggleFeatures( true );
       mFeaturesActivated = false;
     }
   }
@@ -278,7 +278,7 @@ namespace RF24::Hardware
       /*-------------------------------------------------
       Send the activate command to enable selection of features
       -------------------------------------------------*/
-      activateFeatures();
+      toggleFeatures( true );
 
       /*-------------------------------------------------
       Enable the dynamic payload feature bit
@@ -311,7 +311,7 @@ namespace RF24::Hardware
   {
     if ( state )
     {
-      activateFeatures();
+      toggleFeatures( true );
       setRegisterBits( REG_FEATURE, FEATURE_EN_DYN_ACK );
     }
     else if ( mFeaturesActivated )
@@ -352,7 +352,7 @@ namespace RF24::Hardware
   {
     if ( !mDynamicPayloadsEnabled && state )
     {
-      activateFeatures();
+      toggleFeatures( true );
       setRegisterBits( REG_FEATURE, FEATURE_EN_ACK_PAY | FEATURE_EN_DPL );
       setRegisterBits( REG_DYNPD, DYNPD_DPL_P0 | DYNPD_DPL_P1 );
 
@@ -434,7 +434,7 @@ namespace RF24::Hardware
     doesn't matter as long as it is less than the max payload width (32).
     -------------------------------------------------*/
     size_t payload_len = std::min( len, MAX_PAYLOAD_WIDTH );
-    size_t blank_len   = static_cast<uint8_t>( mDynamicPayloadsEnabled ? 0u : ( payload_len - len ) );
+    size_t blank_len   = static_cast<uint8_t>( mDynamicPayloadsEnabled ? 0u : ( MAX_PAYLOAD_WIDTH - payload_len ) );
     size_t size        = len + blank_len + 1;
 
     /*-------------------------------------------------
@@ -532,18 +532,41 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Write the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
-    {
-      CSPin->setState( Chimera::GPIO::State::LOW );
-      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
-      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
 
-      /* Return only the status code of the chip */
-      return spi_rxbuff[ 0 ];
-    }
+    /* Return only the status code of the chip */
+    return spi_rxbuff[ 0 ];
+  }
 
-    return std::numeric_limits<Reg8_t>::max();
+  void Driver::writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length )
+  {
+    size_t size = std::min( length, ( spi_txbuff.size() - 1u ) );
+
+    spi_txbuff[ 0 ] = cmd;
+    memcpy( &spi_txbuff[ 1 ], buffer, size );
+
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
+  }
+
+  void Driver::readCMD( const Reg8_t cmd, void *const buffer, const size_t length )
+  {
+    size_t size = std::min( length, ( spi_rxbuff.size() - 1u ) );
+
+    spi_txbuff[ 0 ] = cmd;
+    memset( &spi_txbuff[ 1 ], 0, size );
+
+    CSPin->setState( Chimera::GPIO::State::LOW );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
+    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH );
+
+    memcpy( buffer, &spi_rxbuff[ 1 ], size );
   }
 
   uint8_t Driver::getStatus()
@@ -639,18 +662,14 @@ namespace RF24::Hardware
   void Driver::setAddressWidth( const AddressWidth address_width )
   {
     writeRegister( REG_SETUP_AW, static_cast<Reg8_t>( address_width ) );
-    mAddressWidth = getAddressBytes();
+    mAddressBytes = getAddressWidthAsBytes();
   }
 
-  AddressWidth Driver::getAddressWidth()
+  size_t Driver::getAddressWidthAsBytes()
   {
     auto reg = readRegister( REG_SETUP_AW );
-    return static_cast<AddressWidth>( reg );
-  }
 
-  uint8_t Driver::getAddressBytes()
-  {
-    switch ( getAddressWidth() )
+    switch ( static_cast<AddressWidth>( reg ) )
     {
       case AddressWidth::AW_3Byte:
         return 3;
@@ -669,4 +688,31 @@ namespace RF24::Hardware
         break;
     }
   }
+
+  size_t Driver::getDynamicPayloadSize()
+  {
+    auto result = MIN_PAYLOAD_WIDTH;
+
+    if ( mDynamicPayloadsEnabled )
+    {
+      uint8_t temp = 0u;
+      readCMD( CMD_R_RX_PL_WID, &temp, 1u );
+      result = static_cast<size_t>( temp );
+
+      /*-------------------------------------------------
+      The dynamic payload size should never be greater than
+      the max payload width. If it is, reset the RX queues.
+      -------------------------------------------------*/
+      if ( result > MAX_PAYLOAD_WIDTH )
+      {
+        writeCMD( CMD_FLUSH_RX );
+        Chimera::delayMilliseconds( 2 );
+        return Chimera::CommonStatusCodes::FAILED_READ;
+      }
+    }
+
+    return result;
+  }
+
+
 }    // namespace RF24::Hardware

@@ -26,6 +26,7 @@
 #include <cmath>
 
 /* Chimera Includes */
+#include <Chimera/types/common_types.hpp>
 
 /* Driver Includes */
 #include <RF24Node/hardware/types.hpp>
@@ -45,8 +46,10 @@ namespace RF24::Network
      *
      *   @param[in]  radio   The underlying radio driver instance
      */
-    Network( RF24::Physical::Driver_sPtr &radio );
+    Network();
     ~Network();
+
+    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer );
 
     /**
      *   Initializes the network and configures the address, which designates the location
@@ -80,7 +83,7 @@ namespace RF24::Network
      *
      *   @return Returns the type of the last received payload.
      */
-    MessageType update();
+    NetHdrMsgType update();
 
     /**
      *   Check whether a message available for this node.
@@ -150,7 +153,7 @@ namespace RF24::Network
      *   @param[in]  writeDirect TODO
      *   @return True if the message sent successfully, false if not
      */
-    bool write( Header &header, const void *message, uint16_t length, uint16_t writeDirect );
+    bool write( Header &header, const void *message, uint16_t length, NodeAddressType writeDirect );
 
     /**
      *   Allows messages to be rapidly broadcast through the network by seding to multiple nodes at once
@@ -340,8 +343,6 @@ namespace RF24::Network
     }
 
   private:
-    Network();
-
     ErrorType oopsies = ErrorType::NO_ERROR;
 
     bool initialized = false;
@@ -352,16 +353,16 @@ namespace RF24::Network
 
     void enqueue( Frame &frame );
 
-    bool writeDirect( uint16_t toNode, MessageType directTo );
+    bool writeDirect( uint16_t toNode, NodeAddressType directTo );
 
-    bool writeToPipe( uint16_t node, uint8_t pipe, bool multicast );
+    bool writeToPipeAtNodeID( uint16_t node, uint8_t pipe, bool multicast );
 
     bool isDirectChild( uint16_t node );
     bool isDescendant( uint16_t node );
 
     uint16_t directChildRouteTo( uint16_t node );
     void setupAddress( void );
-    bool _write( Header &header, const void *const message, const uint16_t len, const uint16_t directTo );
+    bool _write( Header &header, const void *const message, const uint16_t len, const NodeAddressType directTo );
 
     struct logicalToPhysicalStruct
     {

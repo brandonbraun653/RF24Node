@@ -39,7 +39,7 @@ namespace RF24::Network
     memcpy( &data, buffer.cbegin(), sizeof( Header_t ) );
   }
 
-  Header::Header( const uint16_t dstNode, const uint8_t msgType )
+  Header::Header( const uint16_t dstNode, const NetHdrMsgType msgType )
   {
     /*------------------------------------------------
     Initialize the payload structure fully
@@ -52,11 +52,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Grab our ID number and then update the global reference
     ------------------------------------------------*/
-    data.id = universalHeaderID++;
-  }
-
-  Header::Header( const uint16_t dstNode, const MessageType type ) : Header( dstNode, static_cast<uint8_t>( type ) )
-  {
+    data.number = universalHeaderID++;
   }
 
   Header::Header() : Header( EMPTY_LOGICAL_ADDRESS, 0 )
@@ -85,7 +81,7 @@ namespace RF24::Network
   const char *Header::toString() const
   {
     static char buffer[ 45 ];
-    sprintf( buffer, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.id, data.srcNode, data.dstNode,
+    sprintf( buffer, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.number, data.srcNode, data.dstNode,
              ( int )data.msgType, ( int )data.reserved );
     return buffer;
   }

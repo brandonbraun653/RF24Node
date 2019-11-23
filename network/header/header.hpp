@@ -43,20 +43,12 @@ namespace RF24::Network
     Header( const FrameBuffer_t &buffer );
 
     /**
-     *  Constructor where the user specifies how to the object should be made
-     *
-     *  @param[in]  dstNode     The Octal format, logical node address where the message is going
-     *  @param[in]  msgType     The type of message, as given by RF24Network::MessageType
-     */
-    Header( const uint16_t dstNode, const uint8_t msgType );
-
-    /**
      *  Alternate constructor simply for ease of use
      *
      *  @param[in]  dstNode     The Octal format, logical node address where the message is going
      *  @param[in]  msgType     The type of message, as given by RF24Network::MessageType
      */
-    Header( const uint16_t dstNode, const MessageType type = MessageType::TX_NORMAL );
+    Header( const uint16_t dstNode, const NetHdrMsgType type = MSG_TX_NORMAL );
 
     Header();
     ~Header();

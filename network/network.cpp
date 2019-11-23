@@ -27,7 +27,7 @@ namespace RF24::Network
 {
   static constexpr uint16_t max_frame_payload_size = FRAME_TOTAL_SIZE - sizeof( Header_t );
 
-  Network::Network( RF24::Physical::Driver_sPtr &radio ) : frameQueue( FrameCache_t(3) )
+  Network::Network() : frameQueue( FrameCache_t(3) )
   {
     txTime         = 0;
     networkFlags   = 0;
@@ -37,18 +37,16 @@ namespace RF24::Network
     children.fill( EMPTY_LOGICAL_ADDRESS );
     childAttached.fill( false );
 
-    this->radio = radio;
-
     Header::initialize();
-  }
-
-  Network::Network()
-  {
-    // Deleted constructor
   }
 
   Network::~Network()
   {
+  }
+
+  Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer )
+  {
+    this->radio = physicalLayer;
   }
 
 
@@ -56,6 +54,8 @@ namespace RF24::Network
                        const RF24::Hardware::PowerAmplitude pwr )
   {
     using namespace RF24::Hardware;
+    auto result = Chimera::CommonStatusCodes::OK;
+    initialized = true;
 
     /*------------------------------------------------
     Check error conditions that would prevent a solid startup.
@@ -63,12 +63,13 @@ namespace RF24::Network
     if ( !isValidNetworkAddress( nodeAddress ) )
     {
       oopsies = ErrorType::INVALID_ADDRESS;
+      initialized = false;
       IF_SERIAL_DEBUG( printf( "ERR: Invalid node address\r\n" ); );
       return false;
     }
 
     /*------------------------------------------------
-    Turn on the radio-> By default, this wipes all pre-existing settings.
+    Turn on the radio. By default, this wipes all pre-existing settings.
     ------------------------------------------------*/
     if ( radio->isInitialized() )
     {
@@ -77,6 +78,7 @@ namespace RF24::Network
       physical layer. Let this function initialize the radio->
       ------------------------------------------------*/
       oopsies = ErrorType::RADIO_PRE_INITIALIZED;
+      initialized = false;
       IF_SERIAL_DEBUG( printf( "ERR: Radio pre-initialized\r\n" ); );
       return false;
     }
@@ -86,14 +88,10 @@ namespace RF24::Network
       More than likely a register read/write failed.
       ------------------------------------------------*/
       oopsies = ErrorType::RADIO_FAILED_INIT;
+      initialized = false;
       IF_SERIAL_DEBUG( printf( "ERR: Radio HW failed init\r\n" ); );
       return false;
     }
-
-    /*------------------------------------------------
-    Force the setup operations below to negate a failure
-    ------------------------------------------------*/
-    initialized = true;
 
     /*------------------------------------------------
     Initialize the radio
@@ -102,20 +100,17 @@ namespace RF24::Network
     routeTimeout       = txTimeout * 3;    // Adjust for max delay per node within a single chain
     logicalNodeAddress = nodeAddress;
 
-    initialized &= radio->setChannel( channel );
-    initialized &= radio->setPALevel( pwr );
-    initialized &= radio->setDataRate( dataRate );
-    initialized &= radio->setAutoAck( 0, false );
-
-#if RF24Network_ENABLE_DYNAMIC_PAYLOADS
-    radio->enableDynamicPayloads();
-#endif
+    result |= radio->setChannel( channel );
+    result |= radio->setPALevel( pwr );
+    result |= radio->setDataRate( dataRate );
+    result |= radio->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
+    result |= radio->toggleDynamicPayloads( true );
 
     /*------------------------------------------------
     Use different retry periods to reduce data collisions
     ------------------------------------------------*/
     auto retryVar = static_cast<RF24::Hardware::AutoRetransmitDelay>( ( ( ( nodeAddress % 6 ) + 1 ) * 2 ) + 3 );
-    initialized &= radio->setRetries( retryVar, 5 );
+    result |= radio->setRetries( retryVar, 5 );
 
     /*------------------------------------------------
     Set up the address helper cache
@@ -125,45 +120,50 @@ namespace RF24::Network
     /*------------------------------------------------
     Open all the listening pipes
     ------------------------------------------------*/
+    result |= radio->setStaticPayloadSize( RF24::Hardware::MAX_PAYLOAD_WIDTH );
     for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
     {
       auto pipe = static_cast<PipeNumber_t>( i );
-      initialized &= radio->openReadPipe( pipe, pipeAddress( nodeAddress, pipe ), true );
+      result |= radio->openReadPipe( pipe, pipeAddress( nodeAddress, pipe ), true );
     }
-    radio->startListening();
+
+    result |= radio->startListening();
+
+    if ( result != Chimera::CommonStatusCodes::OK )
+    {
+      initialized = false;
+    }
 
     return initialized;
   }
 
-  MessageType Network::update()
+  NetHdrMsgType Network::update()
   {
     if ( !initialized )
     {
       IF_SERIAL_DEBUG( printf( "%d: NET Not initialized\r\n", Chimera::millis() ); );
       oopsies = ErrorType::NOT_INITIALIZED;
-      return MessageType::NETWORK_ERR;
+      return MSG_NETWORK_ERR;
     }
 
     uint8_t pipeNum       = 0u;
-    MessageType returnVal = MessageType::TX_NORMAL;
+    NetHdrMsgType returnVal = MSG_TX_NORMAL;
 
     /*------------------------------------------------
     If BYPASS_HOLDS is enabled, incoming user data may be dropped. This allows for
     system payloads to be read while the user cache is full. HOLD_INCOMING prevents data from
     being read from the radios, thereby preventing incoming payloads from being acked.
     ------------------------------------------------*/
-    if ( !( networkFlags & static_cast<uint8_t>( FlagType::BYPASS_HOLDS ) ) )
+    if ( !( networkFlags & FLAG_BYPASS_HOLDS ) &&
+          ( ( networkFlags & FLAG_HOLD_INCOMING ) || frameQueue.full() ) )
     {
-      if ( ( networkFlags & static_cast<uint8_t>( FlagType::HOLD_INCOMING ) ) || frameQueue.full() )
+      if ( !available() )
       {
-        if ( !available() )
-        {
-          networkFlags &= ~static_cast<uint8_t>( FlagType::HOLD_INCOMING );
-        }
-        else
-        {
-          return returnVal;
-        }
+        networkFlags &= ~FLAG_HOLD_INCOMING;
+      }
+      else
+      {
+        return returnVal;
       }
     }
 
@@ -173,6 +173,10 @@ namespace RF24::Network
     while ( radio->payloadAvailable() < RF24::Hardware::PIPE_NUM_MAX )
     {
       radioPayloadSize = radio->getDynamicPayloadSize();
+
+      /*------------------------------------------------
+      The data received is garbage, go on to the next pipe.
+      ------------------------------------------------*/
       if ( radioPayloadSize < FRAME_PREAMBLE_SIZE )
       {
         Chimera::delayMilliseconds( 10 );
@@ -204,7 +208,7 @@ namespace RF24::Network
         continue;
       }
 
-      returnVal = static_cast<MessageType>( header->msgType );
+      returnVal = static_cast<NetHdrMsgType>( header->msgType );
 
       /*------------------------------------------------
       Is this message for us?
@@ -214,7 +218,7 @@ namespace RF24::Network
         /*------------------------------------------------
         No action required for this one
         ------------------------------------------------*/
-        if ( header->msgType == static_cast<uint8_t>( MessageType::NETWORK_PING ) )
+        if ( header->msgType == MSG_NETWORK_PING )
         {
           continue;
         }
@@ -222,32 +226,32 @@ namespace RF24::Network
         /*------------------------------------------------
         Allow the Mesh layer to process the address response
         ------------------------------------------------*/
-        if ( header->msgType == static_cast<uint8_t>( MessageType::MESH_ADDR_RESPONSE ) )
+        if ( header->msgType == MSG_MESH_ADDR_RESPONSE )
         {
-          return MessageType::MESH_ADDR_RESPONSE;
+          return MSG_MESH_ADDR_RESPONSE;
         }
 
         /*------------------------------------------------
         Allow the Mesh layer to process the address requesting
         ------------------------------------------------*/
-        if ( header->msgType == static_cast<uint8_t>( MessageType::MESH_REQ_ADDRESS ) )
+        if ( header->msgType == MSG_MESH_REQ_ADDRESS )
         {
-          return MessageType::MESH_REQ_ADDRESS;
+          return MSG_MESH_REQ_ADDRESS;
         }
 
         /*------------------------------------------------
 
         ------------------------------------------------*/
-        if ( ( returnSysMsgs && ( header->msgType > static_cast<uint8_t>( MessageType::MAX_USER_DEFINED_HEADER_TYPE ) ) ) ||
-             header->msgType == static_cast<uint8_t>( MessageType::NETWORK_ACK ) )
+        if ( ( returnSysMsgs && ( header->msgType > MSG_MAX_USER_DEFINED_HEADER_TYPE ) ) ||
+             header->msgType == MSG_NETWORK_ACK )
         {
           IF_SERIAL_DEBUG_ROUTING( printf( "%d MAC: System payload rcvd %d\n", Chimera::millis(), returnVal ); );
 
-          if ( header->msgType != static_cast<uint8_t>( MessageType::NETWORK_FIRST_FRAGMENT ) &&
-               header->msgType != static_cast<uint8_t>( MessageType::NETWORK_MORE_FRAGMENTS ) &&
-               header->msgType != static_cast<uint8_t>( MessageType::NETWORK_MORE_FRAGMENTS_NACK ) &&
-               header->msgType != static_cast<uint8_t>( MessageType::EXTERNAL_DATA_TYPE ) &&
-               header->msgType != static_cast<uint8_t>( MessageType::NETWORK_LAST_FRAGMENT ) )
+          if ( header->msgType != MSG_NETWORK_FIRST_FRAGMENT  &&
+               header->msgType != MSG_NETWORK_MORE_FRAGMENTS  &&
+               header->msgType != MSG_NETWORK_MORE_FRAGMENTS_NACK  &&
+               header->msgType != MSG_EXTERNAL_DATA_TYPE  &&
+               header->msgType != MSG_NETWORK_LAST_FRAGMENT  )
           {
             return returnVal;
           }
@@ -262,7 +266,7 @@ namespace RF24::Network
         ------------------------------------------------*/
         if ( header->dstNode == MULTICAST_ADDRESS )
         {
-          if ( header->msgType == static_cast<uint8_t>( MessageType::NETWORK_POLL ) )
+          if ( header->msgType == MSG_NETWORK_POLL )
           {
             /*------------------------------------------------
             Assuming we:
@@ -273,7 +277,7 @@ namespace RF24::Network
             Send an empty message directly back to the polling node to indicate they can attach
             ------------------------------------------------*/
             if ( childrenAvailable() && ( this->logicalNodeAddress != DEFAULT_LOGICAL_ADDRESS ) &&
-                 !( networkFlags & static_cast<uint8_t>( FlagType::NO_POLL ) ) )
+                 !( networkFlags & FLAG_NO_POLL ) ) 
             {
               header->dstNode = header->srcNode;
               header->srcNode = this->logicalNodeAddress;
@@ -281,7 +285,7 @@ namespace RF24::Network
               Chimera::delayMilliseconds( parentPipe );
 
               memcpy( frameBuffer.begin(), header, sizeof( Header_t ) );
-              writeDirect( header->dstNode, MessageType::USER_TX_TO_PHYSICAL_ADDRESS );
+              writeDirect( header->dstNode, MSG_USER_TX_TO_PHYSICAL_ADDRESS );
             }
 
             continue;
@@ -302,7 +306,7 @@ namespace RF24::Network
             }
 
             Chimera::delayMilliseconds( this->logicalNodeAddress % 4 );
-            writeDirect( levelToAddress( multicastLevel ) << 3, MessageType::USER_TX_MULTICAST );
+            writeDirect( levelToAddress( multicastLevel ) << 3, MSG_USER_TX_MULTICAST );
           }
         }
         else
@@ -310,10 +314,11 @@ namespace RF24::Network
           /*------------------------------------------------
           Send it on, indicate it is a routed payload
           ------------------------------------------------*/
-          writeDirect( header->dstNode, MessageType::TX_ROUTED );
+          writeDirect( header->dstNode, MSG_TX_ROUTED );
         }
       }
     }
+
     return returnVal;
   }
 
@@ -373,12 +378,12 @@ namespace RF24::Network
 
   uint16_t Network::read( Header &header, void *message, uint16_t maxlen )
   {
-    uint16_t msgLen = 0; /** How large the payload is */
+    uint16_t msgLen     = 0; /* How large the payload is */
+    uint16_t readLength = 0; /* How many bytes were copied out */
 
     if ( available() )
     {
-      uint16_t readLength = 0;
-      auto frame          = frameQueue.front();
+      auto frame = frameQueue.front();
 
       /*------------------------------------------------
       Copy the header over to the user's variable
@@ -387,15 +392,16 @@ namespace RF24::Network
       msgLen = frame.messageLength;
 
       /*------------------------------------------------
-      Make sure we are reading more than 0 bytes
+      Ensure the buffer is large enough to handle the message
       ------------------------------------------------*/
-      if ( maxlen <= frame.message.max_size() )
+      if ( maxlen >= msgLen )
       {
         /*------------------------------------------------
         Copy over the message data
         ------------------------------------------------*/
         readLength = std::min( maxlen, msgLen );
         memcpy( message, frame.message.cbegin(), readLength );
+
 
         /*------------------------------------------------
         If enabled, print out the message data
@@ -406,16 +412,17 @@ namespace RF24::Network
                          while ( len-- ) { printf( "%02x ", charPtr[ len ] ); }
 
                          printf( "\n\r" ); );
-      }
-
+   
       /*------------------------------------------------
       Remove the packet that was just read out
       ------------------------------------------------*/
       frameQueue.pop_front();
       IF_SERIAL_DEBUG( printf( "%d: NET Received %s\n\r", Chimera::millis(), header.toString() ); );
+      }
+
     }
 
-    return msgLen;
+    return readLength;
   }
 
   bool Network::multicast( Header &header, const void *const message, const uint16_t len, const uint8_t level )
@@ -431,7 +438,7 @@ namespace RF24::Network
     return write( header, message, len, ROUTED_ADDRESS );
   }
 
-  bool Network::write( Header &header, const void *const message, const uint16_t len, const uint16_t writeDirect )
+  bool Network::write( Header &header, const void *const message, const uint16_t len, const NodeAddressType writeDirect )
   {
     /*------------------------------------------------
     Protect against invalid inputs
@@ -448,7 +455,7 @@ namespace RF24::Network
     ------------------------------------------------*/
     while ( Chimera::millis() - txTime < 25 )
     {
-      if ( update() > MessageType::MAX_USER_DEFINED_HEADER_TYPE )
+      if ( update() > MSG_MAX_USER_DEFINED_HEADER_TYPE )
       {
         break;
       }
@@ -483,6 +490,8 @@ namespace RF24::Network
     ------------------------------------------------*/
     Frame frame( header.data, len, message );
     memcpy( frameBuffer.begin(), &frame.data, sizeof( Frame_t ) );
+
+
     IF_SERIAL_DEBUG( printf( "%d: NET Sending Header [%s]\n\r", Chimera::millis(), header.toString() );
 
                      if ( len ) {
@@ -497,31 +506,33 @@ namespace RF24::Network
                        printf( "\n\r" );
                      } );
 
-    if ( directTo != ROUTED_ADDRESS )
+    if ( directTo == ROUTED_ADDRESS )
+    {
+      return writeDirect( header.data.dstNode, MSG_TX_NORMAL );
+    }
+    else
     {
       /*------------------------------------------------
       Payload is multicast to the first node, and routed normally to the next
       ------------------------------------------------*/
-      MessageType sendType = MessageType::USER_TX_TO_LOGICAL_ADDRESS;
+      NetHdrMsgType sendType = MSG_USER_TX_TO_LOGICAL_ADDRESS;
 
       if ( header.data.dstNode == MULTICAST_ADDRESS )
       {
-        sendType = MessageType::USER_TX_MULTICAST;
+        sendType = MSG_USER_TX_MULTICAST;
       }
 
       if ( header.data.dstNode == directTo )
       {
         sendType =
-            MessageType::USER_TX_TO_PHYSICAL_ADDRESS;    // Payload is multicast to the first node, which is the recipient
+            MSG_USER_TX_TO_PHYSICAL_ADDRESS;    // Payload is multicast to the first node, which is the recipient
       }
 
       return writeDirect( directTo, sendType );
     }
-
-    return writeDirect( header.data.dstNode, MessageType::TX_NORMAL );
   }
 
-  bool Network::writeDirect( uint16_t toNode, MessageType directTo )
+  bool Network::writeDirect( uint16_t toNode, NodeAddressType directTo )
   {
     // Direct To: 0 = First Payload, standard routing, 1=routed payload, 2=directRoute to host, 3=directRoute to Route
 
@@ -560,7 +571,7 @@ namespace RF24::Network
     IF_SERIAL_DEBUG( printf( "%d: MAC Sending to node [0%o] via node [0%o] on pipe %x\n\r", Chimera::millis(), toNode,
                              conversion.send_node, conversion.send_pipe ); );
 
-    ok = writeToPipe( conversion.send_node, conversion.send_pipe, conversion.multicast );
+    ok = writeToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
 
     if ( !ok )
     {
@@ -571,22 +582,22 @@ namespace RF24::Network
     /*------------------------------------------------
 
     ------------------------------------------------*/
-    if ( ok && isAckType && directTo == MessageType::TX_ROUTED && conversion.send_node == toNode )
+    if ( ok && isAckType && directTo == MSG_TX_ROUTED && conversion.send_node == toNode )
     {
       auto frame = reinterpret_cast<Frame_t *>( frameBuffer.begin() );
 
-      frame->header.msgType = static_cast<uint8_t>( MessageType::NETWORK_ACK );    // Set the payload type to NETWORK_ACK
+      frame->header.msgType = static_cast<uint8_t>( MSG_NETWORK_ACK );    // Set the payload type to NETWORK_ACK
       frame->header.dstNode = frame->header.srcNode;    // Change the 'to' address to the 'from' address
 
       conversion.send_node = frame->header.srcNode;
-      conversion.send_pipe = static_cast<uint8_t>( MessageType::TX_ROUTED );
+      conversion.send_pipe = static_cast<uint8_t>( MSG_TX_ROUTED );
       conversion.multicast = 0;
       logicalToPhysicalAddress( &conversion );
 
       // TODO: When you figure out what this section does, re-evaluate radioPayloadSize...likely to be wrong
       // TODO: BUG!
       radioPayloadSize = sizeof( Header_t );
-      writeToPipe( conversion.send_node, conversion.send_pipe, conversion.multicast );
+      writeToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
 
       IF_SERIAL_DEBUG_ROUTING(
           printf( "%d MAC: Route OK to 0%o ACK sent to 0%o\n", Chimera::millis(), toNode, header->fromNode ); );
@@ -596,20 +607,20 @@ namespace RF24::Network
 
     ------------------------------------------------*/
     if ( ok && conversion.send_node != toNode &&
-         ( directTo == MessageType::TX_NORMAL || directTo == MessageType::USER_TX_TO_LOGICAL_ADDRESS ) && isAckType )
+         ( directTo == MSG_TX_NORMAL || directTo == MSG_USER_TX_TO_LOGICAL_ADDRESS ) && isAckType )
     {
       // Now, continue listening
-      if ( networkFlags & static_cast<uint8_t>( FlagType::FAST_FRAG ) )
+      if ( networkFlags & FLAG_FAST_FRAG )
       {
         radio->txStandBy( txTimeout );
-        networkFlags &= ~static_cast<uint8_t>( FlagType::FAST_FRAG );
-        radio->setAutoAck( 0, 0 );
+        networkFlags &= ~FLAG_FAST_FRAG;
+        radio->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
       }
       radio->startListening();
 
       uint32_t reply_time = Chimera::millis();
 
-      while ( update() != MessageType::NETWORK_ACK )
+      while ( update() != MSG_NETWORK_ACK )
       {
         if ( Chimera::millis() - reply_time > routeTimeout )
         {
@@ -621,15 +632,8 @@ namespace RF24::Network
       }
     }
 
-    /*------------------------------------------------
-
-    ------------------------------------------------*/
-    if ( !( networkFlags & static_cast<uint8_t>( FlagType::FAST_FRAG ) ) )
-    {
-      // Now, continue listening
-      radio->startListening();
-    }
-
+    
+    radio->startListening();
     return ok;
   }
 
@@ -648,7 +652,7 @@ namespace RF24::Network
     // On which pipe
     uint8_t pre_conversion_send_pipe = parentPipe;
 
-    if ( *directTo > static_cast<uint8_t>( MessageType::TX_ROUTED ) )
+    if ( *directTo > static_cast<uint8_t>( MSG_TX_ROUTED ) )
     {
       pre_conversion_send_node = *toNode;
       *multicast               = 1;
@@ -676,43 +680,22 @@ namespace RF24::Network
     return 1;
   }
 
-  bool Network::writeToPipe( uint16_t node, uint8_t pipe, bool multicast )
+  bool Network::writeToPipeAtNodeID( uint16_t node, uint8_t pipe, bool multicast )
   {
-    bool ok                   = false;
+    Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
     uint64_t writePipeAddress = pipeAddress( node, pipe );
-
-    // Open the correct pipe for writing.
-    // First, stop listening so we can talk
-
-    if ( !( networkFlags & static_cast<uint8_t>( FlagType::FAST_FRAG ) ) )
-    {
-      radio->stopListening();
-    }
 
     /*------------------------------------------------
     If we are multicasting, turn off auto ack. We don't
     care how the message gets out as long as it does.
     ------------------------------------------------*/
-    if ( multicast )
-    {
-      radio->setAutoAck( 0, false );
-    }
-    else
-    {
-      radio->setAutoAck( 0, true );
-    }
+    result |= radio->stopListening();
+    result |= radio->toggleAutoAck( !multicast, RF24::Hardware::PIPE_NUM_0 );
+    result |= radio->openWritePipe( writePipeAddress );
+    result |= radio->immediateWrite( frameBuffer.begin(), radioPayloadSize, false );
+    result |= radio->txStandBy( txTimeout );
 
-    radio->openWritePipe( writePipeAddress );
-
-    ok = radio->immediateWrite( frameBuffer.begin(), radioPayloadSize, false );
-
-    if ( !( networkFlags & static_cast<uint8_t>( FlagType::FAST_FRAG ) ) )
-    {
-      ok = radio->txStandBy( txTimeout );
-      radio->setAutoAck( 0, 0 );
-    }
-
-    return ok;
+    return result == Chimera::CommonStatusCodes::OK;
   }
 
   bool Network::isDirectChild( uint16_t node )

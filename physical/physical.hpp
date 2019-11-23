@@ -317,7 +317,7 @@ namespace RF24::Physical
      *
      *   @return void
      */
-    Chimera::Status_t toggleDynamicPayloads( const RF24::Hardware::PipeNumber_t pipe, const bool state );
+    Chimera::Status_t toggleDynamicPayloads( const bool state );
 
     /**
      *   Set the power amplifier level
@@ -352,7 +352,7 @@ namespace RF24::Physical
      */
     RF24::Hardware::DataRate getDataRate();
 
-    bool setAutoAck( const uint8_t pipe, const bool enable, const bool validate = false );
+    Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe );
 
   protected:
     /**
@@ -374,7 +374,6 @@ namespace RF24::Physical
   private:
     bool mInitialized;                     /**< Track initialization state */
     bool mPlusVariant;                     /**< NRF24L01+ variant device? */
-    bool mDynamicPayloadsEnabled;          /**< Are our payloads configured as variable width? */
     bool mCurrentlyListening;              /**< Track if the radio is listening or not */
     bool mListeningPaused;                 /**< Track if the radio has paused listening */
     uint8_t mAddressWidth;                 /**< Keep track of the user's address width preference */
