@@ -16,6 +16,7 @@
 
 /* Chimera Includes */
 #include <Chimera/chimera.hpp>
+#include <Chimera/modules/ulog/serial_sink.hpp>
 
 /* Driver Includes */
 #include <RF24Node/network/network.hpp>
@@ -23,9 +24,28 @@
 #include <RF24Node/network/header/header.hpp>
 #include <RF24Node/network/node/node.hpp>
 
+/* uLog Includes */
+#include <uLog/ulog.hpp>
+
 namespace RF24::Network
 {
   static constexpr uint16_t max_frame_payload_size = FRAME_TOTAL_SIZE - sizeof( Header_t );
+
+  static uLog::SinkType debugSink = nullptr;
+
+  /**
+   *  Create and register the serial output sink used for debug messages
+   *  
+   *  @return void
+   */
+  static void initializeDebugSink()
+  {
+    debugSink = std::make_shared<Chimera::Modules::uLog::SerialSink>();
+    debugSink->setLogLevel( uLog::LogLevelType::LOG_LEVEL_DEBUG );
+
+    auto sinkHandle = uLog::registerSink( debugSink );
+    uLog::enableSink( sinkHandle );
+  }
 
   Network::Network() : frameQueue( FrameCache_t(3) )
   {
@@ -38,6 +58,10 @@ namespace RF24::Network
     childAttached.fill( false );
 
     Header::initialize();
+
+#if defined( SERIAL_DEBUG )
+    initializeDebugSink();
+#endif 
   }
 
   Network::~Network()
@@ -64,7 +88,7 @@ namespace RF24::Network
     {
       oopsies = ErrorType::INVALID_ADDRESS;
       initialized = false;
-      IF_SERIAL_DEBUG( printf( "ERR: Invalid node address\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Invalid node address\r\n" ); );
       return false;
     }
 
@@ -79,7 +103,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       oopsies = ErrorType::RADIO_PRE_INITIALIZED;
       initialized = false;
-      IF_SERIAL_DEBUG( printf( "ERR: Radio pre-initialized\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Radio pre-initialized\r\n" ); );
       return false;
     }
     else if ( radio->initialize() != Chimera::CommonStatusCodes::OK )
@@ -89,7 +113,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       oopsies = ErrorType::RADIO_FAILED_INIT;
       initialized = false;
-      IF_SERIAL_DEBUG( printf( "ERR: Radio HW failed init\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Radio HW failed init\r\n" ); );
       return false;
     }
 
@@ -141,7 +165,7 @@ namespace RF24::Network
   {
     if ( !initialized )
     {
-      IF_SERIAL_DEBUG( printf( "%d: NET Not initialized\r\n", Chimera::millis() ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_DEBUG, "%d: NET Not initialized\r\n", Chimera::millis() ); );
       oopsies = ErrorType::NOT_INITIALIZED;
       return MSG_NETWORK_ERR;
     }
