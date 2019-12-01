@@ -25,7 +25,7 @@ namespace RF24::Network
   static uint16_t universalHeaderID = 0u;
   static bool initialized = false;
 
-  void Header::initialize()
+  void HeaderHelper::initialize()
   {
     if ( !initialized )
     {
@@ -34,12 +34,12 @@ namespace RF24::Network
     }
   }
 
-  Header::Header( const FrameBuffer_t &buffer )
+  HeaderHelper::HeaderHelper( const FrameBuffer &buffer )
   {
-    memcpy( &data, buffer.cbegin(), sizeof( Header_t ) );
+    memcpy( &data, buffer.data(), sizeof( FrameHeaderField ) );
   }
 
-  Header::Header( const uint16_t dstNode, const NetHdrMsgType msgType )
+  HeaderHelper::HeaderHelper( const uint16_t dstNode, const NetHdrMsgType msgType )
   {
     /*------------------------------------------------
     Initialize the payload structure fully
@@ -55,33 +55,34 @@ namespace RF24::Network
     data.number = universalHeaderID++;
   }
 
-  Header::Header() : Header( EMPTY_LOGICAL_ADDRESS, 0 )
+  HeaderHelper::HeaderHelper() : HeaderHelper( EMPTY_LOGICAL_ADDRESS, 0 )
   {
   }
 
-  Header::~Header()
+  HeaderHelper::~HeaderHelper()
   {
   }
 
-  void Header::operator()( const FrameBuffer_t &buffer )
+  void HeaderHelper::operator()( const FrameBuffer &buffer )
   {
-    memcpy( &data, buffer.cbegin(), sizeof( Header_t ) );
+    memcpy( &data, buffer.data(), sizeof( FrameHeaderField ) );
   }
 
-  void Header::operator=( const Header &headerClass )
+  void HeaderHelper::operator=( const HeaderHelper &headerClass )
   {
-    memcpy( &data, &headerClass.data, sizeof( Header_t ) );
+    memcpy( &data, &headerClass.data, sizeof( FrameHeaderField ) );
   }
 
-  void Header::operator=( const Header_t &headerData )
+  void HeaderHelper::operator=( const FrameHeaderField &headerData )
   {
-    memcpy( &data, &headerData, sizeof( Header_t ) );
+    memcpy( &data, &headerData, sizeof( FrameHeaderField ) );
   }
 
-  const char *Header::toString() const
+  const char *HeaderHelper::toString() const
   {
-    static char buffer[ 45 ];
-    sprintf( buffer, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.number, data.srcNode, data.dstNode,
+    constexpr int bufferLen = 45;
+    static char buffer[ bufferLen ];
+    snprintf( buffer, bufferLen, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.number, data.srcNode, data.dstNode,
              ( int )data.msgType, ( int )data.reserved );
     return buffer;
   }

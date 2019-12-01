@@ -3,7 +3,7 @@
  *    network.cpp
  *
  *   Description:
- *    Implements the NRF24L01 network layer driver. 
+ *    Implements the NRF24L01 network layer driver.
  *
  *   2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
@@ -20,34 +20,47 @@
 
 /* Driver Includes */
 #include <RF24Node/network/network.hpp>
+#include <RF24Node/network/network_types.hpp>
 #include <RF24Node/network/frame/frame.hpp>
 #include <RF24Node/network/header/header.hpp>
 #include <RF24Node/network/node/node.hpp>
 
 /* uLog Includes */
 #include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_vgdb_semihosting.hpp>
 
 namespace RF24::Network
 {
-  static constexpr uint16_t max_frame_payload_size = FRAME_TOTAL_SIZE - sizeof( Header_t );
+  static constexpr uint16_t max_frame_payload_size = FRAME_TOTAL_SIZE - sizeof( FrameHeaderField );
 
   static uLog::SinkType debugSink = nullptr;
 
   /**
    *  Create and register the serial output sink used for debug messages
-   *  
+   *
    *  @return void
    */
   static void initializeDebugSink()
   {
+    /*------------------------------------------------
+    Create the sink
+    ------------------------------------------------*/
+#if defined( MICRO_LOGGER_HAS_VGDB_SEMIHOSTING ) && ( MICRO_LOGGER_HAS_VGDB_SEMIHOSTING == 1 )
+    debugSink = std::make_shared<uLog::VGDBSemihostingSink>();
+#else
     debugSink = std::make_shared<Chimera::Modules::uLog::SerialSink>();
-    debugSink->setLogLevel( uLog::LogLevelType::LOG_LEVEL_DEBUG );
+#endif
 
+    debugSink->setLogLevel( uLog::Level::LVL_DEBUG );
+
+    /*------------------------------------------------
+    Register the sink with the logger
+    ------------------------------------------------*/
     auto sinkHandle = uLog::registerSink( debugSink );
     uLog::enableSink( sinkHandle );
   }
 
-  Network::Network() : frameQueue( FrameCache_t(3) )
+  Network::Network() : frameQueue( FrameCache_t( 3 ) )
   {
     txTime         = 0;
     networkFlags   = 0;
@@ -57,11 +70,13 @@ namespace RF24::Network
     children.fill( EMPTY_LOGICAL_ADDRESS );
     childAttached.fill( false );
 
-    Header::initialize();
+    HeaderHelper::initialize();
+
+    txFrame.clear();
 
 #if defined( SERIAL_DEBUG )
     initializeDebugSink();
-#endif 
+#endif
   }
 
   Network::~Network()
@@ -70,14 +85,23 @@ namespace RF24::Network
 
   Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer )
   {
-    this->radio = physicalLayer;
-  }
+    /*------------------------------------------------
+    Shared_ptr could be passed in but still empty
+    ------------------------------------------------*/
+    if ( !physicalLayer )
+    {
+      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
+    }
 
+    this->radio = physicalLayer;
+    return Chimera::CommonStatusCodes::OK;
+  }
 
   bool Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
                        const RF24::Hardware::PowerAmplitude pwr )
   {
     using namespace RF24::Hardware;
+
     auto result = Chimera::CommonStatusCodes::OK;
     initialized = true;
 
@@ -86,9 +110,9 @@ namespace RF24::Network
     ------------------------------------------------*/
     if ( !isValidNetworkAddress( nodeAddress ) )
     {
-      oopsies = ErrorType::INVALID_ADDRESS;
+      oopsies     = ErrorType::INVALID_ADDRESS;
       initialized = false;
-      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Invalid node address\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Invalid node address\r\n" ); );
       return false;
     }
 
@@ -101,9 +125,9 @@ namespace RF24::Network
       The system model is to interact with the network layer, not the
       physical layer. Let this function initialize the radio->
       ------------------------------------------------*/
-      oopsies = ErrorType::RADIO_PRE_INITIALIZED;
+      oopsies     = ErrorType::RADIO_PRE_INITIALIZED;
       initialized = false;
-      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Radio pre-initialized\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Radio pre-initialized\r\n" ); );
       return false;
     }
     else if ( radio->initialize() != Chimera::CommonStatusCodes::OK )
@@ -111,9 +135,9 @@ namespace RF24::Network
       /*------------------------------------------------
       More than likely a register read/write failed.
       ------------------------------------------------*/
-      oopsies = ErrorType::RADIO_FAILED_INIT;
+      oopsies     = ErrorType::RADIO_FAILED_INIT;
       initialized = false;
-      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_ERROR, "ERR: Radio HW failed init\r\n" ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Radio HW failed init\r\n" ); );
       return false;
     }
 
@@ -142,9 +166,12 @@ namespace RF24::Network
     setupAddress();
 
     /*------------------------------------------------
-    Open all the listening pipes
+    Open all pipes in listening mode
     ------------------------------------------------*/
+    IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\r\n", Chimera::millis() ); );
+
     result |= radio->setStaticPayloadSize( RF24::Hardware::MAX_PAYLOAD_WIDTH );
+
     for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
     {
       auto pipe = static_cast<PipeNumber_t>( i );
@@ -153,9 +180,13 @@ namespace RF24::Network
 
     result |= radio->startListening();
 
+    /*------------------------------------------------
+    Make sure we passed the init sequence
+    ------------------------------------------------*/
     if ( result != Chimera::CommonStatusCodes::OK )
     {
       initialized = false;
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: NET init failed\r\n" ); );
     }
 
     return initialized;
@@ -165,12 +196,12 @@ namespace RF24::Network
   {
     if ( !initialized )
     {
-      IF_SERIAL_DEBUG( uLog::flog( uLog::LogLevelType::LOG_LEVEL_DEBUG, "%d: NET Not initialized\r\n", Chimera::millis() ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_DEBUG, "%d: NET Not initialized\r\n", Chimera::millis() ); );
       oopsies = ErrorType::NOT_INITIALIZED;
       return MSG_NETWORK_ERR;
     }
 
-    uint8_t pipeNum       = 0u;
+    uint8_t pipeNum         = 0u;
     NetHdrMsgType returnVal = MSG_TX_NORMAL;
 
     /*------------------------------------------------
@@ -178,8 +209,7 @@ namespace RF24::Network
     system payloads to be read while the user cache is full. HOLD_INCOMING prevents data from
     being read from the radios, thereby preventing incoming payloads from being acked.
     ------------------------------------------------*/
-    if ( !( networkFlags & FLAG_BYPASS_HOLDS ) &&
-          ( ( networkFlags & FLAG_HOLD_INCOMING ) || frameQueue.full() ) )
+    if ( !( networkFlags & FLAG_BYPASS_HOLDS ) && ( ( networkFlags & FLAG_HOLD_INCOMING ) || frameQueue.full() ) )
     {
       if ( !available() )
       {
@@ -211,18 +241,18 @@ namespace RF24::Network
       Dump the payloads until we've gotten everything.
       Fetch the payload, and see if this was the last one.
       ------------------------------------------------*/
-      radio->readPayload( frameBuffer.begin(), frameBuffer.size(), radioPayloadSize );
+      radio->readPayload( frameBuffer.data(), frameBuffer.size(), radioPayloadSize );
 
       /*------------------------------------------------
       Read the beginning of the frame as the header
       ------------------------------------------------*/
-      Frame frame( frameBuffer );
+      FrameHelper frame( frameBuffer );
 
-      Header_t *header = &frame.data.header;
+      FrameHeaderField *header = &frame.data.header;
 
-      IF_SERIAL_DEBUG(
-          Header headerClass; headerClass = frame.data.header;
-          printf( "%d: MAC Received on pipe %u, Header: [%s]\n\r", Chimera::millis(), pipeNum, headerClass.toString() ); );
+      IF_SERIAL_DEBUG( HeaderHelper headerClass; headerClass = frame.data.header;
+                       uLog::flog( uLog::Level::LVL_INFO, "%d: MAC Received on pipe %u, Header: [%s]\n\r", Chimera::millis(),
+                                   pipeNum, headerClass.toString() ); );
 
       /*------------------------------------------------
       Throw it away if it's not a valid address
@@ -266,16 +296,14 @@ namespace RF24::Network
         /*------------------------------------------------
 
         ------------------------------------------------*/
-        if ( ( returnSysMsgs && ( header->msgType > MSG_MAX_USER_DEFINED_HEADER_TYPE ) ) ||
-             header->msgType == MSG_NETWORK_ACK )
+        if ( ( returnSysMsgs && ( header->msgType > MSG_MAX_USER_DEFINED_HEADER_TYPE ) ) || header->msgType == MSG_NETWORK_ACK )
         {
-          IF_SERIAL_DEBUG_ROUTING( printf( "%d MAC: System payload rcvd %d\n", Chimera::millis(), returnVal ); );
+          IF_SERIAL_DEBUG_ROUTING(
+              uLog::flog( uLog::Level::LVL_INFO, "%d MAC: System payload rcvd %d\n", Chimera::millis(), returnVal ); );
 
-          if ( header->msgType != MSG_NETWORK_FIRST_FRAGMENT  &&
-               header->msgType != MSG_NETWORK_MORE_FRAGMENTS  &&
-               header->msgType != MSG_NETWORK_MORE_FRAGMENTS_NACK  &&
-               header->msgType != MSG_EXTERNAL_DATA_TYPE  &&
-               header->msgType != MSG_NETWORK_LAST_FRAGMENT  )
+          if ( header->msgType != MSG_NETWORK_FIRST_FRAGMENT && header->msgType != MSG_NETWORK_MORE_FRAGMENTS &&
+               header->msgType != MSG_NETWORK_MORE_FRAGMENTS_NACK && header->msgType != MSG_EXTERNAL_DATA_TYPE &&
+               header->msgType != MSG_NETWORK_LAST_FRAGMENT )
           {
             return returnVal;
           }
@@ -301,14 +329,14 @@ namespace RF24::Network
             Send an empty message directly back to the polling node to indicate they can attach
             ------------------------------------------------*/
             if ( childrenAvailable() && ( this->logicalNodeAddress != DEFAULT_LOGICAL_ADDRESS ) &&
-                 !( networkFlags & FLAG_NO_POLL ) ) 
+                 !( networkFlags & FLAG_NO_POLL ) )
             {
               header->dstNode = header->srcNode;
               header->srcNode = this->logicalNodeAddress;
 
               Chimera::delayMilliseconds( parentPipe );
 
-              memcpy( frameBuffer.begin(), header, sizeof( Header_t ) );
+              memcpy( frameBuffer.data(), header, sizeof( FrameHeaderField ) );
               writeDirect( header->dstNode, MSG_USER_TX_TO_PHYSICAL_ADDRESS );
             }
 
@@ -317,8 +345,8 @@ namespace RF24::Network
 
           if ( multicastRelay )
           {
-            IF_SERIAL_DEBUG_ROUTING( printf( "%u: MAC FWD multicast frame from 0%o to level %u\n", Chimera::millis(),
-                                             header.fromNode, multicast_level + 1 ); );
+            IF_SERIAL_DEBUG_ROUTING( uLog::flog( uLog::Level::LVL_INFO, "%u: MAC FWD multicast frame from 0%o to level %u\n",
+                                                 Chimera::millis(), header->srcNode, multicastLevel + 1 ); );
 
             /*------------------------------------------------
             For all but the first level of nodes (those not directly
@@ -368,7 +396,7 @@ namespace RF24::Network
     }
   }
 
-  uint16_t Network::peek( Header &header )
+  uint16_t Network::peek( HeaderHelper &header )
   {
     uint16_t msgSize = 0u;
 
@@ -383,7 +411,7 @@ namespace RF24::Network
     return msgSize;
   }
 
-  void Network::peek( Header &header, void *message, uint16_t maxlen )
+  void Network::peek( HeaderHelper &header, void *message, uint16_t maxlen )
   {
     if ( available() )
     {
@@ -395,12 +423,12 @@ namespace RF24::Network
 
       if ( maxlen <= frame.message.max_size() )
       {
-        memcpy( message, frame.message.begin(), maxlen );
+        memcpy( message, frame.message.data(), maxlen );
       }
     }
   }
 
-  uint16_t Network::read( Header &header, void *message, uint16_t maxlen )
+  uint16_t Network::read( HeaderHelper &header, void *message, uint16_t maxlen )
   {
     uint16_t msgLen     = 0; /* How large the payload is */
     uint16_t readLength = 0; /* How many bytes were copied out */
@@ -424,32 +452,33 @@ namespace RF24::Network
         Copy over the message data
         ------------------------------------------------*/
         readLength = std::min( maxlen, msgLen );
-        memcpy( message, frame.message.cbegin(), readLength );
+        memcpy( message, frame.message.data(), readLength );
 
 
         /*------------------------------------------------
         If enabled, print out the message data
         ------------------------------------------------*/
-        IF_SERIAL_DEBUG( uint16_t len = maxlen; printf( "%d: NET message size %d\n", Chimera::millis(), msgLen );
-                         printf( "%d: NET r message ", Chimera::millis() );
+        IF_SERIAL_DEBUG( uint16_t len = maxlen;
+                         uLog::flog( uLog::Level::LVL_INFO, "%d: NET message size %d\n", Chimera::millis(), msgLen );
+                         uLog::flog( uLog::Level::LVL_INFO, "%d: NET r message ", Chimera::millis() );
                          const uint8_t *charPtr = reinterpret_cast<const uint8_t *>( message );
-                         while ( len-- ) { printf( "%02x ", charPtr[ len ] ); }
+                         while ( len-- ) { uLog::flog( uLog::Level::LVL_INFO, "%02x ", charPtr[ len ] ); }
 
-                         printf( "\n\r" ); );
-   
-      /*------------------------------------------------
-      Remove the packet that was just read out
-      ------------------------------------------------*/
-      frameQueue.pop_front();
-      IF_SERIAL_DEBUG( printf( "%d: NET Received %s\n\r", Chimera::millis(), header.toString() ); );
+                         uLog::flog( uLog::Level::LVL_INFO, "\n\r" ); );
+
+        /*------------------------------------------------
+        Remove the packet that was just read out
+        ------------------------------------------------*/
+        frameQueue.pop_front();
+        IF_SERIAL_DEBUG(
+            uLog::flog( uLog::Level::LVL_INFO, "%d: NET Received %s\n\r", Chimera::millis(), header.toString() ); );
       }
-
     }
 
     return readLength;
   }
 
-  bool Network::multicast( Header &header, const void *const message, const uint16_t len, const uint8_t level )
+  bool Network::multicast( HeaderHelper &header, const void *const message, const uint16_t len, const uint8_t level )
   {
     header.data.dstNode = MULTICAST_ADDRESS;
     header.data.srcNode = this->logicalNodeAddress;
@@ -457,12 +486,12 @@ namespace RF24::Network
     return write( header, message, len, levelToAddress( level ) );
   }
 
-  bool Network::write( Header &header, const void *const message, const uint16_t len )
+  bool Network::write( HeaderHelper &header, const void *const message, const uint16_t len )
   {
     return write( header, message, len, ROUTED_ADDRESS );
   }
 
-  bool Network::write( Header &header, const void *const message, const uint16_t len, const NodeAddressType writeDirect )
+  bool Network::write( HeaderHelper &header, const void *const message, const uint16_t len, const NodeAddressType writeDirect )
   {
     /*------------------------------------------------
     Protect against invalid inputs
@@ -470,7 +499,7 @@ namespace RF24::Network
     if ( !initialized )
     {
       oopsies = ErrorType::NOT_INITIALIZED;
-      IF_SERIAL_DEBUG( printf( "%d: ERR Not initialized\r\n", Chimera::millis() ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_INFO, "%d: ERR Not initialized\r\n", Chimera::millis() ); );
       return false;
     }
 
@@ -502,7 +531,7 @@ namespace RF24::Network
     return true;
   }
 
-  bool Network::_write( Header &header, const void *const message, const uint16_t len, const uint16_t directTo )
+  bool Network::_write( HeaderHelper &header, const void *const message, const uint16_t len, const uint16_t directTo )
   {
     /*------------------------------------------------
     Fill out the header
@@ -512,24 +541,27 @@ namespace RF24::Network
     /*------------------------------------------------
     Build the full frame to send
     ------------------------------------------------*/
-    Frame frame( header.data, len, message );
-    memcpy( frameBuffer.begin(), &frame.data, sizeof( Frame_t ) );
+    txFrame.build( header.data, len, message );
 
+    IF_SERIAL_DEBUG(
+        uLog::flog( uLog::Level::LVL_INFO, "%d: NET Sending Header [%s]\n\r", Chimera::millis(), header.toString() );
 
-    IF_SERIAL_DEBUG( printf( "%d: NET Sending Header [%s]\n\r", Chimera::millis(), header.toString() );
+        if ( len ) {
+          uint16_t tmpLen        = len;
+          const uint8_t *charPtr = reinterpret_cast<const uint8_t *>( message );
 
-                     if ( len ) {
-                       uint16_t tmpLen        = len;
-                       const uint8_t *charPtr = reinterpret_cast<const uint8_t *>( message );
+          uLog::flog( uLog::Level::LVL_INFO, "%d: NET message ", Chimera::millis() );
+          while ( tmpLen-- )
+          {
+            uLog::flog( uLog::Level::LVL_INFO, "%02x ", charPtr[ tmpLen ] );
+          }
 
-                       printf( "%d: NET message ", Chimera::millis() );
-                       while ( tmpLen-- )
-                       {
-                         printf( "%02x ", charPtr[ tmpLen ] );
-                       }
-                       printf( "\n\r" );
-                     } );
+          uLog::flog( uLog::Level::LVL_INFO, ( "\n\r" ) );
+        } );
 
+    /*------------------------------------------------
+    Decide where that frame is going to be sent
+    ------------------------------------------------*/
     if ( directTo == ROUTED_ADDRESS )
     {
       return writeDirect( header.data.dstNode, MSG_TX_NORMAL );
@@ -548,8 +580,7 @@ namespace RF24::Network
 
       if ( header.data.dstNode == directTo )
       {
-        sendType =
-            MSG_USER_TX_TO_PHYSICAL_ADDRESS;    // Payload is multicast to the first node, which is the recipient
+        sendType = MSG_USER_TX_TO_PHYSICAL_ADDRESS;    // Payload is multicast to the first node, which is the recipient
       }
 
       return writeDirect( directTo, sendType );
@@ -559,21 +590,6 @@ namespace RF24::Network
   bool Network::writeDirect( uint16_t toNode, NodeAddressType directTo )
   {
     // Direct To: 0 = First Payload, standard routing, 1=routed payload, 2=directRoute to host, 3=directRoute to Route
-
-    bool ok        = false;
-    bool isAckType = false;
-
-    /*------------------------------------------------
-    Check if the payload message type requires an ACK
-    ------------------------------------------------*/
-    Frame frame( frameBuffer );
-
-    // TODO: Convert these magic numbers into their enum equivalent
-    if ( frame.data.header.msgType > 64 && frame.data.header.msgType < 192 )
-    {
-      isAckType = true;
-    }
-
     /*------------------------------------------------
     Throw it away if it's not a valid address
     ------------------------------------------------*/
@@ -592,73 +608,83 @@ namespace RF24::Network
     /*------------------------------------------------
     Write it
     ------------------------------------------------*/
-    IF_SERIAL_DEBUG( printf( "%d: MAC Sending to node [0%o] via node [0%o] on pipe %x\n\r", Chimera::millis(), toNode,
-                             conversion.send_node, conversion.send_pipe ); );
+    IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_INFO, "%d: MAC Sending to node [0%o] via node [0%o] on pipe %x\n\r",
+                                 Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
 
-    ok = writeToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
 
-    if ( !ok )
+    memcpy( frameBuffer.data(), &txFrame.data, sizeof( FrameData ) );
+
+    bool writeSucceeded = writeFrameBufferToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
+    bool isAckType =
+        ( txFrame.data.header.msgType >= MSG_USER_MIN_ACK ) && ( txFrame.data.header.msgType <= MSG_NETWORK_MAX_ACK );
+
+    if ( !writeSucceeded )
     {
-      IF_SERIAL_DEBUG_ROUTING( printf( "%d: MAC Send fail to 0%o via 0%o on pipe %x\n\r", Chimera::millis(), toNode,
-                                       conversion.send_node, conversion.send_pipe ); );
+      IF_SERIAL_DEBUG_ROUTING( uLog::flog( uLog::Level::LVL_INFO, "%d: MAC Send fail to 0%o via 0%o on pipe %x\n\r",
+                                           Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
     }
 
-    /*------------------------------------------------
-
-    ------------------------------------------------*/
-    if ( ok && isAckType && directTo == MSG_TX_ROUTED && conversion.send_node == toNode )
-    {
-      auto frame = reinterpret_cast<Frame_t *>( frameBuffer.begin() );
-
-      frame->header.msgType = static_cast<uint8_t>( MSG_NETWORK_ACK );    // Set the payload type to NETWORK_ACK
-      frame->header.dstNode = frame->header.srcNode;    // Change the 'to' address to the 'from' address
-
-      conversion.send_node = frame->header.srcNode;
-      conversion.send_pipe = static_cast<uint8_t>( MSG_TX_ROUTED );
-      conversion.multicast = 0;
-      logicalToPhysicalAddress( &conversion );
-
-      // TODO: When you figure out what this section does, re-evaluate radioPayloadSize...likely to be wrong
-      // TODO: BUG!
-      radioPayloadSize = sizeof( Header_t );
-      writeToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
-
-      IF_SERIAL_DEBUG_ROUTING(
-          printf( "%d MAC: Route OK to 0%o ACK sent to 0%o\n", Chimera::millis(), toNode, header->fromNode ); );
-    }
 
     /*------------------------------------------------
-
+    Handle writes that have an ACK coming back
     ------------------------------------------------*/
-    if ( ok && conversion.send_node != toNode &&
-         ( directTo == MSG_TX_NORMAL || directTo == MSG_USER_TX_TO_LOGICAL_ADDRESS ) && isAckType )
+    if ( writeSucceeded && isAckType )
     {
-      // Now, continue listening
-      if ( networkFlags & FLAG_FAST_FRAG )
+      /*------------------------------------------------
+
+      ------------------------------------------------*/
+      if ( directTo == MSG_TX_ROUTED && conversion.send_node == toNode )
       {
-        radio->txStandBy( txTimeout );
-        networkFlags &= ~FLAG_FAST_FRAG;
-        radio->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
+        txFrame.data.header.msgType = MSG_NETWORK_ACK;                // Set the payload type to NETWORK_ACK
+        txFrame.data.header.dstNode = txFrame.data.header.srcNode;    // Change the 'to' address to the 'from' address
+
+        conversion.send_node = txFrame.data.header.srcNode;
+        conversion.send_pipe = static_cast<uint8_t>( MSG_TX_ROUTED );
+        conversion.multicast = 0;
+        logicalToPhysicalAddress( &conversion );
+
+        // TODO: When you figure out what this section does, re-evaluate radioPayloadSize...likely to be wrong
+        // TODO: BUG!
+        radioPayloadSize = sizeof( FrameHeaderField );
+        writeFrameBufferToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
+
+        IF_SERIAL_DEBUG_ROUTING( uLog::flog( uLog::Level::LVL_INFO, "%d MAC: Route OK to 0%o ACK sent to 0%o\n",
+                                             Chimera::millis(), toNode, txFrame.data.header.srcNode ); );
       }
-      radio->startListening();
 
-      uint32_t reply_time = Chimera::millis();
+      /*------------------------------------------------
 
-      while ( update() != MSG_NETWORK_ACK )
+      ------------------------------------------------*/
+      if ( conversion.send_node != toNode && ( directTo == MSG_TX_NORMAL || directTo == MSG_USER_TX_TO_LOGICAL_ADDRESS ) )
       {
-        if ( Chimera::millis() - reply_time > routeTimeout )
+        // Now, continue listening
+        if ( networkFlags & FLAG_FAST_FRAG )
         {
-          IF_SERIAL_DEBUG_ROUTING( printf( "%d: MAC Network ACK fail from 0%o via 0%o on pipe %x\n\r", Chimera::millis(), toNode,
-                                           conversion.send_node, conversion.send_pipe ); );
-          ok = false;
-          break;
+          radio->txStandBy( txTimeout );
+          networkFlags &= ~FLAG_FAST_FRAG;
+          radio->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
+        }
+        radio->startListening();
+
+        uint32_t reply_time = Chimera::millis();
+
+        while ( update() != MSG_NETWORK_ACK )
+        {
+          if ( Chimera::millis() - reply_time > routeTimeout )
+          {
+            IF_SERIAL_DEBUG_ROUTING( uLog::flog( uLog::Level::LVL_INFO,
+                                                 "%d: MAC Network ACK fail from 0%o via 0%o on pipe %x\n\r", Chimera::millis(),
+                                                 toNode, conversion.send_node, conversion.send_pipe ); );
+            writeSucceeded = false;
+            break;
+          }
         }
       }
     }
 
-    
+
     radio->startListening();
-    return ok;
+    return writeSucceeded;
   }
 
   bool Network::logicalToPhysicalAddress( logicalToPhysicalStruct *conversionInfo )
@@ -704,19 +730,19 @@ namespace RF24::Network
     return 1;
   }
 
-  bool Network::writeToPipeAtNodeID( uint16_t node, uint8_t pipe, bool multicast )
+  bool Network::writeFrameBufferToPipeAtNodeID( const uint16_t node, const uint8_t pipe, const bool multicast )
   {
     Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
     uint64_t writePipeAddress = pipeAddress( node, pipe );
 
     /*------------------------------------------------
-    If we are multicasting, turn off auto ack. We don't
-    care how the message gets out as long as it does.
+    If we are multi casting, turn off auto acknowledgment. 
+    We don't care how the message gets out as long as it does.
     ------------------------------------------------*/
     result |= radio->stopListening();
     result |= radio->toggleAutoAck( !multicast, RF24::Hardware::PIPE_NUM_0 );
     result |= radio->openWritePipe( writePipeAddress );
-    result |= radio->immediateWrite( frameBuffer.begin(), radioPayloadSize, false );
+    result |= radio->immediateWrite( frameBuffer.data(), radioPayloadSize, false );
     result |= radio->txStandBy( txTimeout );
 
     return result == Chimera::CommonStatusCodes::OK;
@@ -787,11 +813,11 @@ namespace RF24::Network
     }
     parentPipe = i;
 
-    IF_SERIAL_DEBUG_MINIMAL( printf( "setup_address node=0%o mask=0%o parent=0%o pipe=0%o\n\r", this->logicalNodeAddress,
-                                     node_mask, parent_node, parent_pipe ); );
+    IF_SERIAL_DEBUG_MINIMAL( uLog::flog( uLog::Level::LVL_INFO, "setup_address node=0%o mask=0%o parent=0%o pipe=0%o\n\r",
+                                         this->logicalNodeAddress, nodeMask, parentNode, parentPipe ); );
   }
 
-  void Network::enqueue( Frame &frame )
+  void Network::enqueue( FrameHelper &frame )
   {
     if ( !frameQueue.full() )
     {
@@ -799,7 +825,7 @@ namespace RF24::Network
     }
     else
     {
-      IF_SERIAL_DEBUG( printf( "%d: NET **Drop Payload** Buffer Full\r\n", Chimera::millis() ); );
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_INFO, "%d: NET **Drop Payload** Buffer Full\r\n", Chimera::millis() ); );
     }
   }
 
@@ -851,7 +877,7 @@ namespace RF24::Network
         if ( ( nodeID < MIN_NODE_ID ) || ( nodeID > MAX_NODE_ID ) )
         {
           result = false;
-          IF_SERIAL_DEBUG( printf( "*** WARNING *** Invalid address 0%o\n\r", n ); );
+          IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_INFO, "*** WARNING *** Invalid address 0%o\n\r", n ); );
           break;
         }
 
@@ -1022,4 +1048,4 @@ namespace RF24::Network
     return result;
   }
 
-}    // namespace RF24Network
+}    // namespace RF24::Network

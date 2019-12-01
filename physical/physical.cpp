@@ -44,7 +44,16 @@ namespace RF24::Physical
 
   Chimera::Status_t Driver::attachHWDriver( RF24::Hardware::Driver_sPtr &driver )
   {
+    /*------------------------------------------------
+    Shared_ptr could be passed in but still empty
+    ------------------------------------------------*/
+    if ( !driver )
+    {
+      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
+    }
+    
     mHWDriver = driver;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t Driver::initialize()

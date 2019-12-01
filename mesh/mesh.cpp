@@ -2,11 +2,7 @@
 #include <Chimera/chimera.hpp>
 
 /* Mesh Includes */
-#include "RF24Mesh.hpp"
-#include "RF24MeshDefinitions.hpp"
 
-using namespace NRF24L;
-using namespace Chimera;
 
 namespace RF24Mesh
 {

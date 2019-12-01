@@ -19,7 +19,7 @@ namespace RF24::Network
 {
   Path::Path( std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE> messagePath )
   {
-    memcpy( &msgPath, messagePath.begin(), sizeof( MessagePath ) );
+    memcpy( &msgPath, messagePath.data(), sizeof( MessagePath ) );
   }
 
   void Path::process()

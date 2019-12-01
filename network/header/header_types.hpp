@@ -29,7 +29,7 @@ namespace RF24::Network
    *   consistent data representation across multiple systems. This structure is the bread
    *   and butter of the class.
    */
-  struct Header_t
+  struct FrameHeaderField
   {
     HeaderCountType number;  /**< Sequential message ID, incremented every time a new frame is constructed */
     NodeAddressType dstNode; /**< Logical address (OCTAL) describing where the message is going */
@@ -39,8 +39,8 @@ namespace RF24::Network
   };
 #pragma pack( pop )
 
-  static_assert( sizeof( Header_t ) % 32 != 0, "Payload_t structure not aligned to 32bit width" );
-  static_assert( sizeof( Header_t ) <= HEADER_SIZE, "Payload_t structure is too large!" );
+  static_assert( sizeof( FrameHeaderField ) % 32 != 0, "Payload_t structure not aligned to 32bit width" );
+  static_assert( sizeof( FrameHeaderField ) <= HEADER_SIZE, "Payload_t structure is too large!" );
 }
 
 #endif  /* NRF24L01_NETWORK_LAYER_HEADER_TYPES_HPP */

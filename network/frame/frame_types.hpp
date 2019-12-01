@@ -31,37 +31,37 @@ namespace RF24::Network
    *   Defines enough memory to store a full frame of data from the NRF24 radio. The size
    *   of this array is limited by hardware and should not be changed.
    */
-  using FrameBuffer_t = std::array<uint8_t, FRAME_TOTAL_SIZE>;
-  static_assert( sizeof( FrameBuffer_t ) == FRAME_TOTAL_SIZE, "Incorrect frame size" );
+  using FrameBuffer = std::array<uint8_t, FRAME_TOTAL_SIZE>;
+  static_assert( sizeof( FrameBuffer ) == FRAME_TOTAL_SIZE, "Incorrect frame size" );
 
   /**
    *   Defines enough memory to store the length of the user payload of a frame
    */
-  using FrameLength_t = uint16_t;
-  static_assert( sizeof( FrameLength_t ) == FRAME_MSG_LEN_SIZE, "Icorrect frame length size" );
+  using FrameLengthField = uint16_t;
+  static_assert( sizeof( FrameLengthField ) == FRAME_MSG_LEN_SIZE, "Incorrect frame length size" );
 
   /**
    *   Defines enough memory to store the user payload of a frame
    */
-  using FramePayload_t = std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE>;
-  static_assert( sizeof( FramePayload_t ) == MAX_FRAME_PAYLOAD_SIZE, "Incorrect frame payload size" );
+  using FramePayloadField = std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE>;
+  static_assert( sizeof( FramePayloadField ) == MAX_FRAME_PAYLOAD_SIZE, "Incorrect frame payload size" );
 
 #pragma pack( push )
 #pragma pack( 1 )
-  struct Frame_t
+  struct FrameData
   {
-    Header_t header;
-    FrameLength_t messageLength;
-    FramePayload_t message;
+    FrameHeaderField header;          /**< Header describing the frame */
+    FrameLengthField messageLength;   /**< Length of the message in bytes */
+    FramePayloadField message;        /**< User defined message */
   };
 #pragma pack( pop )
-  static_assert( sizeof( Frame_t ) == FRAME_TOTAL_SIZE, "Frame data structure is the wrong size" );
+  static_assert( sizeof( FrameData ) == FRAME_TOTAL_SIZE, "Frame data structure is the wrong size" );
 
   /**
    *   Defines enough memory for storing multiple frames of data. This is intended
    *   to serve as the primary user accessible cache for incoming data.
    */
-  using FrameCache_t = boost::circular_buffer<Frame_t>;
+  using FrameCache_t = boost::circular_buffer<FrameData>;
 
 }    // namespace RF24::Network
 

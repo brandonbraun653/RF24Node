@@ -28,10 +28,10 @@ namespace RF24::Network
    *   + message. Each are addressed to the appropriate node, and the network forwards them on to
    *   their final destination.
    */
-  class Header
+  class HeaderHelper
   {
   public:
-    Header_t data;
+    FrameHeaderField data;
 
     static void initialize();
 
@@ -40,7 +40,7 @@ namespace RF24::Network
      *
      *  @param[in]  buffer      Buffer containing byte data that can be converted to Payload_t
      */
-    Header( const FrameBuffer_t &buffer );
+    HeaderHelper( const FrameBuffer &buffer );
 
     /**
      *  Alternate constructor simply for ease of use
@@ -48,10 +48,10 @@ namespace RF24::Network
      *  @param[in]  dstNode     The Octal format, logical node address where the message is going
      *  @param[in]  msgType     The type of message, as given by RF24Network::MessageType
      */
-    Header( const uint16_t dstNode, const NetHdrMsgType type = MSG_TX_NORMAL );
+    HeaderHelper( const uint16_t dstNode, const NetHdrMsgType type = MSG_TX_NORMAL );
 
-    Header();
-    ~Header();
+    HeaderHelper();
+    ~HeaderHelper();
 
     /**
      *  Allows updating an existing Header object from memory array
@@ -59,7 +59,7 @@ namespace RF24::Network
      *  @param[in]  buffer      Buffer containing byte data that can be converted to Payload_t
      *  @return void
      */
-    void operator()( const FrameBuffer_t &buffer );
+    void operator()( const FrameBuffer &buffer );
 
     /**
      *  Copy constructor
@@ -67,7 +67,7 @@ namespace RF24::Network
      *  @param[in]  header      Header class object to copy
      *  @return void
      */
-    void operator=( const Header &headerClass );
+    void operator=( const HeaderHelper &headerClass );
 
     /**
      *   Copy constructor
@@ -75,7 +75,7 @@ namespace RF24::Network
      *   @param[in]  headerData  Header data object to copy
      *   @return void
      */
-    void operator=( const Header_t &headerData );
+    void operator=( const FrameHeaderField &headerData );
 
     /**
      *   Convert the header payload into a string. Uses internal memory shared across all

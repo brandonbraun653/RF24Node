@@ -35,6 +35,8 @@
 #include <RF24Node/network/frame/frame.hpp>
 #include <RF24Node/network/header/header.hpp>
 
+#include <RF24Node/simulator/sim_network.hpp>
+
 
 namespace RF24::Network
 {
@@ -100,7 +102,7 @@ namespace RF24::Network
      *   @param[out] header      The header of the next message
      *   @return TODO?
      */
-    uint16_t peek( Header &header );
+    uint16_t peek( HeaderHelper &header );
 
     /**
      *   Read the next available payload
@@ -114,7 +116,7 @@ namespace RF24::Network
      *   @param maxlen Amount of bytes to copy to message.
      *   @return void
      */
-    void peek( Header &header, void *const message, const uint16_t maxlen );
+    void peek( HeaderHelper &header, void *const message, const uint16_t maxlen );
 
     /**
      *   Read a message
@@ -124,7 +126,7 @@ namespace RF24::Network
      *   @param[in]  maxlen      The largest message size which can be held in message
      *   @return The total number of bytes copied into message
      */
-    uint16_t read( Header &header, void *const message, const uint16_t maxlen );
+    uint16_t read( HeaderHelper &header, void *const message, const uint16_t maxlen );
 
     /**
      *   Send a message
@@ -140,7 +142,7 @@ namespace RF24::Network
      *   @param[in]  len         The size of the message
      *   @return True if the message sent successfully, false if not
      */
-    bool write( Header &header, const void *message, const uint16_t len );
+    bool write( HeaderHelper &header, const void *message, const uint16_t len );
 
     /**
      *   Writes a direct (unicast) payload. This allows routing or sending messages outside of the
@@ -153,7 +155,7 @@ namespace RF24::Network
      *   @param[in]  writeDirect TODO
      *   @return True if the message sent successfully, false if not
      */
-    bool write( Header &header, const void *message, uint16_t length, NodeAddressType writeDirect );
+    bool write( HeaderHelper &header, const void *message, uint16_t length, NodeAddressType writeDirect );
 
     /**
      *   Allows messages to be rapidly broadcast through the network by seding to multiple nodes at once
@@ -169,7 +171,7 @@ namespace RF24::Network
      *   @param[in] level        Multicast level to broadcast to
      *   @return True if the message sent successfully, false if not
      */
-    bool multicast( Header &header, const void *message, const uint16_t length, const uint8_t level );
+    bool multicast( HeaderHelper &header, const void *message, const uint16_t length, const uint8_t level );
 
     /**
     *   By default, multicast addresses are divided into levels.
@@ -263,8 +265,7 @@ namespace RF24::Network
     /**
      * The raw system frame buffer of received data.
      */
-    // uint8_t frameBuffer[MAX_FRAME_SIZE];
-    FrameBuffer_t frameBuffer;
+    FrameBuffer frameBuffer;
 
     /**
      *   The frag_ptr is only used with Arduino (not RPi/Linux) and is mainly used for external data systems like RF24Ethernet.
@@ -272,7 +273,7 @@ namespace RF24::Network
      * starting memory location of the received frame. <br>This is used by external data systems (RF24Ethernet) to immediately
      * copy the received data to a buffer, without using the user-cache.
      */
-    Frame *frag_ptr;
+    FrameHelper *frag_ptr;
 
     /**
      * Variable to determine whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -343,7 +344,7 @@ namespace RF24::Network
     }
 
   private:
-    ErrorType oopsies = ErrorType::NO_ERROR;
+    ErrorType oopsies = ErrorType::OK;
 
     bool initialized = false;
 
@@ -351,18 +352,18 @@ namespace RF24::Network
     uint8_t radioPayloadSize;    /**< How many bytes are available in the radio's FIFO */
     uint16_t logicalNodeAddress; /**< Logical node address of this unit, 1 .. UINT_MAX */
 
-    void enqueue( Frame &frame );
+    void enqueue( FrameHelper &frame );
 
     bool writeDirect( uint16_t toNode, NodeAddressType directTo );
 
-    bool writeToPipeAtNodeID( uint16_t node, uint8_t pipe, bool multicast );
+    bool writeFrameBufferToPipeAtNodeID( const uint16_t node, const uint8_t pipe, const bool multicast );
 
     bool isDirectChild( uint16_t node );
     bool isDescendant( uint16_t node );
 
     uint16_t directChildRouteTo( uint16_t node );
     void setupAddress( void );
-    bool _write( Header &header, const void *const message, const uint16_t len, const NodeAddressType directTo );
+    bool _write( HeaderHelper &header, const void *const message, const uint16_t len, const NodeAddressType directTo );
 
     struct logicalToPhysicalStruct
     {
@@ -391,6 +392,8 @@ namespace RF24::Network
     RF24::Physical::Driver_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
 
     uint8_t multicastLevel;
+
+    FrameHelper txFrame;
 
     FrameCache_t frameQueue; /**< Space for a small set of frames that need to be delivered to the app layer */
 

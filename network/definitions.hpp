@@ -82,10 +82,10 @@ Debug Options
 ------------------------------------------------*/
 #if DEBUG
 #define SERIAL_DEBUG
-//#define SERIAL_DEBUG_MINIMAL
-//#define SERIAL_DEBUG_ROUTING
-//#define SERIAL_DEBUG_FRAGMENTATION
-//#define SERIAL_DEBUG_FRAGMENTATION_L2
+#define SERIAL_DEBUG_MINIMAL
+#define SERIAL_DEBUG_ROUTING
+#define SERIAL_DEBUG_FRAGMENTATION
+#define SERIAL_DEBUG_FRAGMENTATION_L2
 #endif /* !NDEBUG */
 
 #if defined( SERIAL_DEBUG )
@@ -143,14 +143,24 @@ Debug Options
 
     MSG_TX_NORMAL                   = 0,
     MSG_TX_ROUTED                   = 1,
+
+    MSG_USER_MIN_NO_ACK = MSG_TX_ROUTED,
+
     MSG_USER_TX_TO_PHYSICAL_ADDRESS = 2,
     MSG_USER_TX_TO_LOGICAL_ADDRESS  = 3,
     MSG_USER_TX_MULTICAST           = 4,
 
     MSG_M = 7,
 
+    MSG_USER_MAX_NO_ACK = 64,
+    MSG_USER_MIN_ACK = 65,
+
     MSG_NO_MESSAGE                   = 126,
     MSG_MAX_USER_DEFINED_HEADER_TYPE = 127,
+
+    MSG_USER_MAX_ACK = MSG_MAX_USER_DEFINED_HEADER_TYPE,
+    MSG_SYSTEM_MIN_ACK = 128,
+
 
     /**
      *   A NETWORK_ADDR_RESPONSE type is utilized to manually route custom messages containing
@@ -163,7 +173,7 @@ Debug Options
      *   allows nodes to forward multicast messages to the master node, receive a response,
      *   and forward it back to the requester.
      */
-    MSG_MESH_ADDR_RESPONSE = 128,
+    MSG_MESH_ADDR_RESPONSE = MSG_SYSTEM_MIN_ACK,
 
     MSG_MESH_ADDR_CONFIRM = 129,
 
@@ -196,6 +206,8 @@ Debug Options
      *   Messages of this type indicate the last fragment in a sequence of message fragments.
      */
     MSG_NETWORK_LAST_FRAGMENT = 150,
+
+    MSG_NETWORK_MAX_ACK = 191,
 
     /**
      *   Signal that an error of some kind occurred.
@@ -276,8 +288,7 @@ Debug Options
    */
   enum class ErrorType : uint8_t
   {
-    NO_ERROR = 0,
-    OK       = NO_ERROR,
+    OK = 0,
     NOT_INITIALIZED,
     INVALID_ADDRESS,
     INVALID_INPUTS,
