@@ -85,6 +85,9 @@ namespace RF24::Network
 
   Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer )
   {
+#if defined( RF24_SIMULATOR )
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+#else
     /*------------------------------------------------
     Shared_ptr could be passed in but still empty
     ------------------------------------------------*/
@@ -95,6 +98,22 @@ namespace RF24::Network
 
     this->radio = physicalLayer;
     return Chimera::CommonStatusCodes::OK;
+#endif 
+  }
+
+  Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver *physicalLayer )
+  {
+#if defined( RF24_SIMULATOR )
+    if (!physicalLayer)
+    {
+      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
+    }
+
+    this->radio = physicalLayer;
+    return Chimera::CommonStatusCodes::OK;
+#else
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+#endif 
   }
 
   bool Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
