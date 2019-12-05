@@ -13,7 +13,6 @@
 #ifndef NRF24_NETWORK_SIMULATOR_HPP
 #define NRF24_NETWORK_SIMULATOR_HPP
 
-
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/network/definitions.hpp>
