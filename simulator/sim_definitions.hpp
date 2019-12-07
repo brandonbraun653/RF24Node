@@ -13,7 +13,7 @@
 #define NRF24_SIMULATOR_DEFINITIONS_HPP
 
 
-#if defined( EMBEDDED )
+#if defined( _EMBEDDED )
 #define RF24API
 #elif defined( RF24DLL )
 #define RF24API __declspec(dllexport)

@@ -3,7 +3,7 @@
  *    endpoint.hpp
  *
  *  Description:
- *
+ *    Describes a high level interface to configuring and using the NRF24L01
  *
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
