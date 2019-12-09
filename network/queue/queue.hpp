@@ -15,8 +15,14 @@
 /* C++ Includes */
 #include <cstdlib>
 
+/* Boost Includes */
+#include <boost/circular_buffer.hpp>
+
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
+
+/* RF24 Includes */
+#include <RF24Node/network/memory/heap.hpp>
 
 namespace RF24::Network::Queue
 {
@@ -29,21 +35,27 @@ namespace RF24::Network::Queue
   class ManagedFIFO
   {
   public:
-    ManagedFIFO( const size_t depth );
+    ManagedFIFO();
     ~ManagedFIFO();
 
-    Chimera::Status_t attachStaticHeap( void * buffer, const size_t size );
+    Chimera::Status_t setDepth( const size_t depth );
 
-    Chimera::Status_t attachDynamicHeap( const size_t size );
+    Chimera::Status_t attachHeap( void * buffer, const size_t size );
 
     Chimera::Status_t push( const void *const data, const size_t size );
 
     Chimera::Status_t pop( void *const data, const size_t size );
 
+    Chimera::Status_t clear();
+
     Element peekNextElement();
 
   private:
-    const size_t element_depth;
+    size_t element_depth;
+
+    boost::circular_buffer<Element> ringBuffer;
+    RF24::Network::Memory::Heap heap;
+
   };
 
 }    // namespace RF24::Network

@@ -18,6 +18,9 @@
 /* Chimera Includes */
 #include <Chimera/types/spi_types.hpp>
 
+/* RF24 Includes */
+#include <RF24Node/simulator/sim_definitions.hpp>
+
 namespace RF24
 {
   /**
@@ -40,9 +43,9 @@ namespace RF24
 
 
   /**
-   *  Function pointer callback to be invoked on an event occurrance
+   *  Function pointer callback to be invoked on an event occurrence
    */
-  using EventFuncPtr_t = void(*)(void);
+  using EventFuncPtr_t = void ( * )( void );
 
   enum class Event
   {
@@ -55,10 +58,19 @@ namespace RF24
 
   struct EndpointConfig
   {
-    Chimera::SPI::DriverConfig spiConfig;
+    uint32_t version; /**< Version ID */
 
-    size_t rxQueueSize;
-    size_t txQueueSize;
+    void *rxQueueBuffer;  /**< (Optional) External buffer for the network rx queue */
+    uint32_t rxQueueSize; /**< (Required) Size of the network rx queue in bytes */
+
+    void *txQueueBuffer;  /**< (Optional) External buffer for the network tx queue */
+    uint32_t txQueueSize; /**< (Required) Size of the network tx queue in bytes */
+
+#if defined( RF24API )
+
+#else
+    Chimera::SPI::DriverConfig spiConfig;
+#endif /* RF24API */
   };
 
   struct EndpointStatus

@@ -21,28 +21,28 @@
 
 namespace RF24::Physical
 {
-  Driver::Driver()
+  HardwareDriver::HardwareDriver()
   {
     /*-------------------------------------------------
     Initialize class variables
     -------------------------------------------------*/
-    mInitialized            = false;
-    mPlusVariant            = false;
-    mCurrentlyListening     = false;
-    mListeningPaused        = false;
-    mAddressWidth           = std::numeric_limits<size_t>::min();
-    mPayloadSize            = std::numeric_limits<size_t>::min();
-    mCachedPipe0RXAddress   = std::numeric_limits<uint64_t>::min();
-    mCurrentMode            = RF24::Hardware::Mode::MAX_MODES;
-    mHWDriver               = nullptr;
-    mFailureCode            = Chimera::CommonStatusCodes::NOT_INITIALIZED;
+    mInitialized          = false;
+    mPlusVariant          = false;
+    mCurrentlyListening   = false;
+    mListeningPaused      = false;
+    mAddressWidth         = std::numeric_limits<size_t>::min();
+    mPayloadSize          = std::numeric_limits<size_t>::min();
+    mCachedPipe0RXAddress = std::numeric_limits<uint64_t>::min();
+    mCurrentMode          = RF24::Hardware::Mode::MAX_MODES;
+    mHWDriver             = nullptr;
+    mFailureCode          = Chimera::CommonStatusCodes::NOT_INITIALIZED;
   }
 
-  Driver::~Driver()
+  HardwareDriver::~HardwareDriver()
   {
   }
 
-  Chimera::Status_t Driver::attachHWDriver( RF24::Hardware::Driver_sPtr &driver )
+  Chimera::Status_t HardwareDriver::attachHWDriver( RF24::Hardware::Driver_sPtr &driver )
   {
     /*------------------------------------------------
     Shared_ptr could be passed in but still empty
@@ -51,12 +51,12 @@ namespace RF24::Physical
     {
       return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
     }
-    
+
     mHWDriver = driver;
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::initialize()
+  Chimera::Status_t HardwareDriver::initialize()
   {
     mInitialized = false;
 
@@ -121,12 +121,12 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::isInitialized()
+  Chimera::Status_t HardwareDriver::isInitialized()
   {
     return mInitialized;
   }
 
-  Chimera::Status_t Driver::isConnected()
+  Chimera::Status_t HardwareDriver::isConnected()
   {
     using namespace RF24::Hardware;
 
@@ -158,8 +158,8 @@ namespace RF24::Physical
     }
   }
 
-  Chimera::Status_t Driver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
-                                        const bool validate )
+  Chimera::Status_t HardwareDriver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
+                                                const bool validate )
   {
     bool returnVal    = true;
     Reg8_t ard        = ( static_cast<Reg8_t>( delay ) & 0x0F ) << RF24::Hardware::SETUP_RETR_ARD_Pos;
@@ -176,7 +176,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::setChannel( const size_t channel, const bool validate )
+  Chimera::Status_t HardwareDriver::setChannel( const size_t channel, const bool validate )
   {
     auto maskedChannel = channel & RF24::Hardware::RF_CH_Mask;
     mHWDriver->writeRegister( RF24::Hardware::REG_RF_CH, maskedChannel );
@@ -189,28 +189,28 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  size_t Driver::getChannel()
+  size_t HardwareDriver::getChannel()
   {
     return static_cast<size_t>( mHWDriver->readRegister( RF24::Hardware::REG_RF_CH ) );
   }
 
-  Chimera::Status_t Driver::setStaticPayloadSize( const size_t size )
+  Chimera::Status_t HardwareDriver::setStaticPayloadSize( const size_t size )
   {
     mPayloadSize = std::min( size, RF24::Hardware::MAX_PAYLOAD_WIDTH );
     return Chimera::CommonStatusCodes::OK;
   }
 
-  size_t Driver::getStaticPayloadSize()
+  size_t HardwareDriver::getStaticPayloadSize()
   {
     return mPayloadSize;
   }
 
-  size_t Driver::getDynamicPayloadSize()
+  size_t HardwareDriver::getDynamicPayloadSize()
   {
     return mHWDriver->getDynamicPayloadSize();
   }
 
-  Chimera::Status_t Driver::startListening()
+  Chimera::Status_t HardwareDriver::startListening()
   {
     using namespace RF24::Hardware;
 
@@ -259,7 +259,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::pauseListening()
+  Chimera::Status_t HardwareDriver::pauseListening()
   {
     /*-------------------------------------------------
     According to the state transition diagram, the module is
@@ -278,7 +278,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::FAIL;
   }
 
-  Chimera::Status_t Driver::resumeListening()
+  Chimera::Status_t HardwareDriver::resumeListening()
   {
     /*-------------------------------------------------
     According to the state transition diagram, the module is
@@ -300,7 +300,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::FAIL;
   }
 
-  Chimera::Status_t Driver::stopListening()
+  Chimera::Status_t HardwareDriver::stopListening()
   {
     using namespace RF24::Hardware;
 
@@ -330,7 +330,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::FAIL;
   }
 
-  Chimera::Status_t Driver::openWritePipe( const uint64_t address )
+  Chimera::Status_t HardwareDriver::openWritePipe( const uint64_t address )
   {
     using namespace RF24::Hardware;
 
@@ -360,7 +360,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::closeWritePipe()
+  Chimera::Status_t HardwareDriver::closeWritePipe()
   {
     using namespace RF24::Hardware;
     /*-------------------------------------------------
@@ -380,7 +380,8 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address, const bool validate )
+  Chimera::Status_t HardwareDriver::openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+                                                  const bool validate )
   {
     using namespace RF24::Hardware;
 
@@ -396,7 +397,7 @@ namespace RF24::Physical
     /*-------------------------------------------------
     Assign the address for the pipe to listen against
     -------------------------------------------------*/
-    size_t addressBytes = 0u;
+    size_t addressBytes  = 0u;
     uint64_t addressMask = 0u;
 
     if ( ( pipe == PIPE_NUM_0 ) || ( pipe == PIPE_NUM_1 ) )
@@ -454,7 +455,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::closeReadPipe( const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t HardwareDriver::closeReadPipe( const RF24::Hardware::PipeNumber_t pipe )
   {
     using namespace RF24::Hardware;
 
@@ -469,7 +470,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
   }
 
-  RF24::Hardware::PipeNumber_t Driver::payloadAvailable()
+  RF24::Hardware::PipeNumber_t HardwareDriver::payloadAvailable()
   {
     using namespace RF24::Hardware;
 
@@ -487,7 +488,7 @@ namespace RF24::Physical
     return pipeWithPayload;
   }
 
-  size_t Driver::getPayloadSize( const RF24::Hardware::PipeNumber_t pipe )
+  size_t HardwareDriver::getPayloadSize( const RF24::Hardware::PipeNumber_t pipe )
   {
     using namespace RF24::Hardware;
 
@@ -502,7 +503,7 @@ namespace RF24::Physical
     return 0u;
   }
 
-  Chimera::Status_t Driver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
+  Chimera::Status_t HardwareDriver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
   {
     using namespace RF24::Hardware;
 
@@ -517,7 +518,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
+  Chimera::Status_t HardwareDriver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
   {
     using namespace RF24::Hardware;
 
@@ -565,8 +566,8 @@ namespace RF24::Physical
     return startFastWrite( buffer, len, multicast, true );
   }
 
-  Chimera::Status_t Driver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
-                                            const bool startTX )
+  Chimera::Status_t HardwareDriver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
+                                                    const bool startTX )
   {
     using namespace RF24::Hardware;
 
@@ -604,12 +605,12 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  void Driver::toggleChipEnablePin( const bool state )
+  void HardwareDriver::toggleChipEnablePin( const bool state )
   {
     mHWDriver->toggleCE( state );
   }
 
-  Chimera::Status_t Driver::txStandBy( const size_t timeout, const bool startTx )
+  Chimera::Status_t HardwareDriver::txStandBy( const size_t timeout, const bool startTx )
   {
     using namespace RF24::Hardware;
 
@@ -674,23 +675,28 @@ namespace RF24::Physical
   }
 
 
-  uint8_t Driver::flushTX()
+  Chimera::Status_t HardwareDriver::stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len )
+  {
+    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
+  }
+
+  uint8_t HardwareDriver::flushTX()
   {
     return mHWDriver->writeCMD( RF24::Hardware::CMD_FLUSH_TX );
   }
 
-  uint8_t Driver::flushRX()
+  uint8_t HardwareDriver::flushRX()
   {
     return mHWDriver->writeCMD( RF24::Hardware::CMD_FLUSH_RX );
   }
 
-  Chimera::Status_t Driver::toggleDynamicPayloads( const bool state )
+  Chimera::Status_t HardwareDriver::toggleDynamicPayloads( const bool state )
   {
     mHWDriver->toggleDynamicPayloads( state );
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::setPALevel( const RF24::Hardware::PowerAmplitude level, const bool validate )
+  Chimera::Status_t HardwareDriver::setPALevel( const RF24::Hardware::PowerAmplitude level, const bool validate )
   {
     using namespace RF24::Hardware;
 
@@ -711,7 +717,7 @@ namespace RF24::Physical
     return true;
   }
 
-  RF24::Hardware::PowerAmplitude Driver::getPALevel()
+  RF24::Hardware::PowerAmplitude HardwareDriver::getPALevel()
   {
     using namespace RF24::Hardware;
 
@@ -719,7 +725,7 @@ namespace RF24::Physical
     return static_cast<PowerAmplitude>( ( setup & RF_SETUP_RF_PWR ) >> 1 );
   }
 
-  Chimera::Status_t Driver::setDataRate( const RF24::Hardware::DataRate speed )
+  Chimera::Status_t HardwareDriver::setDataRate( const RF24::Hardware::DataRate speed )
   {
     using namespace RF24::Hardware;
 
@@ -761,7 +767,7 @@ namespace RF24::Physical
     return ( result == setup ) ? Chimera::CommonStatusCodes::OK : Chimera::CommonStatusCodes::FAIL;
   }
 
-  RF24::Hardware::DataRate Driver::getDataRate()
+  RF24::Hardware::DataRate HardwareDriver::getDataRate()
   {
     using namespace RF24::Hardware;
 
@@ -769,17 +775,17 @@ namespace RF24::Physical
     return static_cast<DataRate>( reg & ( RF_SETUP_RF_DR_HIGH | RF_SETUP_RF_DR_LOW ) );
   }
 
-  bool Driver::_registerIsBitmaskSet( const uint8_t reg, const uint8_t bitmask )
+  bool HardwareDriver::_registerIsBitmaskSet( const uint8_t reg, const uint8_t bitmask )
   {
     return ( mHWDriver->readRegister( reg ) & bitmask ) == bitmask;
   }
 
-  bool Driver::_registerIsAnySet( const uint8_t reg, const uint8_t bitmask )
+  bool HardwareDriver::_registerIsAnySet( const uint8_t reg, const uint8_t bitmask )
   {
     return mHWDriver->readRegister( reg ) & bitmask;
   }
 
-  Chimera::Status_t  Driver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t HardwareDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe )
   {
     mHWDriver->toggleAutoAck( state, pipe );
     return Chimera::CommonStatusCodes::OK;

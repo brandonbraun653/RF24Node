@@ -30,16 +30,17 @@
 
 /* Driver Includes */
 #include <RF24Node/hardware/types.hpp>
+#include <RF24Node/interfaces/network_intf.hpp>
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/network/definitions.hpp>
 #include <RF24Node/network/frame/frame.hpp>
 #include <RF24Node/network/header/header.hpp>
-#include <RF24Node/simulator/sim_network.hpp>
+#include <RF24Node/network/queue/queue.hpp>
 
 
 namespace RF24::Network
 {
-  class Network : public NetworkInterface
+  class Network : public Interface
   {
   public:
     /**
@@ -50,17 +51,9 @@ namespace RF24::Network
     Network();
     ~Network();
 
-    /**
-     *  Attaches an managed instance of a physical layer driver to the network driver.
-     *  
-     *  @warning  Not supported in simulator builds
-     *  
-     *  @param[in]  physicalLayer     The driver to attach
-     *  @return Chimera::Status_t
-     */
-    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer );
-
-    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Driver *physicalLayer ) final override;
+    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer ) final override;
+    Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
+    Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
 
 
     bool begin( const uint8_t channel, const uint16_t nodeAddress,
@@ -248,11 +241,7 @@ namespace RF24::Network
      */
     uint64_t pipeAddress( const uint16_t nodeID, const uint8_t pipeNum );
 
-    #if defined( RF24_SIMULATOR )
-    RF24::Physical::Driver *radio;
-    #else
-    RF24::Physical::Driver_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
-    #endif 
+    RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
 
     uint8_t multicastLevel;
 
@@ -263,6 +252,11 @@ namespace RF24::Network
     uint16_t parentNode; /**< Our parent's node address */
     uint8_t parentPipe;  /**< The pipe our parent uses to listen to us */
     uint16_t nodeMask;   /**< The bits which contain significant node address information */
+
+
+    RF24::Network::Queue::ManagedFIFO txQueue;
+    RF24::Network::Queue::ManagedFIFO rxQueue;
+
   };
 }    // namespace RF24::Network
 

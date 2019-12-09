@@ -10,8 +10,11 @@
  ********************************************************************************/
 
 #pragma once
-#ifndef NRF24_NETWORK_SIMULATOR_HPP
-#define NRF24_NETWORK_SIMULATOR_HPP
+#ifndef NRF24_NETWORK_INTERFACE_HPP
+#define NRF24_NETWORK_INTERFACE_HPP
+
+/* C++ Includes */
+#include <memory>
 
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
@@ -21,22 +24,26 @@
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/simulator/sim_definitions.hpp>
 
-namespace RF24::Network 
+namespace RF24::Network
 {
-  class NetworkInterface
+  class Interface
   {
   public:
-    virtual ~NetworkInterface() = default;
+    virtual ~Interface() = default;
 
     /**
-     *  Attaches an unmanaged instance of a physical layer driver to the network driver.
+     *  Attaches a managed instance of a physical layer driver to the network driver.
      *  
-     *  @warning  Only supported in simulator builds
+     *  @warning  Not supported in simulator builds
      *  
      *  @param[in]  physicalLayer     The driver to attach
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t attachPhysicalDriver( RF24::Physical::Driver *physicalLayer ) = 0;
+    virtual Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer ) = 0;
+
+    virtual Chimera::Status_t initRXQueue( void *buffer, const size_t size ) = 0;
+
+    virtual Chimera::Status_t initTXQueue( void *buffer, const size_t size ) = 0;
 
     /**
      *   Initializes the network and configures the address, which designates the location
@@ -209,35 +216,10 @@ namespace RF24::Network
      *   Provided a node address and a pipe number, will return the RF24Network address of that child pipe for that node
      */
     virtual uint16_t addressOfPipe( uint16_t node, uint8_t pipeNo ) = 0;
-  
   };
+
+  using Interface_sPtr = std::shared_ptr<Interface>;
+  using Interface_uPtr = std::unique_ptr<Interface>;
 }    // namespace RF24::Network
 
-
-#if defined( RF24_SIMULATOR )
-
-/**
- *  Initialize the dll memory
- *  
- *  @return void
- */
-extern "C" RF24API void initializeNetworkAPI();
-
-/**
- *  Factory method to create an unmanaged instance of the NetworkInterface
- *  
- *  @return NetworkInterface *
- */
-extern "C" RF24API RF24::Network::NetworkInterface *createNetworkInterface();
-
-/**
- *  Destroys a previously created instance of the NetworkInterface
- *  
- *  @return void
- */
-extern "C" RF24API void releaseNetworkInterface( RF24::Network::NetworkInterface *object );
-
-#endif /* RF24_SIMULATOR */
-
-
-#endif  /* !NRF24_NETWORK_SIMULATOR_HPP */
+#endif /* !NRF24_NETWORK_INTERFACE_HPP */

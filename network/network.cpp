@@ -83,11 +83,8 @@ namespace RF24::Network
   {
   }
 
-  Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver_sPtr &physicalLayer )
+  Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer )
   {
-#if defined( RF24_SIMULATOR )
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-#else
     /*------------------------------------------------
     Shared_ptr could be passed in but still empty
     ------------------------------------------------*/
@@ -96,25 +93,21 @@ namespace RF24::Network
       return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
     }
 
-    this->radio = physicalLayer;
+    radio = physicalLayer;
     return Chimera::CommonStatusCodes::OK;
-#endif 
   }
 
-  Chimera::Status_t Network::attachPhysicalDriver( RF24::Physical::Driver *physicalLayer )
+  
+  Chimera::Status_t Network::initRXQueue( void *buffer, const size_t size )
   {
-#if defined( RF24_SIMULATOR )
-    if (!physicalLayer)
-    {
-      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
-    }
-
-    this->radio = physicalLayer;
-    return Chimera::CommonStatusCodes::OK;
-#else
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-#endif 
+    return rxQueue.attachHeap( buffer, size );
   }
+
+  Chimera::Status_t Network::initTXQueue( void *buffer, const size_t size )
+  {
+    return txQueue.attachHeap( buffer, size );
+  }
+
 
   bool Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
                        const RF24::Hardware::PowerAmplitude pwr )
@@ -1066,5 +1059,6 @@ namespace RF24::Network
 
     return result;
   }
+
 
 }    // namespace RF24::Network
