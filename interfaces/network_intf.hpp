@@ -19,7 +19,7 @@
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/network/definitions.hpp>
-#include <RF24Node/network/network_types.hpp>
+#include <RF24Node/network/types.hpp>
 #include <RF24Node/network/header/header.hpp>
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/simulator/sim_definitions.hpp>
@@ -66,8 +66,10 @@ namespace RF24::Network
      *   @param[in]  node_address    The logical address of this node
      *   @return True if the setup was successful, false if not
      */
-    virtual bool begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
-                        const RF24::Hardware::PowerAmplitude pwr ) = 0;
+    virtual Chimera::Status_t
+        begin( const uint8_t channel, const uint16_t nodeAddress,
+               const RF24::Hardware::DataRate dataRate  = RF24::Hardware::DataRate::DR_1MBPS,
+                        const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX ) = 0;
 
     /**
      *   Updates the internal network processing stack. This function must be called regularly to

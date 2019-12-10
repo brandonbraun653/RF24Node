@@ -21,7 +21,7 @@ namespace RF24::Physical
   {
   }
 
-  Chimera::Status_t SimulatorDriver::initialize()
+  Chimera::Status_t SimulatorDriver::initialize( const RF24::Physical::Config &cfg )
   {
     return Chimera::Status_t();
   }

@@ -20,7 +20,7 @@
 
 /* Driver Includes */
 #include <RF24Node/network/network.hpp>
-#include <RF24Node/network/network_types.hpp>
+#include <RF24Node/network/types.hpp>
 #include <RF24Node/network/frame/frame.hpp>
 #include <RF24Node/network/header/header.hpp>
 #include <RF24Node/network/node/node.hpp>
@@ -109,52 +109,39 @@ namespace RF24::Network
   }
 
 
-  bool Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
-                       const RF24::Hardware::PowerAmplitude pwr )
+  Chimera::Status_t Network::begin( const uint8_t channel, const uint16_t nodeAddress, const RF24::Hardware::DataRate dataRate,
+                                    const RF24::Hardware::PowerAmplitude pwr )
   {
     using namespace RF24::Hardware;
 
     auto result = Chimera::CommonStatusCodes::OK;
-    initialized = true;
 
     /*------------------------------------------------
     Check error conditions that would prevent a solid startup.
     ------------------------------------------------*/
     if ( !isValidNetworkAddress( nodeAddress ) )
     {
-      oopsies     = ErrorType::INVALID_ADDRESS;
-      initialized = false;
+      oopsies = ErrorType::INVALID_ADDRESS;
       IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Invalid node address\r\n" ); );
-      return false;
+      return Chimera::CommonStatusCodes::FAIL;
     }
 
     /*------------------------------------------------
     Turn on the radio. By default, this wipes all pre-existing settings.
     ------------------------------------------------*/
-    if ( radio->isInitialized() )
+    if ( !radio->isInitialized() )
     {
       /*------------------------------------------------
       The system model is to interact with the network layer, not the
       physical layer. Let this function initialize the radio->
       ------------------------------------------------*/
-      oopsies     = ErrorType::RADIO_PRE_INITIALIZED;
-      initialized = false;
-      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Radio pre-initialized\r\n" ); );
-      return false;
-    }
-    else if ( radio->initialize() != Chimera::CommonStatusCodes::OK )
-    {
-      /*------------------------------------------------
-      More than likely a register read/write failed.
-      ------------------------------------------------*/
-      oopsies     = ErrorType::RADIO_FAILED_INIT;
-      initialized = false;
-      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Radio HW failed init\r\n" ); );
-      return false;
+      oopsies = ErrorType::RADIO_FAILED_INIT;
+      IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: Radio not initialized\r\n" ); );
+      return Chimera::CommonStatusCodes::FAIL;
     }
 
     /*------------------------------------------------
-    Initialize the radio
+    Reconfigure the radio
     ------------------------------------------------*/
     txTimeout          = 25;
     routeTimeout       = txTimeout * 3;    // Adjust for max delay per node within a single chain
@@ -197,11 +184,10 @@ namespace RF24::Network
     ------------------------------------------------*/
     if ( result != Chimera::CommonStatusCodes::OK )
     {
-      initialized = false;
       IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_ERROR, "ERR: NET init failed\r\n" ); );
     }
 
-    return initialized;
+    return result;
   }
 
   NetHdrMsgType Network::update()

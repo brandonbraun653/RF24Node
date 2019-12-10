@@ -56,8 +56,8 @@ namespace RF24::Network
     Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
 
 
-    bool begin( const uint8_t channel, const uint16_t nodeAddress,
-                const RF24::Hardware::DataRate dataRate  = RF24::Hardware::DataRate::DR_1MBPS,
+    Chimera::Status_t begin( const uint8_t channel, const uint16_t nodeAddress,
+                const RF24::Hardware::DataRate dataRate = RF24::Hardware::DataRate::DR_1MBPS,
                 const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX ) final override;
 
     NetHdrMsgType update() final override;

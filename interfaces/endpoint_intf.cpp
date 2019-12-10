@@ -26,7 +26,7 @@ Chimera::Status_t EP_configure( RF24::EndpointInterface *obj, const RF24::Endpoi
   return obj->configure( localCfg );
 }
 
-Chimera::Status_t EP_setNetworkingMode( RF24::EndpointInterface *obj, const RF24::NetworkMode mode )
+Chimera::Status_t EP_setNetworkingMode( RF24::EndpointInterface *obj, const RF24::Network::Mode mode )
 {
   return obj->setNetworkingMode( mode );
 }

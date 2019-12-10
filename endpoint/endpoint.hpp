@@ -32,7 +32,7 @@ namespace RF24
     ~Endpoint();
 
     Chimera::Status_t configure( const EndpointConfig &cfg ) override;
-    Chimera::Status_t setNetworkingMode( const NetworkMode mode ) final override;
+    Chimera::Status_t setNetworkingMode( const Network::Mode mode ) final override;
     Chimera::Status_t setEnpointStaticAddress( const LogicalAddress address ) final override;
     Chimera::Status_t setParentStaticAddress( const LogicalAddress address ) final override;
     Chimera::Status_t requestAddress() final override;

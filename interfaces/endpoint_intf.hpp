@@ -17,6 +17,8 @@
 
 /* RF24 Includes */
 #include <RF24Node/common/types.hpp>
+#include <RF24Node/endpoint/types.hpp>
+#include <RF24Node/network/types.hpp>
 #include <RF24Node/simulator/sim_definitions.hpp>
 
 namespace RF24
@@ -43,7 +45,7 @@ namespace RF24
      *  @param[in]  mode      The desired networking strategy
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t setNetworkingMode( const NetworkMode mode ) = 0;
+    virtual Chimera::Status_t setNetworkingMode( const Network::Mode mode ) = 0;
 
     /**
      *  Manually sets the endpoint's logical address. This is essentially
@@ -201,7 +203,7 @@ Exported functions
 #if defined( RF24DLL )
 
 extern "C" RF24API Chimera::Status_t EP_configure( RF24::EndpointInterface *obj, const RF24::EndpointConfig *const cfg );
-extern "C" RF24API Chimera::Status_t EP_setNetworkingMode( RF24::EndpointInterface *obj, const RF24::NetworkMode mode );
+extern "C" RF24API Chimera::Status_t EP_setNetworkingMode( RF24::EndpointInterface *obj, const RF24::Network::Mode mode );
 extern "C" RF24API Chimera::Status_t EP_setEnpointStaticAddress( RF24::EndpointInterface *obj, const RF24::LogicalAddress address );
 extern "C" RF24API Chimera::Status_t EP_setParentStaticAddress( RF24::EndpointInterface *obj, const RF24::LogicalAddress address );
 extern "C" RF24API Chimera::Status_t EP_requestAddress( RF24::EndpointInterface *obj);

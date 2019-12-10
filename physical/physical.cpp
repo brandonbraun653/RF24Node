@@ -56,7 +56,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t HardwareDriver::initialize()
+  Chimera::Status_t HardwareDriver::initialize( const RF24::Physical::Config &cfg )
   {
     mInitialized = false;
 

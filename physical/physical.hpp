@@ -56,7 +56,7 @@ namespace RF24::Physical
      */
     Chimera::Status_t attachHWDriver( RF24::Hardware::Driver_sPtr &driver );
 
-    Chimera::Status_t initialize() final override;
+    Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) final override;
     Chimera::Status_t isInitialized() final override;
     Chimera::Status_t isConnected() final override;
     Chimera::Status_t setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,

@@ -20,6 +20,9 @@
 
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
+#include <RF24Node/common/types.hpp>
+#include <RF24Node/physical/types.hpp>
+
 
 namespace RF24::Physical
 {
@@ -33,7 +36,7 @@ namespace RF24::Physical
      *
      *   @return Chimera::Status_t
      */
-    virtual Chimera::Status_t initialize() = 0;
+    virtual Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) = 0;
 
     /**
      *   Checks if the driver has been initialized properly

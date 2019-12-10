@@ -55,20 +55,42 @@ namespace RF24
     mConfig = cfg;
 
     /*------------------------------------------------
+    Initialize the hardware layer
+    ------------------------------------------------*/
+#if !defined( RF24_SIMULATOR )
+#error Need initialization of the hardware layer
+#endif 
+
+    /*------------------------------------------------
     Initialize the physical layer
     ------------------------------------------------*/
-
+    configResult |= physical->initialize( cfg.physical );
 
     /*------------------------------------------------
     Initialize the network layer
     ------------------------------------------------*/
     configResult |= network->attachPhysicalDriver(physical);
 
+    /* Queues must be attached before startup */
+    configResult |= network->initRXQueue( cfg.network.rxQueueBuffer, cfg.network.rxQueueSize );
+    configResult |= network->initTXQueue( cfg.network.txQueueBuffer, cfg.network.txQueueSize );
 
-    return Chimera::CommonStatusCodes::FAIL;
+    /* Start up with the given settings and start listening */
+    configResult |= network->begin( cfg.physical.rfChannel, cfg.network.nodeStaticAddress, cfg.physical.dataRate,
+                                    cfg.physical.powerAmplitude );
+
+    /*------------------------------------------------
+    Initialize the mesh layer
+    ------------------------------------------------*/
+    if ( cfg.network.mode == Network::Mode::NET_MODE_MESH )
+    {
+      // TODO: Once mesh is actually working
+    }
+
+    return configResult;
   }
 
-  Chimera::Status_t Endpoint::setNetworkingMode( const NetworkMode mode )
+  Chimera::Status_t Endpoint::setNetworkingMode( const Network::Mode mode )
   {
     return Chimera::Status_t();
   }
