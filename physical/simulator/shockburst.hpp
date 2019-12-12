@@ -14,6 +14,11 @@
 
 /* C++ Includes */
 #include <array>
+#include <charconv>
+#include <string_view>
+
+/* fmt Includes */
+#include <fmt/format.h>
 
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
@@ -25,7 +30,9 @@ namespace RF24::Physical::Sim
   Indicates that the end of a packet has been reached.
   Value randomly generated from atmospheric noise. (random.org)
   ------------------------------------------------*/
-  static constexpr uint32_t SBEndSequence = 0x41a9efcc;
+  static constexpr std::string_view SBEndSequence("WczQ", 4);
+
+  static constexpr size_t SB_FIFO_QUEUE_MAX_SIZE = 3;
 
 
 #pragma pack(push, 1)
@@ -35,25 +42,32 @@ namespace RF24::Physical::Sim
     uint16_t control;
     uint8_t payload[ RF24::Hardware::MAX_PAYLOAD_WIDTH ];
     uint16_t crc;
-    const uint32_t postamble = SBEndSequence;
+    const uint32_t postamble;
   };
 #pragma pop
   static_assert( sizeof( SBPacket ) % sizeof( size_t ) == 0, "Struct has invalid alignment" );
 
-  using SBArray = std::array<uint8_t, sizeof( SBPacket )>;
+  using SBArray = std::array<char, sizeof( SBPacket )>;
 
-  class ShockBurst
+  class ShockBurstPacket
   {
   public:
-    ShockBurst();
-    ~ShockBurst();
+    ShockBurstPacket();
+    ~ShockBurstPacket();
 
 
-    SBPacket disassemble();
+    SBArray disassemble();
 
     SBPacket assemble( const SBArray &packet );
 
-    void isValid( const SBPacket &packet );
+    bool isValid( const SBPacket &packet );
+
+    const uint8_t *payload();
+
+    size_t payloadSize();
+
+  private:
+    SBPacket pkt;
 
   };
 }

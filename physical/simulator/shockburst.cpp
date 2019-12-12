@@ -14,12 +14,37 @@
 
 namespace RF24::Physical::Sim
 {
-  ShockBurst::ShockBurst()
+  ShockBurstPacket::ShockBurstPacket()
   {
   }
 
-  ShockBurst::~ShockBurst()
+  ShockBurstPacket::~ShockBurstPacket()
   {
+  }
+
+  SBArray ShockBurstPacket::disassemble()
+  {
+    return SBArray{};
+  }
+
+  SBPacket ShockBurstPacket::assemble( const SBArray &packet )
+  {
+    return SBPacket{};
+  }
+
+  bool ShockBurstPacket::isValid( const SBPacket &packet )
+  {
+    return false;
+  }
+
+  const uint8_t *ShockBurstPacket::payload()
+  {
+    return pkt.payload;
+  }
+
+  size_t ShockBurstPacket::payloadSize()
+  {
+    return pkt.control & 0;
   }
 
 }    // namespace RF24::Physical::Sim
