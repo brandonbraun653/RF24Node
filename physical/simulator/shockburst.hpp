@@ -17,9 +17,6 @@
 #include <charconv>
 #include <string_view>
 
-/* fmt Includes */
-#include <fmt/format.h>
-
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
 
@@ -31,20 +28,21 @@ namespace RF24::Physical::Sim
   Value randomly generated from atmospheric noise. (random.org)
   ------------------------------------------------*/
   static constexpr std::string_view SBEndSequence("WczQ", 4);
+  static constexpr uint32_t SBEndSequence_t32 = 0x57637a51;
 
   static constexpr size_t SB_FIFO_QUEUE_MAX_SIZE = 3;
 
 
-#pragma pack(push, 1)
+//#pragma pack(push, 1)
   struct SBPacket
   {
     uint64_t address;
     uint16_t control;
     uint8_t payload[ RF24::Hardware::MAX_PAYLOAD_WIDTH ];
     uint16_t crc;
-    const uint32_t postamble;
+    const uint32_t postamble = SBEndSequence_t32;
   };
-#pragma pop
+//#pragma pop
   static_assert( sizeof( SBPacket ) % sizeof( size_t ) == 0, "Struct has invalid alignment" );
 
   using SBArray = std::array<char, sizeof( SBPacket )>;

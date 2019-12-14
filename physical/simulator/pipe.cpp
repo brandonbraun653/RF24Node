@@ -94,7 +94,7 @@ namespace RF24::Physical::Sim
           Block until we read our packet delimiter
           ------------------------------------------------*/
           boost::asio::streambuf streamBuffer;
-          boost::asio::read_until( socket, streamBuffer, RF24::Physical::Sim::SBEndSequence );
+          //boost::asio::read_until( socket, streamBuffer, RF24::Physical::Sim::SBEndSequence );
 
           /*------------------------------------------------
           Pull out the raw data and construct the packet 

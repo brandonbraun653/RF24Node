@@ -23,6 +23,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/thread.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
