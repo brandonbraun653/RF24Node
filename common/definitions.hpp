@@ -36,6 +36,8 @@ namespace RF24
   static constexpr LogicalAddress RootNode2 = 2000;
   static constexpr LogicalAddress RootNode3 = 3000;
 
+  static constexpr LogicalAddress InvalidNode = 7777;
+
 
 }    // namespace RF24
 

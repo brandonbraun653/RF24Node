@@ -30,10 +30,11 @@ namespace RF24::Hardware
   static constexpr size_t MAX_PAYLOAD_WIDTH = 32; /**< Hardware limit for RF max payload */
   static constexpr size_t MIN_PAYLOAD_WIDTH = 0;  /**< Hardware limit for RF min payload */
   static constexpr size_t COMMAND_WIDTH     = 1;  /**< Number of bytes for an SPI command */
-  static constexpr size_t SPI_BUFFER_LEN =
-      COMMAND_WIDTH + MAX_PAYLOAD_WIDTH;    /**< Accounts for max payload of 32 bytes + 1 byte for the command */
+  static constexpr size_t PACKET_WIDTH      = COMMAND_WIDTH + MAX_PAYLOAD_WIDTH;
+  static constexpr size_t SPI_BUFFER_LEN   = PACKET_WIDTH; /**< Accounts for max payload of 32 bytes + 1 byte for the command */
   static constexpr uint32_t MIN_TIMEOUT_MS  = 1;   /**< The absolute lowest resolution timeout we want to achieve */
   static constexpr uint32_t DFLT_TIMEOUT_MS = 100; /**< Default timeout for general operations */
+
 
   /*------------------------------------------------
   Hardware Configuration

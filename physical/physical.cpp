@@ -220,13 +220,13 @@ namespace RF24::Physical
     }
 
     /*-------------------------------------------------
-    Transition the module back to Stanby-1 mode
+    Transition the module back to Standby-1 mode
     -------------------------------------------------*/
     toggleChipEnablePin( false );
 
     /*-------------------------------------------------
     If we are auto-acknowledging RX packets with a payload,
-    make sure the TX FIFO is clean so we don't accidently
+    make sure the TX FIFO is clean so we don't accidentally
     transmit data on the next transition back to TX mode.
     -------------------------------------------------*/
     if ( _registerIsBitmaskSet( REG_FEATURE, FEATURE_EN_ACK_PAY ) )

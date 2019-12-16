@@ -3,7 +3,7 @@
  *    pipe.hpp
  *
  *  Description:
- *
+ *    Models the hardware pipes on the NRF24L01 using UDP sockets
  *
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
@@ -27,69 +27,164 @@
 
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
-#include <RF24Node/physical/simulator/shockburst.hpp>
+#include <RF24Node/physical/simulator/pipe_types.hpp>
+#include <RF24Node/physical/simulator/shockburst_types.hpp>
 
-namespace RF24::Physical::Sim
+namespace RF24::Physical::Pipe
 {
   
-  class TXPipe
+  class TX
   {
   public:
     
-    TXPipe( boost::asio::io_service &io_service );
-    ~TXPipe();
+    TX( boost::asio::io_service &io_service );
+    ~TX();
 
-    
-    void configure( const std::string &ip, const size_t port);
+    /**
+     *  Opens the pipe
+     *  
+     *  @return void
+     */
+    void openPipe();
 
-    void write( const void *const data, const size_t length );
+    /**
+     *  Closes the pipe
+     *  
+     *  @return void
+     */
+    void closePipe();
 
+    /**
+     *  Writes raw data to the configured RX pipe
+     *  
+     *  @param[in]  data    The data to be written
+     */
+    void write( const Shockburst::PacketBuffer &data );
 
-    void __PrvUpdateThread();
+    /**
+     *  Clears the FIFO queues of data
+     *  
+     *  @return void
+     */
+    void flush();
+
+    /**
+     *  User callback to be executed when an asynchronous TX event occurs
+     *  
+     *  @param[in]  callback    The user's callback
+     *  @return void
+     */
+    void onTransmit( TXPipeCallback &callback );
 
   private:
-    boost::asio::ip::tcp::socket txSocket;
+
+    void updateThread();
+
+    void onAsyncTransmit( const boost::system::error_code &error, size_t bytes_transferred );
+    
+    boost::asio::io_service &ioService;          /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket txSocket;       /**< UDP socket that models the TX pipe */
+    boost::thread txThread;                      /**< Event handler thread */
+    std::mutex FIFOLock;                         /**< Lock for the FIFO message queue */
+    std::queue<Shockburst::PacketBuffer> txFIFO; /**< FIFO message queue */
+    Shockburst::PacketBuffer networkBuffer;      /**< Raw buffer for outgoing messages */
+    std::atomic<bool> txEventProcessed;          /**< Flag indicating when the RX event was processed */
+    TXPipeCallback userCallback;                 /**< User callback for RX event */
 
   };
 
-  class RXPipe
+  class RX
   {
   public:
-    RXPipe( boost::asio::io_service &io_service );
-    ~RXPipe();
+    RX( boost::asio::io_service &io_service );
+    ~RX();
     
-    void configure( const std::string &ip, const size_t port);
+    /**
+     *  Opens the RX pipe for listening
+     *  
+     *  @param[in]  ip      The IPv4 address of the pipe
+     *  @param[in]  port    The port the pipe listens on
+     *  @return void
+     */
+    void openPipe( const std::string &ip, const uint16_t port);
 
+    /**
+     *  Closes the pipe
+     *  
+     *  @return void
+     */
+    void closePipe();
+
+    /**
+     *  Enable the pipe's ability to receive new packets
+     *  
+     *  @return void
+     */
     void startListening();
 
+    /**
+     *  Disable the pipe's ability to receive new packets
+     *  
+     *  @return void
+     */
     void stopListening();
 
-    size_t read( void *const data, const size_t length );
-
+    /**
+     *  Checks if there is any data available to be read 
+     *  
+     *  @return bool
+     */
     bool available();
 
-    void __PrvUpdateThread();
+    /**
+     *  Reads a single packet out from the FIFO
+     *  
+     *  @return RawBuffer
+     */
+    Shockburst::PacketBuffer read();
 
-    void __PrvOnAccept(const boost::system::error_code& error);
+    /**
+     *  Clears the FIFO queues of data
+     *  
+     *  @return void
+     */
+    void flush();
 
-  protected:
-    void kill();
-
+    /**
+     *  User callback to be executed when an asynchronous RX event occurs
+     *  
+     *  @param[in]  callback    The user's callback
+     *  @return void
+     */
+    void onReceive( RXPipeCallback &callback );
+    
   private:
-    boost::thread rxThread;
+    /**
+     *  Periodically processes the queued io_service work to handle RX events
+     *  
+     *  @return void
+     */
+    void updateThread();
 
-    boost::asio::io_service &ioService;
-    boost::asio::ip::tcp::socket rxSocket;
-    std::unique_ptr<boost::asio::ip::tcp::acceptor> acceptor;
+    /**
+     *  Async callback to io_service receive event
+     *  
+     *  @param[in]  error               RX error code 
+     *  @param[in]  bytes_transferred   How many bytes were actually transferred
+     *  @return void
+     */
+    void onAsyncReceive( const boost::system::error_code &error, size_t bytes_transferred );
 
-    std::atomic<bool> allowListening;
-    std::atomic<bool> killFlag;
-    std::atomic<bool> threadExecuting;
-
-    std::mutex packetBufferLock;
-    std::queue<RF24::Physical::Sim::ShockBurstPacket> rxFIFO;
-
-    RF24::Physical::Sim::SBArray networkBuffer;
+    
+    boost::asio::io_service &ioService;          /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket rxSocket;       /**< UDP socket that models the RX pipe */
+    boost::thread rxThread;                      /**< Event handler thread */
+    RXPipeCallback userCallback;                 /**< User callback for RX event */
+    Shockburst::PacketBuffer networkBuffer;      /**< Raw buffer for incoming messages */
+    std::atomic<bool> allowListening;            /**< Flag to enable/disable listening for messages */
+    std::atomic<bool> rxEventProcessed;          /**< Flag indicating when the RX event was processed */
+    std::mutex FIFOLock;                         /**< Lock for the FIFO message queue */
+    std::queue<Shockburst::PacketBuffer> rxFIFO; /**< FIFO message queue */
   };
 
 }
