@@ -77,31 +77,31 @@ namespace RF24::Network
       switch ( nodeDepth )
       {
         case 1:
-          childID            = ( nodeID & OCTAL_level1BitMask ) >> OCTAL_level1BitShift;
+          childID            = ( nodeID & ADDR_LEVEL1_Msk ) >> ADDR_LEVEL1_Pos;
           parentID           = INVALID_NODE_ID;
           grandParentID      = INVALID_NODE_ID;
           greatGrandParentID = INVALID_NODE_ID;
           break;
 
         case 2:
-          childID            = ( nodeID & OCTAL_level2BitMask ) >> OCTAL_level2BitShift;
-          parentID           = ( nodeID & OCTAL_level1BitMask ) >> OCTAL_level1BitShift;
+          childID            = ( nodeID & ADDR_LEVEL2_Msk ) >> ADDR_LEVEL2_Pos;
+          parentID           = ( nodeID & ADDR_LEVEL1_Msk ) >> ADDR_LEVEL1_Pos;
           grandParentID      = INVALID_NODE_ID;
           greatGrandParentID = INVALID_NODE_ID;
           break;
 
         case 3:
-          childID            = ( nodeID & OCTAL_level3BitMask ) >> OCTAL_level3BitShift;
-          parentID           = ( nodeID & OCTAL_level2BitMask ) >> OCTAL_level2BitShift;
-          grandParentID      = ( nodeID & OCTAL_level1BitMask ) >> OCTAL_level1BitShift;
+          childID            = ( nodeID & ADDR_LEVEL3_Msk ) >> ADDR_LEVEL3_Pos;
+          parentID           = ( nodeID & ADDR_LEVEL2_Msk ) >> ADDR_LEVEL2_Pos;
+          grandParentID      = ( nodeID & ADDR_LEVEL1_Msk ) >> ADDR_LEVEL1_Pos;
           greatGrandParentID = INVALID_NODE_ID;
           break;
 
         case 4:
-          childID            = ( nodeID & OCTAL_level4BitMask ) >> OCTAL_level4BitShift;
-          parentID           = ( nodeID & OCTAL_level3BitMask ) >> OCTAL_level3BitShift;
-          grandParentID      = ( nodeID & OCTAL_level2BitMask ) >> OCTAL_level2BitShift;
-          greatGrandParentID = ( nodeID & OCTAL_level1BitMask ) >> OCTAL_level1BitShift;
+          childID            = ( nodeID & ADDR_LEVEL4_Msk ) >> ADDR_LEVEL4_Pos;
+          parentID           = ( nodeID & ADDR_LEVEL3_Msk ) >> ADDR_LEVEL3_Pos;
+          grandParentID      = ( nodeID & ADDR_LEVEL2_Msk ) >> ADDR_LEVEL2_Pos;
+          greatGrandParentID = ( nodeID & ADDR_LEVEL1_Msk ) >> ADDR_LEVEL1_Pos;
           break;
 
         default:

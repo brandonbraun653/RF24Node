@@ -12,8 +12,8 @@
 #include <mutex>
 
 /* RF24 Includes */
+#include <RF24Node/common/conversion.hpp>
 #include <RF24Node/physical/simulator/shockburst.hpp>
-#include <RF24Node/physical/simulator/conversion.hpp>
 
 
 namespace RF24::Physical::Shockburst

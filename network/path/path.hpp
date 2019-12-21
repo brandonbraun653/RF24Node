@@ -50,7 +50,7 @@ namespace RF24::Network
     void process();
 
     MessagePath msgPath;
-    Level networkLevel = Level::LEVEL0;
+    NodeLevel networkLevel = NodeLevel::LEVEL0;
   };
 }
 

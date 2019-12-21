@@ -18,6 +18,7 @@
 #include <climits>
 
 /* Driver Includes */
+#include <RF24Node/common/types.hpp>
 #include <RF24Node/hardware/definitions.hpp>
 
 namespace RF24::Network
@@ -34,20 +35,31 @@ namespace RF24::Network
   constexpr uint8_t INVALID_NODE_ID       = MAX_NODE_ID + 1;
   constexpr uint8_t MAX_CHILDREN          = 5;
 
-  constexpr uint8_t OCTAL_MASK = 0x07;
+  /*------------------------------------------------
+  Logical Address Encoding 
+  ------------------------------------------------*/
+  constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
+  constexpr ::RF24::LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
 
-  constexpr uint8_t OCTAL_level1BitShift = 0x00;
-  constexpr uint16_t OCTAL_level1BitMask = 0x0007;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL0_Pos = 0 * BITS_PER_LEVEL;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL0_Msk = BASE_LEVEL_MASK << ADDR_LEVEL0_Pos;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL0     = ADDR_LEVEL0_Msk;
 
-  constexpr uint8_t OCTAL_level2BitShift = 0x03;
-  constexpr uint16_t OCTAL_level2BitMask = 0x0038;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL1_Pos = 1 * BITS_PER_LEVEL;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL1     = ADDR_LEVEL1_Msk;
 
-  constexpr uint8_t OCTAL_level3BitShift = 0x06;
-  constexpr uint16_t OCTAL_level3BitMask = 0x01C0;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL2_Pos = 2 * BITS_PER_LEVEL;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL2_Msk = BASE_LEVEL_MASK << ADDR_LEVEL2_Pos;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL2     = ADDR_LEVEL2_Msk;
 
-  constexpr uint8_t OCTAL_level4BitShift = 0x09;
-  constexpr uint16_t OCTAL_level4BitMask = 0x0E00;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL3_Pos = 3 * BITS_PER_LEVEL;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL3_Msk = BASE_LEVEL_MASK << ADDR_LEVEL3_Pos;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL3     = ADDR_LEVEL3_Msk;
 
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL4_Pos = 4 * BITS_PER_LEVEL;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL4_Msk = BASE_LEVEL_MASK << ADDR_LEVEL4_Pos;
+  constexpr ::RF24::LogicalAddress ADDR_LEVEL4     = ADDR_LEVEL4_Msk;
 
 /*------------------------------------------------
 Config Options
@@ -89,31 +101,31 @@ Debug Options
 #endif /* !NDEBUG */
 
 #if defined( SERIAL_DEBUG )
-#define IF_SERIAL_DEBUG( x ) ( { x; } )
+#define IF_SERIAL_DEBUG( x ) { x }
 #else
 #define IF_SERIAL_DEBUG( x )
 #endif
 
 #if defined( SERIAL_DEBUG_MINIMAL )
-#define IF_SERIAL_DEBUG_MINIMAL( x ) ( { x; } )
+#define IF_SERIAL_DEBUG_MINIMAL( x ) { x }
 #else
 #define IF_SERIAL_DEBUG_MINIMAL( x )
 #endif
 
 #if defined( SERIAL_DEBUG_FRAGMENTATION )
-#define IF_SERIAL_DEBUG_FRAGMENTATION( x ) ( { x; } )
+#define IF_SERIAL_DEBUG_FRAGMENTATION( x ) { x }
 #else
 #define IF_SERIAL_DEBUG_FRAGMENTATION( x )
 #endif
 
 #if defined( SERIAL_DEBUG_FRAGMENTATION_L2 )
-#define IF_SERIAL_DEBUG_FRAGMENTATION_L2( x ) ( { x; } )
+#define IF_SERIAL_DEBUG_FRAGMENTATION_L2( x ) { x }
 #else
 #define IF_SERIAL_DEBUG_FRAGMENTATION_L2( x )
 #endif
 
 #if defined( SERIAL_DEBUG_ROUTING )
-#define IF_SERIAL_DEBUG_ROUTING( x ) ( { x; } )
+#define IF_SERIAL_DEBUG_ROUTING( x ) { x }
 #else
 #define IF_SERIAL_DEBUG_ROUTING( x )
 #endif
@@ -301,7 +313,7 @@ Debug Options
   /**
    *   Labels for messages and nodes indicating which level
    */
-  enum Level : uint8_t
+  enum class NodeLevel : uint8_t
   {
     LEVEL0 = 0, /**< Reserved for the master node */
     LEVEL1,     /**< Direct children of master */

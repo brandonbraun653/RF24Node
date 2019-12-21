@@ -8,12 +8,18 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+/* Chimera Includes */
+#include <Chimera/threading.hpp>
+
+/* uLog Includes */
+#include <uLog/types.hpp>
+#include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_cout.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/endpoint/endpoint.hpp>
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/network/queue/queue.hpp>
-
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/physical/simulator/sim_physical.hpp>
 
@@ -31,12 +37,18 @@ namespace RF24
 {
   Endpoint::Endpoint()
   {
+    /*------------------------------------------------
+    Initialize class vars
+    ------------------------------------------------*/
     memset( &mConfig, 0, sizeof( EndpointConfig ) );
+    mNetMode = Network::Mode::NET_MODE_INVALID;
 
-
-    network = std::make_unique<Network::Network>();
+    /*------------------------------------------------
+    Initialize class composite objects
+    ------------------------------------------------*/
+    logger = nullptr;
+    network = std::make_unique<Network::Driver>();
     
-
 #if defined( RF24_SIMULATOR )
     physical = std::make_shared<Physical::SimulatorDriver>();
 #else
@@ -48,15 +60,40 @@ namespace RF24
   {
   }
 
+  Chimera::Status_t Endpoint::attachLogger( uLog::SinkHandle sink )
+  {
+    if ( Chimera::Threading::LockGuard( *this ).lock( 100 ) )
+    {
+      logger = sink;
+      network->attachLogger( logger );
+      return Chimera::CommonStatusCodes::OK;
+    }
+
+    return Chimera::CommonStatusCodes::LOCKED;
+  }
+
   Chimera::Status_t Endpoint::configure( const EndpointConfig &cfg )
   {
     auto configResult = Chimera::CommonStatusCodes::OK;
+    auto lockGuard    = Chimera::Threading::LockGuard( *this );
 
-    mConfig = cfg;
+    /*------------------------------------------------
+    Make sure we can actually move forward with configuration
+    ------------------------------------------------*/
+    if ( !lockGuard.lock() )
+    {
+      return Chimera::CommonStatusCodes::LOCKED;
+    }
+    else if ( logger == nullptr )
+    {
+      return Chimera::CommonStatusCodes::NOT_INITIALIZED;
+    }
 
     /*------------------------------------------------
     Initialize the hardware layer
     ------------------------------------------------*/
+    mConfig = cfg;
+
 #if !defined( RF24_SIMULATOR )
 #error Need initialization of the hardware layer
 #endif 
@@ -69,7 +106,8 @@ namespace RF24
     /*------------------------------------------------
     Initialize the network layer
     ------------------------------------------------*/
-    configResult |= network->attachPhysicalDriver(physical);
+    configResult |= setNetworkingMode( mNetMode );
+    configResult |= network->attachPhysicalDriver( physical );
 
     /* Queues must be attached before startup */
     configResult |= network->initRXQueue( cfg.network.rxQueueBuffer, cfg.network.rxQueueSize );
@@ -80,11 +118,11 @@ namespace RF24
                                     cfg.physical.powerAmplitude );
 
     /*------------------------------------------------
-    Initialize the mesh layer
+    Initialize the mesh network layer
     ------------------------------------------------*/
     if ( cfg.network.mode == Network::Mode::NET_MODE_MESH )
     {
-      // TODO: Once mesh is actually working
+      logger->flog( uLog::Level::LVL_ERROR, "ERR: Configured as mesh, but currently not supported\n" );
     }
 
     return configResult;
@@ -115,9 +153,43 @@ namespace RF24
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::connect()
+  Chimera::Status_t Endpoint::releaseAddress()
   {
     return Chimera::Status_t();
+  }
+
+  Chimera::Status_t Endpoint::connect( const size_t timeout )
+  {
+    /*------------------------------------------------
+    Make sure someone can't interrupt us
+    ------------------------------------------------*/
+    auto lockGuard = Chimera::Threading::LockGuard( *this );
+    if ( !lockGuard.lock() )
+    {
+      return Chimera::CommonStatusCodes::LOCKED;
+    }
+
+    /*------------------------------------------------
+    The connection algorithm greatly depends upon what kind of network we are.
+    Direct connections are pretty easy, but mesh ones might take a hot second 
+    if other nodes have to pass messages around before arriving at the DCHP
+    server, allocate a new network address, and then send a response back.
+    ------------------------------------------------*/
+    switch ( mNetMode )
+    {
+      case Network::Mode::NET_MODE_STATIC:
+        return makeStaticConnection( timeout );
+        break;
+
+      case Network::Mode::NET_MODE_MESH:
+        return makeMeshConnection( timeout );
+        break;
+
+      case Network::Mode::NET_MODE_INVALID:
+      default:
+        return Chimera::CommonStatusCodes::FAIL;
+        break;
+    }
   }
 
   Chimera::Status_t Endpoint::disconnect()

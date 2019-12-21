@@ -16,6 +16,9 @@
 /* C++ Includes */
 #include <memory>
 
+/* uLog Includes */
+#include <uLog/types.hpp>
+
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/network/definitions.hpp>
@@ -31,11 +34,13 @@ namespace RF24::Network
   public:
     virtual ~Interface() = default;
 
+    virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
+
     /**
      *  Attaches a managed instance of a physical layer driver to the network driver.
-     *  
+     *
      *  @warning  Not supported in simulator builds
-     *  
+     *
      *  @param[in]  physicalLayer     The driver to attach
      *  @return Chimera::Status_t
      */
@@ -66,10 +71,9 @@ namespace RF24::Network
      *   @param[in]  node_address    The logical address of this node
      *   @return True if the setup was successful, false if not
      */
-    virtual Chimera::Status_t
-        begin( const uint8_t channel, const uint16_t nodeAddress,
-               const RF24::Hardware::DataRate dataRate  = RF24::Hardware::DataRate::DR_1MBPS,
-                        const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX ) = 0;
+    virtual Chimera::Status_t begin( const uint8_t channel, const LogicalAddress nodeAddress,
+                                     const RF24::Hardware::DataRate dataRate  = RF24::Hardware::DataRate::DR_1MBPS,
+                                     const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX ) = 0;
 
     /**
      *   Updates the internal network processing stack. This function must be called regularly to
@@ -148,12 +152,12 @@ namespace RF24::Network
      *   @param[in]  writeDirect TODO
      *   @return True if the message sent successfully, false if not
      */
-    virtual bool write( HeaderHelper &header, const void *message, uint16_t length, NodeAddressType writeDirect ) = 0;
+    virtual bool write( HeaderHelper &header, const void *message, uint16_t length, LogicalAddress writeDirect ) = 0;
 
     /**
-     *   Allows messages to be rapidly broadcast through the network by seding to multiple nodes at once
+     *   Allows messages to be rapidly broadcast through the network by sending to multiple nodes at once
      *
-     *   Multicasting is arranged in levels, with all nodes on the same level listening to the same address
+     *   Multi-casting is arranged in levels, with all nodes on the same level listening to the same address
      *   Levels are assigned by network level ie: nodes 01-05: Level 1, nodes 011-055: Level 2
      *   @see multicastLevel
      *   @see multicastRelay
@@ -190,7 +194,7 @@ namespace RF24::Network
      *   @param[in]  node        The octal nodeID to validate
      *   @return True if a supplied address is valid
      */
-    virtual bool isValidNetworkAddress( const uint16_t node ) = 0;
+    virtual bool isValidNetworkAddress( const LogicalAddress node ) = 0;
 
     /**
      *   Changes the network's address at runtime
@@ -198,26 +202,21 @@ namespace RF24::Network
      *   @param[in]  address     The address to be set
      *   @return True if the address was valid and set correctly, false if not
      */
-    virtual bool setAddress( const uint16_t address ) = 0;
+    virtual bool setAddress( const LogicalAddress address ) = 0;
 
     /**
      *   Retrieves the current network address
      *
      *   @return Current network address in octal format
      */
-    virtual uint16_t getLogicalAddress() = 0;
+    virtual LogicalAddress getLogicalAddress() = 0;
 
     /**
      *   This node's parent address
      *
      *   @return This node's parent address, or -1 if this is the base
      */
-    virtual uint16_t parent() const = 0;
-
-    /**
-     *   Provided a node address and a pipe number, will return the RF24Network address of that child pipe for that node
-     */
-    virtual uint16_t addressOfPipe( uint16_t node, uint8_t pipeNo ) = 0;
+    virtual LogicalAddress parent() const = 0;
   };
 
   using Interface_sPtr = std::shared_ptr<Interface>;

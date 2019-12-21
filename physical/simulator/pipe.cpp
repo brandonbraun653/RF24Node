@@ -13,11 +13,13 @@
 #include <boost/thread.hpp>
 
 /* Logger Includes */
+#include <uLog/types.hpp>
 #include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_intf.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/common/conversion.hpp>
 #include <RF24Node/physical/simulator/pipe.hpp>
-#include <RF24Node/physical/simulator/conversion.hpp>
 #include <RF24Node/physical/simulator/shockburst_types.hpp>
 
 
@@ -34,6 +36,8 @@ namespace RF24::Physical::Pipe
     txThread = {};
     userCallback = nullptr;
     networkBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+
+    logger = uLog::getRootSink();
   }
 
   TX::~TX()
@@ -98,7 +102,7 @@ namespace RF24::Physical::Pipe
       }
       else
       {
-        flog( Level::LVL_ERROR, "ERR: TX FIFO queue full, packet lost\n" );
+        logger->flog(  Level::LVL_ERROR, "ERR: TX FIFO queue full, packet lost\n" );
       }
     }
     else
@@ -109,7 +113,7 @@ namespace RF24::Physical::Pipe
       auto ip = address_v4::from_string( Conversion::decodeIP( data ) );
       auto port = Conversion::decodePort( data );
 
-      flog( Level::LVL_DEBUG, "DBG: TX to IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
+      logger->flog(  Level::LVL_DEBUG, "DBG: TX to IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
 
       memcpy( networkBuffer.data(), data.data(), networkBuffer.size() );
       txSocket.async_send_to( boost::asio::buffer( networkBuffer ), udp::endpoint( ip, port ),
@@ -151,7 +155,7 @@ namespace RF24::Physical::Pipe
     }
     catch ( boost::thread_interrupted & )
     {
-      flog( Level::LVL_DEBUG, "DBG: TX thread interrupted...Exiting\n" );
+      logger->flog(  Level::LVL_DEBUG, "DBG: TX thread interrupted...Exiting\n" );
     }
   }
 
@@ -159,8 +163,8 @@ namespace RF24::Physical::Pipe
   {
     if ( error )
     {
-      flog( Level::LVL_ERROR, "ERR: TX failed on pipe\n" );
-      flog( Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
+      logger->flog(  Level::LVL_ERROR, "ERR: TX failed on pipe\n" );
+      logger->flog(  Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
       return;
     }
 
@@ -186,7 +190,7 @@ namespace RF24::Physical::Pipe
       auto ip = address::from_string( Conversion::decodeIP( nextPacket ) );
       auto port = Conversion::decodePort( nextPacket );
 
-      flog( Level::LVL_DEBUG, "DBG: TX to IP[%s] on Port[%d]", ip, port );
+      logger->flog(  Level::LVL_DEBUG, "DBG: TX to IP[%s] on Port[%d]", ip, port );
 
       memcpy( networkBuffer.data(), nextPacket.data(), networkBuffer.size() );
       txSocket.async_send_to( boost::asio::buffer( networkBuffer ), udp::endpoint( ip, port ),
@@ -209,6 +213,8 @@ namespace RF24::Physical::Pipe
     userCallback = nullptr;
 
     networkBuffer.fill( 0 );
+
+    logger = uLog::getRootSink();
   }
 
   RX::~RX()
@@ -353,7 +359,7 @@ namespace RF24::Physical::Pipe
     }
     catch ( boost::thread_interrupted & )
     {
-      flog( Level::LVL_DEBUG, "DBG: RX thread interrupted...Exiting\n" );
+      logger->flog(  Level::LVL_DEBUG, "DBG: RX thread interrupted...Exiting\n" );
     }
   }
 
@@ -361,8 +367,8 @@ namespace RF24::Physical::Pipe
   {
     if ( error )
     {
-      flog( Level::LVL_ERROR, "ERR: RX failed on pipe\n" );
-      flog( Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
+      logger->flog(  Level::LVL_ERROR, "ERR: RX failed on pipe\n" );
+      logger->flog(  Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
       return;
     }
 
@@ -370,7 +376,7 @@ namespace RF24::Physical::Pipe
     Protect the queue from other threads
     ------------------------------------------------*/
     std::lock_guard<std::mutex> guard( FIFOLock );
-    flog( Level::LVL_DEBUG, "DBG: RX packet of size %lu\n", bytes_transferred );
+    logger->flog(  Level::LVL_DEBUG, "DBG: RX packet of size %lu\n", bytes_transferred );
 
     /*------------------------------------------------
     Assuming we have space left, enqueue the data. This is
@@ -383,7 +389,7 @@ namespace RF24::Physical::Pipe
     }
     else
     {
-      flog( Level::LVL_INFO, "INF: Lost packet due to FIFO queue full\n" );
+      logger->flog(  Level::LVL_INFO, "INF: Lost packet due to FIFO queue full\n" );
     }
 
     /*------------------------------------------------

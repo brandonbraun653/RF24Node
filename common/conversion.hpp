@@ -17,6 +17,8 @@
 #include <string>
 
 /* RF24 Includes */
+#include <RF24Node/common/types.hpp>
+#include <RF24Node/hardware/types.hpp>
 #include <RF24Node/physical/simulator/shockburst_types.hpp>
 
 namespace RF24::Physical::Conversion
@@ -62,6 +64,22 @@ namespace RF24::Physical::Conversion
    *  @return string
    */
   uint16_t decodePort( const Shockburst::PacketBuffer &pkt );
+
+  /**
+   *   Calculates the the pipe address of a logical node in the tree network. For information on exactly
+   *   how the addressing is calculated, see: http://tmrh20.blogspot.com/ (scroll down mid-way)
+   *
+   *   @param[in]  nodeID      Octal node address (00, 02125, 0444, etc)
+   *   @param[in]  pipe        The pipe number on the given nodeID
+   *   @return The address assigned to that node's pipe
+   */
+  uint64_t getPipeAddress( const LogicalAddress nodeID, const Hardware::PipeNumber_t pipeNum );
+
+  
+  /**
+   *   output is octal
+   */
+  LogicalAddress levelToLogicalAddress( uint8_t level );
 }
 
 #endif	/* !RF24_NODE_PHYSICAL_SIMULATOR_CONVERSION_HPP */

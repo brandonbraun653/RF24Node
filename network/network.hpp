@@ -28,6 +28,9 @@
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
 
+/* uLog Includes */
+#include <uLog/types.hpp>
+
 /* Driver Includes */
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/interfaces/network_intf.hpp>
@@ -40,16 +43,20 @@
 
 namespace RF24::Network
 {
-  class Network : public Interface
+  /**
+   *  Checks if the given node is a root node. 
+   */
+  bool isARootNode( const LogicalAddress );
+
+
+  class Driver : public Interface
   {
   public:
-    /**
-     *   Construct the network
-     *
-     *   @param[in]  radio   The underlying radio driver instance
-     */
-    Network();
-    ~Network();
+    Driver();
+    ~Driver();
+
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
+
 
     Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer ) final override;
     Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
@@ -78,15 +85,14 @@ namespace RF24::Network
 
     void setMulticastLevel( const uint8_t level ) final override;
 
-    bool isValidNetworkAddress( const uint16_t node ) final override;
+    bool isValidNetworkAddress( const LogicalAddress node ) final override;
 
-    bool setAddress( const uint16_t address ) final override;
+    bool setAddress( const LogicalAddress address ) final override;
 
-    uint16_t getLogicalAddress() final override;
+    LogicalAddress getLogicalAddress() final override;
 
-    uint16_t parent() const final override;
+    LogicalAddress parent() const final override;
 
-    uint16_t addressOfPipe( uint16_t node, uint8_t pipeNo ) final override;
 
     /**
      *   Enabling this will allow this node to automatically forward received multicast frames to the next highest
@@ -206,9 +212,9 @@ namespace RF24::Network
 
     void enqueue( FrameHelper &frame );
 
-    bool writeDirect( uint16_t toNode, NodeAddressType directTo );
+    bool writeDirect( uint16_t toNode, LogicalAddress directTo );
 
-    bool writeFrameBufferToPipeAtNodeID( const uint16_t node, const uint8_t pipe, const bool multicast );
+    bool writeFrameBufferToPipeAtNodeID( const LogicalAddress node, const RF24::Hardware::PipeNumber_t pipe, const bool multicast );
 
     bool isDirectChild( uint16_t node );
     bool isDescendant( uint16_t node );
@@ -219,27 +225,12 @@ namespace RF24::Network
 
     struct logicalToPhysicalStruct
     {
-      uint16_t send_node;
-      uint8_t send_pipe;
+      LogicalAddress send_node;
+      RF24::Hardware::PipeNumber_t send_pipe;
       bool multicast;
     };
 
     bool logicalToPhysicalAddress( logicalToPhysicalStruct *conversionInfo );
-
-    /**
-     *   output is octal
-     */
-    uint16_t levelToAddress( uint8_t level );
-
-    /**
-     *   Calculates the the pipe address of a logical node in the tree network. For information on exactly
-     *   how the addressing is calculated, see: http://tmrh20.blogspot.com/ (scroll down mid-way)
-     *
-     *   @param[in]  nodeID      Octal node address (00, 02125, 0444, etc)
-     *   @param[in]  pipe        The pipe number on the given nodeID
-     *   @return The address assigned to that node's pipe
-     */
-    uint64_t pipeAddress( const uint16_t nodeID, const uint8_t pipeNum );
 
     RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
 
@@ -250,13 +241,14 @@ namespace RF24::Network
     FrameCache_t frameQueue; /**< Space for a small set of frames that need to be delivered to the app layer */
 
     uint16_t parentNode; /**< Our parent's node address */
-    uint8_t parentPipe;  /**< The pipe our parent uses to listen to us */
+    RF24::Hardware::PipeNumber_t parentPipe;  /**< The pipe our parent uses to listen to us */
     uint16_t nodeMask;   /**< The bits which contain significant node address information */
 
 
     RF24::Network::Queue::ManagedFIFO txQueue;
     RF24::Network::Queue::ManagedFIFO rxQueue;
 
+    uLog::SinkHandle logger;
   };
 }    // namespace RF24::Network
 

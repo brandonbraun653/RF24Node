@@ -51,9 +51,9 @@ Chimera::Status_t EP_renewAddressReservation( RF24::EndpointInterface *obj )
   return obj->renewAddressReservation();
 }
 
-Chimera::Status_t EP_connect( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_connect( RF24::EndpointInterface *obj, const size_t timeout )
 {
-  return obj->connect();
+  return obj->connect( timeout );
 }
 
 Chimera::Status_t EP_disconnect( RF24::EndpointInterface *obj )

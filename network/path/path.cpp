@@ -24,7 +24,7 @@ namespace RF24::Network
 
   void Path::process()
   {
-    uint8_t currentLevel = Level::LEVEL0;
+    uint8_t currentLevel = static_cast<uint8_t>( NodeLevel::LEVEL0 );
     uint8_t *iter = reinterpret_cast<uint8_t *>( &msgPath );
 
     for ( uint8_t i = 0; i < sizeof( MessagePath ); i += sizeof( MessagePath::hop0 ) )
@@ -35,6 +35,6 @@ namespace RF24::Network
       }
     }
 
-    networkLevel = static_cast<Level>( currentLevel );
+    networkLevel = static_cast<NodeLevel>( currentLevel );
   }
 }

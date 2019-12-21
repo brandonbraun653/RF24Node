@@ -23,6 +23,7 @@ namespace RF24::Network
 {
   enum class Mode : size_t
   {
+    NET_MODE_INVALID,
     NET_MODE_STATIC,
     NET_MODE_MESH
   };

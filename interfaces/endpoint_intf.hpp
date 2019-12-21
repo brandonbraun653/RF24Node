@@ -90,11 +90,23 @@ namespace RF24
     virtual Chimera::Status_t renewAddressReservation() = 0;
 
     /**
-     *  Attempts to connect to the network using previously configured settings
-     *
+     *  Talks with the DHCP server to remove this device from the network.
+     *  
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect() = 0;
+    virtual Chimera::Status_t releaseAddress() = 0;
+
+    /**
+     *  Attempts to connect to the network using previously configured settings
+     *
+     *  @warning  All nodes must use the same networking mode in order for the 
+     *            connection to succeed. Otherwise nodes won't know how to talk
+     *            with one another.
+     *
+     *  @param[in]  timeout     Timeout in milliseconds to wait for success
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t connect( const size_t timeout ) = 0;
 
     /**
      *  Gracefully detaches from the network
@@ -208,7 +220,7 @@ extern "C" RF24API Chimera::Status_t EP_setEnpointStaticAddress( RF24::EndpointI
 extern "C" RF24API Chimera::Status_t EP_setParentStaticAddress( RF24::EndpointInterface *obj, const RF24::LogicalAddress address );
 extern "C" RF24API Chimera::Status_t EP_requestAddress( RF24::EndpointInterface *obj);
 extern "C" RF24API Chimera::Status_t EP_renewAddressReservation( RF24::EndpointInterface *obj);
-extern "C" RF24API Chimera::Status_t EP_connect( RF24::EndpointInterface *obj);
+extern "C" RF24API Chimera::Status_t EP_connect( RF24::EndpointInterface *obj, const size_t timeout );
 extern "C" RF24API Chimera::Status_t EP_disconnect( RF24::EndpointInterface *obj);
 extern "C" RF24API Chimera::Status_t EP_reconnect( RF24::EndpointInterface *obj);
 extern "C" RF24API Chimera::Status_t EP_onEvent( RF24::EndpointInterface *obj, const RF24::Event event, const RF24::EventFuncPtr_t function );
