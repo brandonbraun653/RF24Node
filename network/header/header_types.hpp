@@ -22,20 +22,19 @@
 namespace RF24::Network
 {   
 
-#pragma pack( push )
-#pragma pack( 1 )
   /**
    *   The header payload, forcefully packed and aligned to a 32bit width so we can have
    *   consistent data representation across multiple systems. This structure is the bread
    *   and butter of the class.
    */
+#pragma pack( push )
+#pragma pack( 1 )
   struct FrameHeaderField
   {
-    HeaderCountType number;  /**< Sequential message ID, incremented every time a new frame is constructed */
-    NodeAddressType dstNode; /**< Logical address (OCTAL) describing where the message is going */
-    NodeAddressType srcNode; /**< Logical address (OCTAL) describing where the message was generated */
-    NetHdrMsgType msgType;   /**< Indicates the purpose of this particular packet */
-    uint8_t reserved;        /**< Reserved for system use: Can carry either the fragmentID or headerType */
+    LogicalAddress dstNode; /**< Logical address (OCTAL) describing where the message is going */
+    LogicalAddress srcNode; /**< Logical address (OCTAL) describing where the message was generated */
+    HeaderMessage type;     /**< Indicates the purpose of this particular packet */
+    uint8_t reserved;       /**< Reserved for system use: Can carry either the fragmentID or headerType */
   };
 #pragma pack( pop )
 

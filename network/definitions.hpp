@@ -29,10 +29,13 @@ namespace RF24::Network
   constexpr uint16_t DEFAULT_LOGICAL_ADDRESS = 04444; /**< (OCTAL) Default value for new nodes */
   constexpr uint16_t EMPTY_LOGICAL_ADDRESS =
       07777; /**< (OCTAL) Value physically impossible for node to own due to child limits */
-  constexpr uint8_t OCTAL_TO_BIN_BITSHIFT = 3u;
-  constexpr uint8_t MIN_NODE_ID           = 1;
-  constexpr uint8_t MAX_NODE_ID           = 5;
-  constexpr uint8_t INVALID_NODE_ID       = MAX_NODE_ID + 1;
+  constexpr LogicalLevel OCTAL_TO_BIN_BITSHIFT = 3u;
+  constexpr LogicalLevel MIN_CHILD_NODE_ID     = 1u;
+  constexpr LogicalLevel MAX_CHILD_NODE_ID     = 5u;
+  constexpr LogicalLevel MIN_ROOT_NODE_ID      = 0u;
+  constexpr LogicalLevel MAX_ROOT_NODE_ID      = 7u;
+  constexpr LogicalLevel ROOT_NODE_START_LEVEL = 0u;
+  constexpr uint8_t INVALID_NODE_ID       = MAX_CHILD_NODE_ID + 1;
   constexpr uint8_t MAX_CHILDREN          = 5;
 
   /*------------------------------------------------
@@ -131,8 +134,8 @@ Debug Options
 #endif
 
 
-  constexpr uint16_t MULTICAST_ADDRESS = 0100;
-  constexpr uint16_t ROUTED_ADDRESS    = 070;
+  static constexpr LogicalAddress RSVD_ADDR_MULTICAST = 0100;
+  static constexpr LogicalAddress RSVD_ADDR_ROUTED    = 0070;
 
 
   using NodeAddressType = uint16_t;
@@ -148,8 +151,7 @@ Debug Options
    *   USER TYPES [1-127]:     Numbers [1-64] will have NOACK, [65-127] will have ACK
    *   SYSTEM TYPES [128-255]: Numbers [192-255] will have NOACK, [128-191] will have ACK
    */
-  using NetHdrMsgType = uint8_t;
-  enum _NetworkHeaderMessageType : NetHdrMsgType
+  enum HeaderMessage : uint8_t
   {
     MSG_MIN_USER_DEFINED_HEADER_TYPE = 0,
 
@@ -162,7 +164,7 @@ Debug Options
     MSG_USER_TX_TO_LOGICAL_ADDRESS  = 3,
     MSG_USER_TX_MULTICAST           = 4,
 
-    MSG_M = 7,
+
 
     MSG_USER_MAX_NO_ACK = 64,
     MSG_USER_MIN_ACK = 65,
@@ -268,6 +270,14 @@ Debug Options
      *   Not sure what this one does yet.
      */
     MSG_NETWORK_MORE_FRAGMENTS_NACK = 200,
+
+
+    MSG_NET_REQUEST_BIND = 201,
+    MSG_NET_REQUEST_BIND_ACK = 202,
+    MSG_NET_REQUEST_BIND_FULL = 203,
+
+
+
 
     /**
      *   Use the current channel when setting up the network

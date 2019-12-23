@@ -32,13 +32,14 @@
 #include <uLog/types.hpp>
 
 /* Driver Includes */
+#include <RF24Node/common/types.hpp>
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/interfaces/network_intf.hpp>
-#include <RF24Node/physical/physical.hpp>
 #include <RF24Node/network/definitions.hpp>
 #include <RF24Node/network/frame/frame.hpp>
 #include <RF24Node/network/header/header.hpp>
 #include <RF24Node/network/queue/queue.hpp>
+#include <RF24Node/physical/physical.hpp>
 
 
 namespace RF24::Network
@@ -67,7 +68,7 @@ namespace RF24::Network
                 const RF24::Hardware::DataRate dataRate = RF24::Hardware::DataRate::DR_1MBPS,
                 const RF24::Hardware::PowerAmplitude pwr = RF24::Hardware::PowerAmplitude::PA_MAX ) final override;
 
-    NetHdrMsgType update() final override;
+    HeaderMessage update() final override;
 
     bool available() const final override;
 
@@ -75,7 +76,9 @@ namespace RF24::Network
 
     void peek( HeaderHelper &header, void *const message, const uint16_t maxlen ) final override;
 
-    uint16_t read( HeaderHelper &header, void *const message, const uint16_t maxlen ) final override;
+
+
+    bool read( HeaderHelper &header, void *const message, const uint16_t maxlen ) final override;
 
     bool write( HeaderHelper &header, const void *message, const uint16_t len ) final override;
 
@@ -84,8 +87,6 @@ namespace RF24::Network
     bool multicast( HeaderHelper &header, const void *message, const uint16_t length, const uint8_t level ) final override;
 
     void setMulticastLevel( const uint8_t level ) final override;
-
-    bool isValidNetworkAddress( const LogicalAddress node ) final override;
 
     bool setAddress( const LogicalAddress address ) final override;
 
@@ -171,8 +172,8 @@ namespace RF24::Network
      */
     uint8_t networkFlags;
 
-    std::array<bool, MAX_NODE_ID> childAttached;
-    std::array<uint16_t, MAX_NODE_ID> children;
+    std::array<bool, MAX_CHILD_NODE_ID> childAttached;
+    std::array<uint16_t, MAX_CHILD_NODE_ID> children;
     bool childrenAvailable()
     {
       bool result = true;

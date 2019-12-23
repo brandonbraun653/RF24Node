@@ -31,13 +31,31 @@ namespace RF24
   At a minimum, each network must have a single node
   that has the RootNode0 address.
   -------------------------------------------------*/
-  static constexpr LogicalAddress RootNode0 = 0000;
-  static constexpr LogicalAddress RootNode1 = 1000;
-  static constexpr LogicalAddress RootNode2 = 2000;
-  static constexpr LogicalAddress RootNode3 = 3000;
+  static constexpr LogicalAddress RootNode0 = 00000;
+  static constexpr LogicalAddress RootNode1 = 01000;
+  static constexpr LogicalAddress RootNode2 = 02000;
+  static constexpr LogicalAddress RootNode3 = 03000;
 
-  static constexpr LogicalAddress InvalidNode = 7777;
+  static constexpr LogicalAddress InvalidLogicalAddress = 07777;
 
+  static constexpr LogicalLevel MIN_OCTAL_NUMBER = 0u;
+  static constexpr LogicalLevel MAX_OCTAL_NUMBER = 7u;
+
+  static constexpr LogicalLevel NODE_LEVEL_0 = 0u; /**< Reserved for root nodes only */
+  static constexpr LogicalLevel NODE_LEVEL_1 = 1u;
+  static constexpr LogicalLevel NODE_LEVEL_2 = 2u;
+  static constexpr LogicalLevel NODE_LEVEL_3 = 3u;
+  static constexpr LogicalLevel NODE_LEVEL_4 = 4u;
+  static constexpr LogicalLevel NODE_LEVEL_5 = 5u;
+  static constexpr LogicalLevel NODE_LEVEL_MAX = NODE_LEVEL_5;
+
+  static constexpr LogicalID NODE_ID_ROOT = 0u;
+  static constexpr LogicalID NODE_ID_1    = 1u;
+  static constexpr LogicalID NODE_ID_2    = 2u;
+  static constexpr LogicalID NODE_ID_3    = 3u;
+  static constexpr LogicalID NODE_ID_4    = 4u;
+  static constexpr LogicalID NODE_ID_5    = 5u;
+  
 
 }    // namespace RF24
 

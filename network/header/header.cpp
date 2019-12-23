@@ -15,6 +15,7 @@
 
 /* Driver Includes */
 #include <RF24Node/network/header/header.hpp>
+#include <RF24Node/network/definitions.hpp>
 
 namespace RF24::Network
 {
@@ -39,7 +40,7 @@ namespace RF24::Network
     memcpy( &data, buffer.data(), sizeof( FrameHeaderField ) );
   }
 
-  HeaderHelper::HeaderHelper( const uint16_t dstNode, const NetHdrMsgType msgType )
+  HeaderHelper::HeaderHelper( const RF24::LogicalAddress dstNode, const HeaderMessage msgType )
   {
     /*------------------------------------------------
     Initialize the payload structure fully
@@ -47,7 +48,7 @@ namespace RF24::Network
     data.reserved = 0u;
     data.srcNode  = EMPTY_LOGICAL_ADDRESS;
     data.dstNode  = dstNode;
-    data.msgType  = msgType;
+    data.type  = msgType;
 
     /*------------------------------------------------
     Grab our ID number and then update the global reference
@@ -83,7 +84,38 @@ namespace RF24::Network
     constexpr int bufferLen = 45;
     static char buffer[ bufferLen ];
     snprintf( buffer, bufferLen, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.number, data.srcNode, data.dstNode,
-             ( int )data.msgType, ( int )data.reserved );
+             ( int )data.type, ( int )data.reserved );
     return buffer;
   }
+
+  void HeaderHelper::setDestinationNode( const RF24::LogicalAddress destination )
+  {
+    data.dstNode = destination;
+  }
+
+  void HeaderHelper::setSourceNode( const RF24::LogicalAddress source )
+  {
+    data.srcNode = source;
+  }
+
+  void HeaderHelper::setType( const HeaderMessage type )
+  {
+    data.type = type;
+  }
+
+  RF24::LogicalAddress HeaderHelper::getDestinationNode()
+  {
+    return data.dstNode;
+  }
+
+  RF24::LogicalAddress HeaderHelper::getSourceNode()
+  {
+    return data.srcNode;
+  }
+
+  RF24::Network::HeaderMessage HeaderHelper::getType()
+  {
+    return data.type;
+  }
+
 }    // namespace RF24::Network

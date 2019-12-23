@@ -82,7 +82,7 @@ namespace RF24::Network
      *
      *   @return Returns the type of the last received payload.
      */
-    virtual NetHdrMsgType update() = 0;
+    virtual HeaderMessage update() = 0;
 
     /**
      *   Check whether a message available for this node.
@@ -110,10 +110,10 @@ namespace RF24::Network
      *
      *   @param[out] header      The header (envelope) of this message
      *   @param[out] message     Pointer to memory where the message should be placed
-     *   @param maxlen Amount of bytes to copy to message.
-     *   @return void
+     *   @param[in]  maxlen      Amount of bytes to copy to message.
+     *   @return bool           Validity of the data
      */
-    virtual void peek( HeaderHelper &header, void *const message, const uint16_t maxlen ) = 0;
+    virtual bool peek( HeaderHelper &header, void *const message, const uint16_t maxlen ) = 0;
 
     /**
      *   Read a message
@@ -121,9 +121,9 @@ namespace RF24::Network
      *   @param[out] header      The header (envelope) of this message
      *   @param[out] message     Pointer to memory where the message should be placed
      *   @param[in]  maxlen      The largest message size which can be held in message
-     *   @return The total number of bytes copied into message
+     *   @return bool           Validity of the data
      */
-    virtual uint16_t read( HeaderHelper &header, void *const message, const uint16_t maxlen ) = 0;
+    virtual bool read( HeaderHelper &header, void *const message, const uint16_t maxlen ) = 0;
 
     /**
      *   Send a message
@@ -187,14 +187,6 @@ namespace RF24::Network
     *   @return void
     */
     virtual void setMulticastLevel( const uint8_t level ) = 0;
-
-    /**
-     *   Check if a network address is valid or not
-     *
-     *   @param[in]  node        The octal nodeID to validate
-     *   @return True if a supplied address is valid
-     */
-    virtual bool isValidNetworkAddress( const LogicalAddress node ) = 0;
 
     /**
      *   Changes the network's address at runtime

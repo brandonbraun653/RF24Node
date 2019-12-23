@@ -127,22 +127,22 @@ namespace RF24::Network
 
     bool childID_isValid()
     {
-      return ( MIN_NODE_ID <= childID ) && ( childID <= MAX_NODE_ID );
+      return ( MIN_CHILD_NODE_ID <= childID ) && ( childID <= MAX_CHILD_NODE_ID );
     }
 
     bool parentID_isValid()
     {
-      return ( MIN_NODE_ID <= parentID ) && ( parentID <= MAX_NODE_ID );
+      return ( MIN_CHILD_NODE_ID <= parentID ) && ( parentID <= MAX_CHILD_NODE_ID );
     }
 
     bool grandParentID_isValid()
     {
-      return ( MIN_NODE_ID <= grandParentID ) && ( grandParentID <= MAX_NODE_ID );
+      return ( MIN_CHILD_NODE_ID <= grandParentID ) && ( grandParentID <= MAX_CHILD_NODE_ID );
     }
 
     bool greatGrandParentID_isValid()
     {
-      return ( MIN_NODE_ID <= greatGrandParentID ) && ( greatGrandParentID <= MAX_NODE_ID );
+      return ( MIN_CHILD_NODE_ID <= greatGrandParentID ) && ( greatGrandParentID <= MAX_CHILD_NODE_ID );
     }
 
     Node()  = default;

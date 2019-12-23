@@ -50,6 +50,7 @@ namespace RF24::Network
 #pragma pack( 1 )
   struct FrameData
   {
+    uint16_t crc;                     /**< CRC of the entire frame, minus the crc field */
     FrameHeaderField header;          /**< Header describing the frame */
     FrameLengthField messageLength;   /**< Length of the message in bytes */
     FramePayloadField message;        /**< User defined message */

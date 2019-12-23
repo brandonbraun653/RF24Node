@@ -20,6 +20,8 @@
 
 /* RF24 Includes */
 #include <RF24Node/common/conversion.hpp>
+#include <RF24Node/common/types.hpp>
+#include <RF24Node/common/utility.hpp>
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/network/types.hpp>
 #include <RF24Node/network/frame/frame.hpp>
@@ -112,7 +114,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Check error conditions that would prevent a solid startup.
     ------------------------------------------------*/
-    if ( !isValidNetworkAddress( nodeAddress ) )
+    if ( !isAddressChild( nodeAddress ) )
     {
       oopsies = ErrorType::INVALID_ADDRESS;
       IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_ERROR, "ERR: Invalid node address\n" ); );
@@ -254,7 +256,7 @@ namespace RF24::Network
       /*------------------------------------------------
       Throw it away if it's not a valid address
       ------------------------------------------------*/
-      if ( !isValidNetworkAddress( header->dstNode ) )
+      if ( !isAddressChild( header->dstNode ) )
       {
         continue;
       }
@@ -313,7 +315,7 @@ namespace RF24::Network
         /*------------------------------------------------
         Handle a multicast scenario
         ------------------------------------------------*/
-        if ( header->dstNode == MULTICAST_ADDRESS )
+        if ( header->dstNode == RSVD_ADDR_MULTICAST )
         {
           if ( header->msgType == MSG_NETWORK_POLL )
           {
@@ -408,7 +410,7 @@ namespace RF24::Network
     return msgSize;
   }
 
-  void Driver::peek( HeaderHelper &header, void *message, uint16_t maxlen )
+  bool Driver::peek( HeaderHelper &header, void *message, uint16_t maxlen )
   {
     if ( available() )
     {
@@ -425,7 +427,7 @@ namespace RF24::Network
     }
   }
 
-  uint16_t Driver::read( HeaderHelper &header, void *message, uint16_t maxlen )
+  bool Driver::read( HeaderHelper &header, void *message, uint16_t maxlen )
   {
     uint16_t msgLen     = 0; /* How large the payload is */
     uint16_t readLength = 0; /* How many bytes were copied out */
@@ -477,7 +479,7 @@ namespace RF24::Network
 
   bool Driver::multicast( HeaderHelper &header, const void *const message, const uint16_t len, const uint8_t level )
   {
-    header.data.dstNode = MULTICAST_ADDRESS;
+    header.data.dstNode = RSVD_ADDR_MULTICAST;
     header.data.srcNode = this->logicalNodeAddress;
 
     return write( header, message, len, levelToAddress( level ) );
@@ -485,7 +487,7 @@ namespace RF24::Network
 
   bool Driver::write( HeaderHelper &header, const void *const message, const uint16_t len )
   {
-    return write( header, message, len, ROUTED_ADDRESS );
+    return write( header, message, len, RSVD_ADDR_ROUTED );
   }
 
   bool Driver::write( HeaderHelper &header, const void *const message, const uint16_t len, const NodeAddressType writeDirect )
@@ -559,7 +561,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Decide where that frame is going to be sent
     ------------------------------------------------*/
-    if ( directTo == ROUTED_ADDRESS )
+    if ( directTo == RSVD_ADDR_ROUTED )
     {
       return writeDirect( header.data.dstNode, MSG_TX_NORMAL );
     }
@@ -570,7 +572,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       NetHdrMsgType sendType = MSG_USER_TX_TO_LOGICAL_ADDRESS;
 
-      if ( header.data.dstNode == MULTICAST_ADDRESS )
+      if ( header.data.dstNode == RSVD_ADDR_MULTICAST )
       {
         sendType = MSG_USER_TX_MULTICAST;
       }
@@ -590,7 +592,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Throw it away if it's not a valid address
     ------------------------------------------------*/
-    if ( !isValidNetworkAddress( toNode ) )
+    if ( !isAddressChild( toNode ) )
     {
       oopsies = ErrorType::INVALID_ADDRESS;
       return false;
@@ -833,48 +835,9 @@ namespace RF24::Network
     return node & child_mask;
   }
 
-  bool Driver::isValidNetworkAddress( const LogicalAddress node )
-  {
-    bool result    = true;
-    uint8_t nodeID = 0;
-    uint16_t n     = node;
-
-    /*------------------------------------------------
-    If this isn't one of our special (invalid) node destinations, manually
-    check each level of the octal address.
-    ------------------------------------------------*/
-    if ( !( node == MULTICAST_ADDRESS ) && !( node == ROUTED_ADDRESS ) )
-    {
-      while ( n )
-      {
-        /*------------------------------------------------
-        Grab the node id of the LSB octal number
-        ------------------------------------------------*/
-        nodeID = n & BASE_LEVEL_MASK;
-
-        /*------------------------------------------------
-        Test for the proper node id range
-        ------------------------------------------------*/
-        if ( ( nodeID < MIN_NODE_ID ) || ( nodeID > MAX_NODE_ID ) )
-        {
-          result = false;
-          IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "*** WARNING *** Invalid address 0%o\n\r", n ); );
-          break;
-        }
-
-        /*------------------------------------------------
-        Push the next octal number to the LSB
-        ------------------------------------------------*/
-        n >>= OCTAL_TO_BIN_BITSHIFT;
-      }
-    }
-
-    return result;
-  }
-
   bool Driver::setAddress( const LogicalAddress address )
   {
-    if ( isValidNetworkAddress( address ) )
+    if ( isAddressChild( address ) )
     {
       bool initialized         = true;
       this->logicalNodeAddress = address;

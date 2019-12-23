@@ -31,8 +31,6 @@ namespace RF24::Network
   class HeaderHelper
   {
   public:
-    FrameHeaderField data;
-
     static void initialize();
 
     /**
@@ -48,7 +46,7 @@ namespace RF24::Network
      *  @param[in]  dstNode     The Octal format, logical node address where the message is going
      *  @param[in]  msgType     The type of message, as given by RF24Network::MessageType
      */
-    HeaderHelper( const uint16_t dstNode, const NetHdrMsgType type = MSG_TX_NORMAL );
+    HeaderHelper( const RF24::LogicalAddress dstNode, const HeaderMessage type = MSG_TX_NORMAL );
 
     HeaderHelper();
     ~HeaderHelper();
@@ -84,6 +82,18 @@ namespace RF24::Network
      *   @return String representation of the payload
      */
     const char *toString() const;
+
+    void setDestinationNode( const LogicalAddress destination );
+    void setSourceNode( const LogicalAddress source );
+    void setType( const HeaderMessage type );
+
+    LogicalAddress getDestinationNode();
+    LogicalAddress getSourceNode();
+    HeaderMessage getType();
+
+  private:    
+    FrameHeaderField data;
+
   };
 }    // namespace RF24::Network
 

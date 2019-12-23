@@ -20,11 +20,9 @@
 
 namespace RF24
 {
-  /**
-   *  Represents a node's address in the network in octal format
-   */
-  using LogicalAddress = uint16_t;
-  
+  using LogicalAddress = uint16_t; /**< A node's fully qualified address in the network (octal) */
+  using LogicalLevel   = uint16_t; /**< A level in the network tree structure */
+  using LogicalID      = uint16_t; /**< Which logical channel the node is registered to */
 
   /**
    *  Function pointer callback to be invoked on an event occurrence
