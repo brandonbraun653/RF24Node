@@ -48,6 +48,9 @@ namespace RF24::Network
      */
     HeaderHelper( const RF24::LogicalAddress dstNode, const HeaderMessage type = MSG_TX_NORMAL );
 
+
+    HeaderHelper( const FrameHeaderField &rawData );
+
     HeaderHelper();
     ~HeaderHelper();
 
@@ -90,6 +93,8 @@ namespace RF24::Network
     LogicalAddress getDestinationNode();
     LogicalAddress getSourceNode();
     HeaderMessage getType();
+
+    FrameHeaderField getField();
 
   private:    
     FrameHeaderField data;

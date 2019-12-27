@@ -18,6 +18,7 @@
 #include <climits>
 
 /* Driver Includes */
+#include <RF24Node/common/definitions.hpp>
 #include <RF24Node/common/types.hpp>
 #include <RF24Node/hardware/definitions.hpp>
 
@@ -35,34 +36,37 @@ namespace RF24::Network
   constexpr LogicalLevel MIN_ROOT_NODE_ID      = 0u;
   constexpr LogicalLevel MAX_ROOT_NODE_ID      = 7u;
   constexpr LogicalLevel ROOT_NODE_START_LEVEL = 0u;
-  constexpr uint8_t INVALID_NODE_ID       = MAX_CHILD_NODE_ID + 1;
-  constexpr uint8_t MAX_CHILDREN          = 5;
+  constexpr uint8_t INVALID_NODE_ID            = MAX_CHILD_NODE_ID + 1;
+  constexpr uint8_t MAX_CHILDREN               = 5;
+
+
+  static_assert( MAX_CHILD_NODE_ID == NODE_LEVEL_MAX, "Max child ID and max node level ID do not match" );
 
   /*------------------------------------------------
   Logical Address Encoding 
   ------------------------------------------------*/
   constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
-  constexpr ::RF24::LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
+  constexpr LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
 
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL0_Pos = 0 * BITS_PER_LEVEL;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL0_Msk = BASE_LEVEL_MASK << ADDR_LEVEL0_Pos;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL0     = ADDR_LEVEL0_Msk;
+  constexpr LogicalAddress ADDR_LEVEL1_Pos = 0 * BITS_PER_LEVEL;
+  constexpr LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;
+  constexpr LogicalAddress ADDR_LEVEL1     = ADDR_LEVEL1_Msk;
 
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL1_Pos = 1 * BITS_PER_LEVEL;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL1     = ADDR_LEVEL1_Msk;
+  constexpr LogicalAddress ADDR_LEVEL2_Pos = 1 * BITS_PER_LEVEL;
+  constexpr LogicalAddress ADDR_LEVEL2_Msk = BASE_LEVEL_MASK << ADDR_LEVEL2_Pos;
+  constexpr LogicalAddress ADDR_LEVEL2     = ADDR_LEVEL2_Msk;
 
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL2_Pos = 2 * BITS_PER_LEVEL;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL2_Msk = BASE_LEVEL_MASK << ADDR_LEVEL2_Pos;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL2     = ADDR_LEVEL2_Msk;
+  constexpr LogicalAddress ADDR_LEVEL3_Pos = 2 * BITS_PER_LEVEL;
+  constexpr LogicalAddress ADDR_LEVEL3_Msk = BASE_LEVEL_MASK << ADDR_LEVEL3_Pos;
+  constexpr LogicalAddress ADDR_LEVEL3     = ADDR_LEVEL3_Msk;
 
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL3_Pos = 3 * BITS_PER_LEVEL;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL3_Msk = BASE_LEVEL_MASK << ADDR_LEVEL3_Pos;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL3     = ADDR_LEVEL3_Msk;
+  constexpr LogicalAddress ADDR_LEVEL4_Pos = 3 * BITS_PER_LEVEL;
+  constexpr LogicalAddress ADDR_LEVEL4_Msk = BASE_LEVEL_MASK << ADDR_LEVEL4_Pos;
+  constexpr LogicalAddress ADDR_LEVEL4     = ADDR_LEVEL4_Msk;
 
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL4_Pos = 4 * BITS_PER_LEVEL;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL4_Msk = BASE_LEVEL_MASK << ADDR_LEVEL4_Pos;
-  constexpr ::RF24::LogicalAddress ADDR_LEVEL4     = ADDR_LEVEL4_Msk;
+  constexpr LogicalAddress ADDR_LEVEL5_Pos = 4 * BITS_PER_LEVEL;
+  constexpr LogicalAddress ADDR_LEVEL5_Msk = BASE_LEVEL_MASK << ADDR_LEVEL5_Pos;
+  constexpr LogicalAddress ADDR_LEVEL5     = ADDR_LEVEL5_Msk;
 
 /*------------------------------------------------
 Config Options
@@ -133,10 +137,10 @@ Debug Options
 #define IF_SERIAL_DEBUG_ROUTING( x )
 #endif
 
-
-  static constexpr LogicalAddress RSVD_ADDR_MULTICAST = 0100;
-  static constexpr LogicalAddress RSVD_ADDR_ROUTED    = 0070;
-
+  static constexpr LogicalAddress RSVD_ADDR_MULTICAST = 000100;
+  static constexpr LogicalAddress RSVD_ADDR_ROUTED    = 000070;
+  static constexpr LogicalAddress RSVD_ADDR_INVALID   = 077777;
+  static constexpr LogicalAddress RSVD_ADDR_LOOKUP    = 007070;
 
   using NodeAddressType = uint16_t;
   using HeaderCountType = uint16_t;

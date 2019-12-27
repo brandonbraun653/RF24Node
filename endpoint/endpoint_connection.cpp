@@ -78,7 +78,7 @@ namespace RF24
       ------------------------------------------------*/
       network->update();
       // The network layer might need to disable certain kinds of communication until it knows we are connected...
-      // perhaps use "services" to describe this? Bit field....forward to parent, consume, dhcp, etc.
+      // perhaps use "services" to describe this? Bit field....forward to parent, consume, DHCP, etc.
 
       /*------------------------------------------------
       Handle the current state

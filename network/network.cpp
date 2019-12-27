@@ -46,7 +46,7 @@ namespace RF24::Network
     /*------------------------------------------------
     All variants of root nodes have their first level bits set to zero
     ------------------------------------------------*/
-    return ( ( address & ADDR_LEVEL0 ) == 0 );
+    return ( ( address & ADDR_LEVEL1) == 0 );
   }
 
   Driver::Driver() : frameQueue( FrameCache_t( 3 ) )
@@ -191,7 +191,7 @@ namespace RF24::Network
     return result;
   }
 
-  NetHdrMsgType Driver::update()
+  HeaderMessage Driver::update()
   {
     if ( !initialized )
     {
@@ -201,7 +201,7 @@ namespace RF24::Network
     }
 
     uint8_t pipeNum         = 0u;
-    NetHdrMsgType returnVal = MSG_TX_NORMAL;
+    HeaderMessage returnVal = MSG_TX_NORMAL;
 
     /*------------------------------------------------
     If BYPASS_HOLDS is enabled, incoming user data may be dropped. This allows for
@@ -225,148 +225,56 @@ namespace RF24::Network
     ------------------------------------------------*/
     while ( radio->payloadAvailable() < RF24::Hardware::PIPE_NUM_MAX )
     {
-      radioPayloadSize = radio->getDynamicPayloadSize();
-
       /*------------------------------------------------
-      The data received is garbage, go on to the next pipe.
+      Get the next frame and make sure it's valid before continuing
       ------------------------------------------------*/
-      if ( radioPayloadSize < FRAME_PREAMBLE_SIZE )
-      {
-        Chimera::delayMilliseconds( 10 );
-        continue;
-      }
+      FrameHelper frame;
+      radio->readPayload( frame.getBuffer(), frame.size(), radio->getDynamicPayloadSize() );
 
-      /*------------------------------------------------
-      Dump the payloads until we've gotten everything.
-      Fetch the payload, and see if this was the last one.
-      ------------------------------------------------*/
-      radio->readPayload( frameBuffer.data(), frameBuffer.size(), radioPayloadSize );
+      frame.commitBuffer();
+      frame.updateCRC();
 
-      /*------------------------------------------------
-      Read the beginning of the frame as the header
-      ------------------------------------------------*/
-      FrameHelper frame( frameBuffer );
-
-      FrameHeaderField *header = &frame.data.header;
-
-      IF_SERIAL_DEBUG( HeaderHelper headerClass; headerClass = frame.data.header;
-                       logger->flog( uLog::Level::LVL_INFO, "%d: MAC Received on pipe %u, Header: [%s]\n\r", Chimera::millis(),
-                                   pipeNum, headerClass.toString() ); );
-
-      /*------------------------------------------------
-      Throw it away if it's not a valid address
-      ------------------------------------------------*/
-      if ( !isAddressChild( header->dstNode ) )
+      if ( !frame.validateCRC() )
       {
         continue;
       }
-
-      returnVal = static_cast<NetHdrMsgType>( header->msgType );
 
       /*------------------------------------------------
       Is this message for us?
       ------------------------------------------------*/
-      if ( header->dstNode == this->logicalNodeAddress )
+      HeaderHelper header   = frame.getHeader();
+      HeaderMessage message = header.getType();
+
+      if ( header.getDestinationNode() == this->logicalNodeAddress )
       {
-        /*------------------------------------------------
-        No action required for this one
-        ------------------------------------------------*/
-        if ( header->msgType == MSG_NETWORK_PING )
-        {
-          continue;
-        }
-
-        /*------------------------------------------------
-        Allow the Mesh layer to process the address response
-        ------------------------------------------------*/
-        if ( header->msgType == MSG_MESH_ADDR_RESPONSE )
-        {
-          return MSG_MESH_ADDR_RESPONSE;
-        }
-
-        /*------------------------------------------------
-        Allow the Mesh layer to process the address requesting
-        ------------------------------------------------*/
-        if ( header->msgType == MSG_MESH_REQ_ADDRESS )
-        {
-          return MSG_MESH_REQ_ADDRESS;
-        }
-
-        /*------------------------------------------------
-
-        ------------------------------------------------*/
-        if ( ( returnSysMsgs && ( header->msgType > MSG_MAX_USER_DEFINED_HEADER_TYPE ) ) || header->msgType == MSG_NETWORK_ACK )
-        {
-          IF_SERIAL_DEBUG_ROUTING(
-              logger->flog( uLog::Level::LVL_INFO, "%d MAC: System payload rcvd %d\n", Chimera::millis(), returnVal ); );
-
-          if ( header->msgType != MSG_NETWORK_FIRST_FRAGMENT && header->msgType != MSG_NETWORK_MORE_FRAGMENTS &&
-               header->msgType != MSG_NETWORK_MORE_FRAGMENTS_NACK && header->msgType != MSG_EXTERNAL_DATA_TYPE &&
-               header->msgType != MSG_NETWORK_LAST_FRAGMENT )
-          {
-            return returnVal;
-          }
-        }
-
-        enqueue( frame );
-      }
-      else
-      {
-        /*------------------------------------------------
-        Handle a multicast scenario
-        ------------------------------------------------*/
-        if ( header->dstNode == RSVD_ADDR_MULTICAST )
-        {
-          if ( header->msgType == MSG_NETWORK_POLL )
-          {
-            /*------------------------------------------------
-            Assuming we:
-                1. Have a slot available for another child to attach
-                2. Are initialized and connected to the network
-                3. Are not blocked by a flag
-
-            Send an empty message directly back to the polling node to indicate they can attach
-            ------------------------------------------------*/
-            if ( childrenAvailable() && ( this->logicalNodeAddress != DEFAULT_LOGICAL_ADDRESS ) &&
-                 !( networkFlags & FLAG_NO_POLL ) )
-            {
-              header->dstNode = header->srcNode;
-              header->srcNode = this->logicalNodeAddress;
-
-              Chimera::delayMilliseconds( parentPipe );
-
-              memcpy( frameBuffer.data(), header, sizeof( FrameHeaderField ) );
-              writeDirect( header->dstNode, MSG_USER_TX_TO_PHYSICAL_ADDRESS );
-            }
-
-            continue;
-          }
-
-          if ( multicastRelay )
-          {
-            IF_SERIAL_DEBUG_ROUTING( logger->flog( uLog::Level::LVL_INFO, "%u: MAC FWD multicast frame from 0%o to level %u\n",
-                                                 Chimera::millis(), header->srcNode, multicastLevel + 1 ); );
-
-            /*------------------------------------------------
-            For all but the first level of nodes (those not directly
-            connected to the master) we add the total delay per level.
-            ------------------------------------------------*/
-            if ( ( this->logicalNodeAddress >> 3 ) != 0 )
-            {
-              Chimera::delayMilliseconds( 1 );
-            }
-
-            Chimera::delayMilliseconds( this->logicalNodeAddress % 4 );
-            writeDirect( levelToAddress( multicastLevel ) << 3, MSG_USER_TX_MULTICAST );
-          }
-        }
-        else
+        switch ( message )
         {
           /*------------------------------------------------
-          Send it on, indicate it is a routed payload
+          Simple ping. ACK handled automatically in hardware.
           ------------------------------------------------*/
-          writeDirect( header->dstNode, MSG_TX_ROUTED );
+          case MSG_NETWORK_PING:
+            continue;
+            break;
+            
+          /*------------------------------------------------
+          A node is trying to directly connect with this node
+          ------------------------------------------------*/
+          case MSG_NET_REQUEST_BIND:
+            if ( mNetMode == Mode::NET_MODE_STATIC )
+            {
+              // Check if we have child slots available
+            }
+            break;
         }
+
+        /*------------------------------------------------
+        Getting here means the frame is destined for the user
+        ------------------------------------------------*/
+        enqueue( frame );
+      }
+      else /* Message is addressed to someone else and is just passing through us */
+      {
+        // TODO
       }
     }
 
@@ -424,7 +332,12 @@ namespace RF24::Network
       {
         memcpy( message, frame.message.data(), maxlen );
       }
+
+      // TODO: Add the CRC checking.
+      return true;
     }
+
+    return false;
   }
 
   bool Driver::read( HeaderHelper &header, void *message, uint16_t maxlen )
@@ -479,8 +392,8 @@ namespace RF24::Network
 
   bool Driver::multicast( HeaderHelper &header, const void *const message, const uint16_t len, const uint8_t level )
   {
-    header.data.dstNode = RSVD_ADDR_MULTICAST;
-    header.data.srcNode = this->logicalNodeAddress;
+    header.setDestinationNode( RSVD_ADDR_MULTICAST );
+    header.setSourceNode( logicalNodeAddress );
 
     return write( header, message, len, levelToAddress( level ) );
   }
@@ -514,11 +427,10 @@ namespace RF24::Network
     }
 
     /*------------------------------------------------
-    Do a normal, unfragmented write
+    Do a normal writes
     ------------------------------------------------*/
     if ( len <= max_frame_payload_size )
     {
-      radioPayloadSize = len + FRAME_PREAMBLE_SIZE;
       if ( _write( header, message, len, writeDirect ) )
       {
         return true;
@@ -535,12 +447,13 @@ namespace RF24::Network
     /*------------------------------------------------
     Fill out the header
     ------------------------------------------------*/
-    header.data.srcNode = logicalNodeAddress;
+    header.setSourceNode( logicalNodeAddress );
 
     /*------------------------------------------------
     Build the full frame to send
     ------------------------------------------------*/
-    txFrame.build( header.data, len, message );
+    txFrame.build( header.getField(), len, message );
+    txFrame.updateCRC();
 
     IF_SERIAL_DEBUG(
         logger->flog( uLog::Level::LVL_INFO, "%d: NET Sending Header [%s]\n\r", Chimera::millis(), header.toString() );
@@ -563,21 +476,21 @@ namespace RF24::Network
     ------------------------------------------------*/
     if ( directTo == RSVD_ADDR_ROUTED )
     {
-      return writeDirect( header.data.dstNode, MSG_TX_NORMAL );
+      return writeDirect( header.getDestinationNode(), MSG_TX_NORMAL );
     }
     else
     {
       /*------------------------------------------------
       Payload is multicast to the first node, and routed normally to the next
       ------------------------------------------------*/
-      NetHdrMsgType sendType = MSG_USER_TX_TO_LOGICAL_ADDRESS;
+      HeaderMessage sendType = MSG_USER_TX_TO_LOGICAL_ADDRESS;
 
-      if ( header.data.dstNode == RSVD_ADDR_MULTICAST )
+      if ( header.getDestinationNode() == RSVD_ADDR_MULTICAST )
       {
         sendType = MSG_USER_TX_MULTICAST;
       }
 
-      if ( header.data.dstNode == directTo )
+      if ( header.getDestinationNode() == directTo )
       {
         sendType = MSG_USER_TX_TO_PHYSICAL_ADDRESS;    // Payload is multicast to the first node, which is the recipient
       }
@@ -601,132 +514,34 @@ namespace RF24::Network
     /*------------------------------------------------
     Load info into our conversion structure, and get the converted address info
     ------------------------------------------------*/
-    logicalToPhysicalStruct conversion = { toNode, static_cast<RF24::Hardware::PipeNumber_t>( directTo ), 0 };
-    logicalToPhysicalAddress( &conversion );
+    //logicalToPhysicalStruct conversion = { toNode, static_cast<RF24::Hardware::PipeNumber_t>( directTo ), 0 };
+    //logicalToPhysicalAddress( &conversion );
 
     /*------------------------------------------------
     Write it
     ------------------------------------------------*/
-    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: MAC Sending to node [0%o] via node [0%o] on pipe %x\n\r",
-                                 Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
+    //IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: MAC Sending to node [0%o] via node [0%o] on pipe %x\n\r",
+    //                             Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
 
 
-    memcpy( frameBuffer.data(), &txFrame.data, sizeof( FrameData ) );
+    //bool writeSucceeded = writeFrameBufferToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
+    ////bool isAckType =
+    ////    ( txFrame.data.header.msgType >= MSG_USER_MIN_ACK ) && ( txFrame.data.header.msgType <= MSG_NETWORK_MAX_ACK );
 
-    bool writeSucceeded = writeFrameBufferToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
-    bool isAckType =
-        ( txFrame.data.header.msgType >= MSG_USER_MIN_ACK ) && ( txFrame.data.header.msgType <= MSG_NETWORK_MAX_ACK );
-
-    if ( !writeSucceeded )
-    {
-      IF_SERIAL_DEBUG_ROUTING( logger->flog( uLog::Level::LVL_INFO, "%d: MAC Send fail to 0%o via 0%o on pipe %x\n\r",
-                                           Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
-    }
+    //if ( !writeSucceeded )
+    //{
+    //  IF_SERIAL_DEBUG_ROUTING( logger->flog( uLog::Level::LVL_INFO, "%d: MAC Send fail to 0%o via 0%o on pipe %x\n\r",
+    //                                       Chimera::millis(), toNode, conversion.send_node, conversion.send_pipe ); );
+    //}
 
 
     /*------------------------------------------------
     Handle writes that have an ACK coming back
     ------------------------------------------------*/
-    if ( writeSucceeded && isAckType )
-    {
-      /*------------------------------------------------
-
-      ------------------------------------------------*/
-      if ( directTo == MSG_TX_ROUTED && conversion.send_node == toNode )
-      {
-        txFrame.data.header.msgType = MSG_NETWORK_ACK;                // Set the payload type to NETWORK_ACK
-        txFrame.data.header.dstNode = txFrame.data.header.srcNode;    // Change the 'to' address to the 'from' address
-
-        conversion.send_node = txFrame.data.header.srcNode;
-        conversion.send_pipe = static_cast<RF24::Hardware::PipeNumber_t>( MSG_TX_ROUTED );
-        conversion.multicast = 0;
-        logicalToPhysicalAddress( &conversion );
-
-        // TODO: When you figure out what this section does, re-evaluate radioPayloadSize...likely to be wrong
-        // TODO: BUG!
-        radioPayloadSize = sizeof( FrameHeaderField );
-        writeFrameBufferToPipeAtNodeID( conversion.send_node, conversion.send_pipe, conversion.multicast );
-
-        IF_SERIAL_DEBUG_ROUTING( logger->flog( uLog::Level::LVL_INFO, "%d MAC: Route OK to 0%o ACK sent to 0%o\n",
-                                             Chimera::millis(), toNode, txFrame.data.header.srcNode ); );
-      }
-
-      /*------------------------------------------------
-
-      ------------------------------------------------*/
-      if ( conversion.send_node != toNode && ( directTo == MSG_TX_NORMAL || directTo == MSG_USER_TX_TO_LOGICAL_ADDRESS ) )
-      {
-        // Now, continue listening
-        if ( networkFlags & FLAG_FAST_FRAG )
-        {
-          radio->txStandBy( txTimeout );
-          networkFlags &= ~FLAG_FAST_FRAG;
-          radio->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
-        }
-        radio->startListening();
-
-        uint32_t reply_time = Chimera::millis();
-
-        while ( update() != MSG_NETWORK_ACK )
-        {
-          if ( Chimera::millis() - reply_time > routeTimeout )
-          {
-            IF_SERIAL_DEBUG_ROUTING( logger->flog( uLog::Level::LVL_INFO,
-                                                 "%d: MAC Network ACK fail from 0%o via 0%o on pipe %x\n\r", Chimera::millis(),
-                                                 toNode, conversion.send_node, conversion.send_pipe ); );
-            writeSucceeded = false;
-            break;
-          }
-        }
-      }
-    }
-
+    // TODO
 
     radio->startListening();
-    return writeSucceeded;
-  }
-
-  bool Driver::logicalToPhysicalAddress( logicalToPhysicalStruct *conversionInfo )
-  {
-    // Create pointers so this makes sense.. kind of
-    // We take in the toNode(logical) now, at the end of the function, output the send_node(physical) address, etc.
-    // back to the original memory address that held the logical information.
-    auto *toNode  = &conversionInfo->send_node;
-    auto *directTo = &conversionInfo->send_pipe;
-    bool *multicast   = &conversionInfo->multicast;
-
-    // Where do we send this?  By default, to our parent
-    auto pre_conversion_send_node = parentNode;
-
-    // On which pipe
-    auto pre_conversion_send_pipe = parentPipe;
-
-    if ( *directTo > static_cast<uint8_t>( MSG_TX_ROUTED ) )
-    {
-      pre_conversion_send_node = *toNode;
-      *multicast               = 1;
-      pre_conversion_send_pipe = RF24::Hardware::PIPE_NUM_0;
-    }
-    else if ( isDirectChild( *toNode ) )
-    {
-      // Send directly
-      pre_conversion_send_node = *toNode;
-      // To its listening pipe
-      pre_conversion_send_pipe = RF24::Hardware::PIPE_NUM_5;
-    }
-    // If the node is a child of a child
-    // talk on our child's listening pipe,
-    // and let the direct child relay it.
-    else if ( isDescendant( *toNode ) )
-    {
-      pre_conversion_send_node = directChildRouteTo( *toNode );
-      pre_conversion_send_pipe = RF24::Hardware::PIPE_NUM_5;
-    }
-
-    *toNode   = pre_conversion_send_node;
-    *directTo = pre_conversion_send_pipe;
-
-    return 1;
+    return false;
   }
 
   bool Driver::writeFrameBufferToPipeAtNodeID( const LogicalAddress node, const RF24::Hardware::PipeNumber_t pipe, const bool multicast )
@@ -738,38 +553,13 @@ namespace RF24::Network
     If we are multi casting, turn off auto acknowledgment. 
     We don't care how the message gets out as long as it does.
     ------------------------------------------------*/
-    result |= radio->stopListening();
-    result |= radio->toggleAutoAck( !multicast, RF24::Hardware::PIPE_NUM_0 );
-    result |= radio->openWritePipe( writePipeAddress );
-    result |= radio->immediateWrite( frameBuffer.data(), radioPayloadSize, false );
-    result |= radio->txStandBy( txTimeout );
+    //result |= radio->stopListening();
+    //result |= radio->toggleAutoAck( !multicast, RF24::Hardware::PIPE_NUM_0 );
+    //result |= radio->openWritePipe( writePipeAddress );
+    //result |= radio->immediateWrite( frameBuffer.data(), radioPayloadSize, false );
+    //result |= radio->txStandBy( txTimeout );
 
     return result == Chimera::CommonStatusCodes::OK;
-  }
-
-  bool Driver::isDirectChild( uint16_t node )
-  {
-    bool result = false;
-
-    // A direct child of ours has the same low numbers as us, and only
-    // one higher number.
-    //
-    // e.g. node 0234 is a direct child of 034, and node 01234 is a
-    // descendant but not a direct child
-
-    // First, is it even a descendant?
-    if ( isDescendant( node ) )
-    {
-      // Does it only have ONE more level than us?
-      uint16_t child_node_mask = ( ~nodeMask ) << 3;
-      result                   = ( node & child_node_mask ) == 0;
-    }
-    return result;
-  }
-
-  bool Driver::isDescendant( uint16_t node )
-  {
-    return ( node & nodeMask ) == logicalNodeAddress;
   }
 
   void Driver::setupAddress()
@@ -818,14 +608,14 @@ namespace RF24::Network
 
   void Driver::enqueue( FrameHelper &frame )
   {
-    if ( !frameQueue.full() )
-    {
-      frameQueue.push_back( frame.data );
-    }
-    else
-    {
-      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET **Drop Payload** Buffer Full\n", Chimera::millis() ); );
-    }
+    //if ( !frameQueue.full() )
+    //{
+    //  frameQueue.push_back( frame.data );
+    //}
+    //else
+    //{
+    //  IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET **Drop Payload** Buffer Full\n", Chimera::millis() ); );
+    //}
   }
 
   uint16_t Driver::directChildRouteTo( uint16_t node )
@@ -890,6 +680,20 @@ namespace RF24::Network
     radio->openReadPipe( static_cast<RF24::Hardware::PipeNumber_t>( 0u ), RF24::Physical::Conversion::getPipeAddress( levelToAddress( level ), RF24::Hardware::PIPE_NUM_0 ), true );
   }
 
+  void Driver::toggleSystemMessageReturn( const bool state )
+  {
+    returnSysMsgs = state;
+  }
+
+  void Driver::toggleMulticastRelay( const bool state )
+  {
+    multicastRelay = state;
+  }
+
+  void Driver::setNetworkingMode( const Mode mode )
+  {
+    mNetMode = mode;
+  }
 
   static uint16_t levelToAddress( uint8_t level )
   {

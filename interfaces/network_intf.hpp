@@ -35,6 +35,7 @@ namespace RF24::Network
     virtual ~Interface() = default;
 
     virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
+    virtual void setNetworkingMode( const Mode mode ) = 0;
 
     /**
      *  Attaches a managed instance of a physical layer driver to the network driver.

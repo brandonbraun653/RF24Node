@@ -15,6 +15,7 @@
 /* Driver Includes */
 #include <RF24Node/network/frame/frame_definitions.hpp>
 #include <RF24Node/network/frame/frame_types.hpp>
+#include <RF24Node/network/header/header.hpp>
 
 namespace RF24::Network
 {
@@ -31,8 +32,12 @@ namespace RF24::Network
   class FrameHelper
   {
   public:
-    FrameData data;
-
+    
+    constexpr size_t size()
+    {
+      return mBuffer.size();
+    }
+    
     /**
      *   Constructor to build a Frame from discrete parts
      */
@@ -65,6 +70,27 @@ namespace RF24::Network
     void clear();
 
     void build( const FrameHeaderField &header, const FrameLengthField &msgLen, const void *const message );
+
+    void updateCRC();
+
+    bool validateCRC();
+
+    uint8_t *getBuffer();
+
+    void commitBuffer();
+
+    HeaderHelper getHeader();
+
+    FrameLengthField getPayloadLength();
+
+    FramePayloadField getPayload();
+
+  private:
+    uint16_t calculateCRC();
+
+    bool staleData;
+    FrameBuffer mBuffer;
+    FrameData data;
   };
 }    // namespace RF24::Network
 

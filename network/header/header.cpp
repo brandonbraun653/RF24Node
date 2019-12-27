@@ -49,14 +49,14 @@ namespace RF24::Network
     data.srcNode  = EMPTY_LOGICAL_ADDRESS;
     data.dstNode  = dstNode;
     data.type  = msgType;
-
-    /*------------------------------------------------
-    Grab our ID number and then update the global reference
-    ------------------------------------------------*/
-    data.number = universalHeaderID++;
   }
 
-  HeaderHelper::HeaderHelper() : HeaderHelper( EMPTY_LOGICAL_ADDRESS, 0 )
+  HeaderHelper::HeaderHelper( const FrameHeaderField &rawData )
+  {
+    memcpy( &data, &rawData, sizeof( FrameHeaderField ) );
+  }
+
+  HeaderHelper::HeaderHelper()
   {
   }
 
@@ -83,7 +83,7 @@ namespace RF24::Network
   {
     constexpr int bufferLen = 45;
     static char buffer[ bufferLen ];
-    snprintf( buffer, bufferLen, "Id: %u, Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.number, data.srcNode, data.dstNode,
+    snprintf( buffer, bufferLen, "Src: 0%o, Dst: 0%o, Type: %d, Reserved: %d", data.srcNode, data.dstNode,
              ( int )data.type, ( int )data.reserved );
     return buffer;
   }
@@ -116,6 +116,11 @@ namespace RF24::Network
   RF24::Network::HeaderMessage HeaderHelper::getType()
   {
     return data.type;
+  }
+
+  RF24::Network::FrameHeaderField HeaderHelper::getField()
+  {
+    return data;
   }
 
 }    // namespace RF24::Network

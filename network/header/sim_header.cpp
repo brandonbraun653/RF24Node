@@ -30,7 +30,8 @@ RF24::Network::HeaderHelper *new__HeaderHelperFromFrameBuffer( const uint8_t *fr
 
 RF24::Network::HeaderHelper *new__HeaderHelperFromSpec( const uint16_t dstNode, const uint8_t type )
 {
-  return new RF24::Network::HeaderHelper( dstNode, type );
+  // TODO: This isn't gonna work right....
+  return new RF24::Network::HeaderHelper();
 }
 
 

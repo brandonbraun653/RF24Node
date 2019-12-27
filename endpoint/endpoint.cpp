@@ -106,6 +106,10 @@ namespace RF24
     /*------------------------------------------------
     Initialize the network layer
     ------------------------------------------------*/
+    mNetMode = mConfig.network.mode;
+
+    network->setNetworkingMode( mNetMode );
+
     configResult |= setNetworkingMode( mNetMode );
     configResult |= network->attachPhysicalDriver( physical );
 
