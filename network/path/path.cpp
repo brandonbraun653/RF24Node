@@ -13,28 +13,28 @@
 
 /* Driver Includes */
 #include <RF24Node/network/path/path.hpp>
-#include <RF24Node/network/frame/frame_definitions.hpp>
+#include <RF24Node/network/frame/definitions.hpp>
 
 namespace RF24::Network
 {
-  Path::Path( std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE> messagePath )
-  {
-    memcpy( &msgPath, messagePath.data(), sizeof( MessagePath ) );
-  }
+  //Path::Path( std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE> messagePath )
+  //{
+  //  memcpy( &msgPath, messagePath.data(), sizeof( MessagePath ) );
+  //}
 
-  void Path::process()
-  {
-    uint8_t currentLevel = static_cast<uint8_t>( NodeLevel::LEVEL0 );
-    uint8_t *iter = reinterpret_cast<uint8_t *>( &msgPath );
+  //void Path::process()
+  //{
+  //  uint8_t currentLevel = static_cast<uint8_t>( NodeLevel::LEVEL0 );
+  //  uint8_t *iter = reinterpret_cast<uint8_t *>( &msgPath );
 
-    for ( uint8_t i = 0; i < sizeof( MessagePath ); i += sizeof( MessagePath::hop0 ) )
-    {
-      if ( iter[ i ] != INVALID_NODE_ID )
-      {
-        currentLevel++;
-      }
-    }
+  //  for ( uint8_t i = 0; i < sizeof( MessagePath ); i += sizeof( MessagePath::hop0 ) )
+  //  {
+  //    if ( iter[ i ] != INVALID_NODE_ID )
+  //    {
+  //      currentLevel++;
+  //    }
+  //  }
 
-    networkLevel = static_cast<NodeLevel>( currentLevel );
-  }
+  //  networkLevel = static_cast<NodeLevel>( currentLevel );
+  //}
 }

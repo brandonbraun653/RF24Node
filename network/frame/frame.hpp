@@ -13,85 +13,79 @@
 #define NRF24L01_NETWORK_LAYER_FRAME_HPP
 
 /* Driver Includes */
-#include <RF24Node/network/frame/frame_definitions.hpp>
-#include <RF24Node/network/frame/frame_types.hpp>
-#include <RF24Node/network/header/header.hpp>
+#include <RF24Node/network/frame/definitions.hpp>
+#include <RF24Node/network/frame/types.hpp>
 
-namespace RF24::Network
+namespace RF24::Network::Frame
 {
   /**
-   *   Frame structure for internal message handling, and for use by external applications
+   *   Base frame structure for sending messages around
    *
-   *   The actual frame put over the air consists of a header (8-bytes) and a message payload
-   *   (Up to 24-bytes). When data is received, it is stored using the Frame structure,
-   *   which includes:
-   *       1. The header
-   *       2. The size of the included message
-   *       3. The data being received
+   *
+   *                   FRAME STRUCTURE
+   *  |-CRC-|------Header------|-Size-|-------Payload------|
+   *  |     | dst | src | type |      |      0-24 bytes    |
+   *
    */
-  class FrameHelper
+  class FrameType
   {
   public:
-    
-    constexpr size_t size()
-    {
-      return mBuffer.size();
-    }
-    
-    /**
-     *   Constructor to build a Frame from discrete parts
-     */
-    FrameHelper( const FrameHeaderField &header, const FrameLengthField &msgLen, const void *const message );
+    FrameType();
+    ~FrameType();
 
-    /**
-     *   Constructor to build a Frame from a frame buffer
-     *
-     *   @param[in]  buffer      The new frame data
-     *   @return void
-     */
-    FrameHelper( const FrameBuffer &buffer );
+    FrameType( const Buffer &buffer );
+    FrameType( const FrameType &frame );
+    FrameType( const PackedData &rawFrame );
 
-    FrameHelper();
-    ~FrameHelper();
+    void operator=( const Buffer &buffer );
+    void operator=( const FrameType &frame );
+    void operator=( const PackedData &rawFrame );
 
-    /**
-     *   Allows updating a Frame object from a new set of data
-     *
-     *   @param[in]  buffer      The new frame data
-     *   @return void
-     */
-    void operator()( const FrameBuffer &buffer );
+    bool operator==( const FrameType &rhs);
 
     /**
      *  Empties the frame and fills it with zeros
-     *  
      *  @return void
      */
     void clear();
 
-    void build( const FrameHeaderField &header, const FrameLengthField &msgLen, const void *const message );
+    /**
+     *  Calculates the CRC of the current data and compares it to the 
+     *  actual CRC given in the Frame. If the two match, the data is 
+     *  assumed to be valid.
+     *
+     *  @return bool
+     */
+    bool valid();
 
+    /*------------------------------------------------
+    Data Getters
+    ------------------------------------------------*/
+    CRC16_t getCRC() const;
+    Header getHeader() const;
+    Payload getPayload() const;
+    Length getPayloadLength() const;
+    RF24::LogicalAddress getDst() const;
+    RF24::LogicalAddress getSrc() const;
+    RF24::Network::HeaderMessage getType() const;
+
+    Buffer toBuffer() const;
+    const PackedData *const getPackedData();
+
+    /*------------------------------------------------
+    Data Setters
+    ------------------------------------------------*/
     void updateCRC();
-
-    bool validateCRC();
-
-    uint8_t *getBuffer();
-
-    void commitBuffer();
-
-    HeaderHelper getHeader();
-
-    FrameLengthField getPayloadLength();
-
-    FramePayloadField getPayload();
+    void setDst( const RF24::LogicalAddress dst );
+    void setSrc( const RF24::LogicalAddress src );
+    void setType( const RF24::Network::HeaderMessage type );
 
   private:
     uint16_t calculateCRC();
 
-    bool staleData;
-    FrameBuffer mBuffer;
-    FrameData data;
+    bool mStaleData;
+    PackedData mData;
   };
-}    // namespace RF24::Network
+}    // namespace RF24::Network::Frame
 
-#endif  /* NRF24L01_NETWORK_LAYER_FRAME_HPP */
+#endif /* NRF24L01_NETWORK_LAYER_FRAME_HPP */

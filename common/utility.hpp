@@ -17,6 +17,7 @@
 
 /* RF24 Includes */
 #include <RF24Node/common/types.hpp>
+#include <RF24Node/hardware/types.hpp>
 
 namespace RF24
 {
@@ -38,9 +39,9 @@ namespace RF24
 
   /**
    *	Checks if the address is valid from the perspective of the question:
-   *	"Can this node exist on the network?". This includes root nodes as 
+   *	"Can this node exist on the network?". This includes root nodes as
    *	well as parent/child nodes.
-   *	
+   *
    *	@note   See isAddressChild() and isAddressRoot() for more specific implementations
    *
    *	@param[in]	address     The address to be checked
@@ -86,7 +87,7 @@ namespace RF24
 
   /**
    *	Gets the tree structure level associated with the given address
-   *	
+   *
    *	@warning  This function assumes the address is valid
    *
    *	@param[in]	address
@@ -96,13 +97,12 @@ namespace RF24
 
   /**
    *	Parses a node address to return which ID it is registered as at a given level
-   *	
+   *
    *	@param[in]	address
    *	@param[in]	level
    *	@return RF24::LogicalID
    */
-   constexpr LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level );
-
+  constexpr LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level );
 }    // namespace RF24
 
 #endif /* !RF24_NODE_COMMON_UTILITY_HPP */

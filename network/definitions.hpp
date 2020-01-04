@@ -157,16 +157,22 @@ Debug Options
    */
   enum HeaderMessage : uint8_t
   {
-    MSG_MIN_USER_DEFINED_HEADER_TYPE = 0,
+    /**
+     *  Transmits the frame normally using standard routing protocols.
+     */
+    MSG_TX_NORMAL = 0,
 
-    MSG_TX_NORMAL                   = 0,
-    MSG_TX_ROUTED                   = 1,
+    /**
+     *  Transmits the frame using a direct transfer. The source and destination nodes
+     *  must have a parent/child relationship to each other, else this kind of message
+     *  will fail.
+     */
+    MSG_TX_DIRECT = 1,
 
-    MSG_USER_MIN_NO_ACK = MSG_TX_ROUTED,
-
-    MSG_USER_TX_TO_PHYSICAL_ADDRESS = 2,
-    MSG_USER_TX_TO_LOGICAL_ADDRESS  = 3,
-    MSG_USER_TX_MULTICAST           = 4,
+    /**
+     *  Transmits the frame using multicast first, then routes normally after that.
+     */
+    MSG_TX_MULTICAST = 2,
 
 
 
@@ -287,6 +293,14 @@ Debug Options
      *   Use the current channel when setting up the network
      */
     MSG_USE_CURRENT_CHANNEL = 255
+  };
+
+
+  enum RoutingStyle : uint8_t
+  {
+    ROUTE_NORMALLY  = HeaderMessage::MSG_TX_NORMAL,
+    ROUTE_DIRECT    = HeaderMessage::MSG_TX_DIRECT,
+    ROUTE_MULTICAST = HeaderMessage::MSG_TX_MULTICAST
   };
 
   /**

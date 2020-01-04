@@ -18,7 +18,7 @@
 
 /* Driver Includes */
 #include <RF24Node/network/definitions.hpp>
-#include <RF24Node/network/frame/frame_definitions.hpp>
+#include <RF24Node/network/frame/definitions.hpp>
 
 namespace RF24::Network
 {
@@ -33,25 +33,25 @@ namespace RF24::Network
     };
 #pragma pack( pop )
 
-  /**
-   *   Payload that can be used to track the path of a message through the network.
-   *   In total there can be three hops + the original node id which when combined build up
-   *   the full network tree path that was taken.
-   *
-   *   This is mostly useful for nodes that are just joining the network and do not have a
-   *   fully defined network address. The message could be coming from anywhere and the master
-   *   needs to know where to respond.
-   */
-  class Path
-  {
-  public:
-    Path( std::array<uint8_t, MAX_FRAME_PAYLOAD_SIZE> messagePath );
+  ///**
+  // *   Payload that can be used to track the path of a message through the network.
+  // *   In total there can be three hops + the original node id which when combined build up
+  // *   the full network tree path that was taken.
+  // *
+  // *   This is mostly useful for nodes that are just joining the network and do not have a
+  // *   fully defined network address. The message could be coming from anywhere and the master
+  // *   needs to know where to respond.
+  // */
+  //class Path
+  //{
+  //public:
+  //  Path( std::array<uint8_t, Frame::MAX_FRAME_PAYLOAD_SIZE> messagePath );
 
-    void process();
+  //  void process();
 
-    MessagePath msgPath;
-    NodeLevel networkLevel = NodeLevel::LEVEL0;
-  };
+  //  MessagePath msgPath;
+  //  NodeLevel networkLevel = NodeLevel::LEVEL0;
+  //};
 }
 
 #endif  /* NRF24L01_NETWORK_LAYER_PATH_HPP */

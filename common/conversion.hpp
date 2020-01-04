@@ -73,7 +73,7 @@ namespace RF24::Physical::Conversion
    *   @param[in]  pipe        The pipe number on the given nodeID
    *   @return The address assigned to that node's pipe
    */
-  uint64_t getPipeAddress( const LogicalAddress nodeID, const Hardware::PipeNumber_t pipeNum );
+  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber_t pipeNum );
 
   
   /**

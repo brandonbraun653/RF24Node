@@ -187,6 +187,10 @@ namespace RF24::Physical
 
   Chimera::Status_t SimulatorDriver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
   {
+
+    Oy vey....need to actually implement this function!!!!!!
+    Also a write function for the Shockburst thing.
+
     return Chimera::Status_t();
   }
 

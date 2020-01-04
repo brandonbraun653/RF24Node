@@ -17,7 +17,10 @@
 #include <uLog/sinks/sink_cout.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/common/conversion.hpp>
+#include <RF24Node/common/utility.hpp>
 #include <RF24Node/endpoint/endpoint.hpp>
+#include <RF24Node/hardware/types.hpp>
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/network/queue/queue.hpp>
 #include <RF24Node/physical/physical.hpp>
@@ -41,13 +44,12 @@ namespace RF24
     Initialize class vars
     ------------------------------------------------*/
     memset( &mConfig, 0, sizeof( EndpointConfig ) );
-    mNetMode = Network::Mode::NET_MODE_INVALID;
 
     /*------------------------------------------------
     Initialize class composite objects
     ------------------------------------------------*/
     logger = nullptr;
-    network = std::make_unique<Network::Driver>();
+    network = std::make_unique<Network::Driver>( this );
     
 #if defined( RF24_SIMULATOR )
     physical = std::make_shared<Physical::SimulatorDriver>();
@@ -88,46 +90,18 @@ namespace RF24
     {
       return Chimera::CommonStatusCodes::NOT_INITIALIZED;
     }
-
-    /*------------------------------------------------
-    Initialize the hardware layer
-    ------------------------------------------------*/
-    mConfig = cfg;
-
-#if !defined( RF24_SIMULATOR )
-#error Need initialization of the hardware layer
-#endif 
-
-    /*------------------------------------------------
-    Initialize the physical layer
-    ------------------------------------------------*/
-    configResult |= physical->initialize( cfg.physical );
-
-    /*------------------------------------------------
-    Initialize the network layer
-    ------------------------------------------------*/
-    mNetMode = mConfig.network.mode;
-
-    network->setNetworkingMode( mNetMode );
-
-    configResult |= setNetworkingMode( mNetMode );
-    configResult |= network->attachPhysicalDriver( physical );
-
-    /* Queues must be attached before startup */
-    configResult |= network->initRXQueue( cfg.network.rxQueueBuffer, cfg.network.rxQueueSize );
-    configResult |= network->initTXQueue( cfg.network.txQueueBuffer, cfg.network.txQueueSize );
-
-    /* Start up with the given settings and start listening */
-    configResult |= network->begin( cfg.physical.rfChannel, cfg.network.nodeStaticAddress, cfg.physical.dataRate,
-                                    cfg.physical.powerAmplitude );
-
-    /*------------------------------------------------
-    Initialize the mesh network layer
-    ------------------------------------------------*/
-    if ( cfg.network.mode == Network::Mode::NET_MODE_MESH )
+    else
     {
-      logger->flog( uLog::Level::LVL_ERROR, "ERR: Configured as mesh, but currently not supported\n" );
+      mConfig = cfg;
     }
+
+    /*------------------------------------------------
+    Initialize the various layers
+    ------------------------------------------------*/
+    configResult |= initHardwareLayer();
+    configResult |= initPhysicalLayer();
+    configResult |= initNetworkLayer();
+    configResult |= initMeshLayer();
 
     return configResult;
   }
@@ -179,7 +153,7 @@ namespace RF24
     if other nodes have to pass messages around before arriving at the DCHP
     server, allocate a new network address, and then send a response back.
     ------------------------------------------------*/
-    switch ( mNetMode )
+    switch ( mConfig.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
         return makeStaticConnection( timeout );
@@ -251,14 +225,111 @@ namespace RF24
     return size_t();
   }
 
-  EndpointStatus Endpoint::getEndpointStatus()
+  EndpointStatus Endpoint::getStatus()
   {
     return EndpointStatus();
+  }
+
+  EndpointConfig &Endpoint::getConfig()
+  {
+    return mConfig;
+  }
+
+  LogicalAddress Endpoint::getLogicalAddress()
+  {
+    return mCurrentAddress;
   }
 
   Chimera::Status_t Endpoint::isConnected()
   {
     return Chimera::Status_t();
+  }
+
+  Chimera::Status_t Endpoint::initHardwareLayer()
+  {
+#if !defined( RF24_SIMULATOR )
+#error Need initialization of the hardware layer
+#endif
+    return Chimera::CommonStatusCodes::OK;
+  }
+
+  Chimera::Status_t Endpoint::initPhysicalLayer()
+  {
+    using namespace Physical::Conversion;
+
+    Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
+    auto nodeAddress               = mConfig.network.nodeStaticAddress;
+
+    /*------------------------------------------------
+    Turn on the radio. By default, this wipes all pre-existing settings.
+    ------------------------------------------------*/
+    if ( physical->initialize( mConfig.physical ) != Chimera::CommonStatusCodes::OK )
+    {
+      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_ERROR, "ERR: Phy failed init\n" ); );
+      return Chimera::CommonStatusCodes::FAIL;
+    }
+
+    /*------------------------------------------------
+    Reconfigure the radio's base settings
+    ------------------------------------------------*/
+    configResult |= physical->setChannel( mConfig.physical.rfChannel );
+    configResult |= physical->setPALevel( mConfig.physical.powerAmplitude );
+    configResult |= physical->setDataRate( mConfig.physical.dataRate );
+    configResult |= physical->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
+    configResult |= physical->toggleDynamicPayloads( true );
+    configResult |= physical->setStaticPayloadSize( RF24::Hardware::MAX_PAYLOAD_WIDTH );
+
+    /*------------------------------------------------
+    Open all pipes in listening mode
+    ------------------------------------------------*/
+    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\n", Chimera::millis() ); );
+
+    for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
+    {
+      auto pipe = static_cast<Hardware::PipeNumber_t>( i );
+      auto addr = getPhysicalAddress( nodeAddress, pipe );
+
+      configResult |= physical->openReadPipe( pipe, addr, true );
+
+      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has IP[%s] and Port[%d]\n",
+                                     Chimera::millis(), pipe, nodeAddress, decodeIP( addr ).c_str(), decodePort( addr ) ); );
+    }
+
+    /*------------------------------------------------
+    Instruct the radio to begin listening now that pipes are configured
+    ------------------------------------------------*/
+    configResult |= physical->startListening();
+    return configResult;
+  }
+
+  Chimera::Status_t Endpoint::initNetworkLayer()
+  {
+    Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
+
+    /*------------------------------------------------
+    Queues must be attached before startup
+    ------------------------------------------------*/
+    configResult |= network->initRXQueue( mConfig.network.rxQueueBuffer, mConfig.network.rxQueueSize );
+    configResult |= network->initTXQueue( mConfig.network.txQueueBuffer, mConfig.network.txQueueSize );
+
+    /*------------------------------------------------
+    Bring up the network layer
+    ------------------------------------------------*/
+    configResult |= setNetworkingMode( mConfig.network.mode );
+    configResult |= network->attachPhysicalDriver( physical );
+    configResult |= network->initialize();
+
+    return configResult;
+  }
+
+  Chimera::Status_t Endpoint::initMeshLayer()
+  {
+    if ( mConfig.network.mode == Network::Mode::NET_MODE_MESH )
+    {
+      logger->flog( uLog::Level::LVL_ERROR, "ERR: Configured as mesh, but currently not supported\n" );
+    }
+
+    return Chimera::CommonStatusCodes::OK;
   }
 
 }    // namespace RF24

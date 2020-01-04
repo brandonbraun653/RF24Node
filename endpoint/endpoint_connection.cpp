@@ -16,7 +16,6 @@
 /* RF24 Includes */
 #include <RF24Node/common/utility.hpp>
 #include <RF24Node/endpoint/endpoint.hpp>
-#include <RF24Node/network/header/header.hpp>
 
 namespace RF24
 {
@@ -44,8 +43,6 @@ namespace RF24
     CONNECT_EXIT_LOOP
   };
 
-  static Static selectNextStateFromAck( const Static current, const Static last, bool ack);
-
   /**
    *  State machine for making a static (direct) connection to a node
    *  
@@ -69,14 +66,14 @@ namespace RF24
     Static currentState   = Static::CONNECT_BEGIN;
     Static lastState      = currentState;
     bool packetValidity   = false;
-    Network::HeaderHelper header;
+    Network::Frame::FrameType frame;
 
     while ( currentState != Static::CONNECT_EXIT_LOOP )
     {
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      network->update();
+      network->updateRX();
       // The network layer might need to disable certain kinds of communication until it knows we are connected...
       // perhaps use "services" to describe this? Bit field....forward to parent, consume, DHCP, etc.
 
@@ -104,12 +101,11 @@ namespace RF24
           break;
 
         case Static::CONNECT_REQUEST:
+          frame.setDst( mConfig.network.parentStaticAddress );
+          frame.setSrc( mConfig.network.nodeStaticAddress );
+          frame.setType( Network::MSG_NET_REQUEST_BIND );
 
-          header.setDestinationNode( mConfig.network.parentStaticAddress );
-          header.setSourceNode( mConfig.network.nodeStaticAddress );
-          header.setType( Network::MSG_NET_REQUEST_BIND );
-
-          network->write( header, nullptr, 0 );
+          network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
 
           break;
 
@@ -117,12 +113,13 @@ namespace RF24
           
           if ( network->available() )
           {
-            network->peek( header, nullptr, 0 );
-            if ( ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
-                 ( header.getSourceNode() == mConfig.network.parentStaticAddress ) )
-            {
-              currentState = Static::CONNECT_RESPONSE;
-            }
+            network->peek( frame );
+
+            //if ( ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
+            //     ( header.getSourceNode() == mConfig.network.parentStaticAddress ) )
+            //{
+            //  currentState = Static::CONNECT_RESPONSE;
+            //}
           }
 
           break;
@@ -131,16 +128,16 @@ namespace RF24
         Check the response from the parent node to see if we connected
         ------------------------------------------------*/
         case Static::CONNECT_RESPONSE:
-          packetValidity = network->read( header, nullptr, 0 );
+          packetValidity = network->read( frame );
 
-          if ( packetValidity && ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
-          {
-            currentState = Static::CONNECT_SUCCESS;
-          }
-          else
-          {
-            currentState = Static::CONNECT_TERMINATE;
-          }
+          //if ( packetValidity && ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
+          //{
+          //  currentState = Static::CONNECT_SUCCESS;
+          //}
+          //else
+          //{
+          //  currentState = Static::CONNECT_TERMINATE;
+          //}
           break;
 
         /*------------------------------------------------

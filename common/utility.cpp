@@ -257,5 +257,4 @@ namespace RF24
 
     return actLevel;
   }
-
 }

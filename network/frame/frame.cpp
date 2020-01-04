@@ -3,7 +3,7 @@
  *    frame.cpp
  *
  *   Description:
- *
+ *    Implements the frame interface
  *
  *   2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
@@ -14,113 +14,167 @@
 /* CRC Includes */
 #include "CRC.h"
 
-/* Driver Includes */
+/* RF24 Includes */
 #include <RF24Node/network/frame/frame.hpp>
-#include <RF24Node/network/frame/frame_definitions.hpp>
-#include <RF24Node/network/frame/frame_types.hpp>
+#include <RF24Node/network/frame/definitions.hpp>
+#include <RF24Node/network/frame/types.hpp>
 
-namespace RF24::Network
+namespace RF24::Network::Frame
 {
-  FrameHelper::FrameHelper( const FrameHeaderField &header, const FrameLengthField &msgLen, const void *const message ) : staleData( true )
+  FrameType::FrameType() : mStaleData( true )
   {
-    memcpy( &data.header, &header, sizeof( FrameHeaderField ) );
-    memcpy( &data.messageLength, &msgLen, sizeof( FrameLengthField ) );
-
-    memset( data.message.data(), 0, data.message.size() );
-    memcpy( data.message.data(), message, msgLen );
+    memset( &mData, 0, sizeof( PackedData ) );
   }
 
-  FrameHelper::FrameHelper( const FrameBuffer &buffer ) : staleData( true )
+  FrameType::FrameType( const FrameType &frame ) : mStaleData( true )
   {
-    memcpy( &data.header, buffer.data() + FRAME_HEADER_OFFSET, sizeof( FrameHeaderField ) );
-    memcpy( &data.messageLength, buffer.data() + FRAME_MSG_LEN_OFFSET, sizeof( data.messageLength ) );
-    memcpy( data.message.data(), buffer.data() + FRAME_MESSAGE_OFFSET, sizeof( FramePayloadField ) );
+    memcpy( &mData, &frame.mData, sizeof( PackedData ) );
   }
 
-  FrameHelper::FrameHelper() : staleData( true )
+  FrameType::FrameType( const Buffer &buffer ) : mStaleData( true )
   {
-
-    data.messageLength = 0u;
-    data.message.fill( 0u );
+    memcpy( &mData, buffer.data(), sizeof( PackedData ) );
   }
 
-  FrameHelper::~FrameHelper(){};
-
-  void FrameHelper::operator()( const FrameBuffer &buffer )
+  FrameType::FrameType( const PackedData &rawFrame ) : mStaleData( true )
   {
-    staleData = true;
-
-    memcpy( &data.header, buffer.data() + FRAME_HEADER_OFFSET, sizeof( FrameHeaderField ) );
-    memcpy( &data.messageLength, buffer.data() + FRAME_MSG_LEN_OFFSET, sizeof( data.messageLength ) );
-    memcpy( data.message.data(), buffer.data() + FRAME_MESSAGE_OFFSET, sizeof( FramePayloadField ) );
+    memcpy( &mData, &rawFrame, sizeof( PackedData ) );
   }
 
-  void FrameHelper::clear()
-  {
-    staleData = true;
+  FrameType::~FrameType(){};
 
-    memset( &data, 0, sizeof( data ) );
+  void FrameType::operator=( const Buffer &buffer )
+  {
+    mStaleData = true;
+    memcpy( &mData, buffer.data(), sizeof( PackedData ) );
   }
 
-  void FrameHelper::build( const FrameHeaderField &header, const FrameLengthField &msgLen, const void *const message )
+  void FrameType::operator=( const FrameType &frame )
   {
-    staleData = true;
-
-    /* Header Field */
-    memcpy( &data.header, &header, sizeof( FrameHeaderField ) );
-
-    /* Length Field */
-    memcpy( &data.messageLength, &msgLen, sizeof( FrameLengthField ) );
-
-    /* Message Field */
-    memset( data.message.data(), 0, data.message.size() );
-    memcpy( data.message.data(), message, msgLen );
+    mStaleData = true;
+    memcpy( &mData, &frame.mData, sizeof( PackedData ) );
   }
 
-  void FrameHelper::updateCRC()
+  void FrameType::operator=( const PackedData &rawFrame )
   {
-    if ( staleData )
+    mStaleData = true;
+    memcpy( &mData, &rawFrame, sizeof( PackedData ) );
+  }
+
+  bool FrameType::operator==( const FrameType &rhs )
+  {
+    return ( this->getCRC() == rhs.getCRC() );
+  }
+
+  void FrameType::clear()
+  {
+    mStaleData = true;
+    memset( &mData, 0, sizeof( mData ) );
+  }
+
+  bool FrameType::valid()
+  {
+    return ( ( mData.crc - calculateCRC() ) == 0 );
+  }
+
+  /*------------------------------------------------
+  Data Getters
+  ------------------------------------------------*/
+  CRC16_t FrameType::getCRC() const
+  {
+    CRC16_t temp;
+    memcpy( &temp, &mData + CRC_OFFSET, sizeof( PackedData::crc ) );
+    return temp;
+  }
+
+  Header FrameType::getHeader() const
+  {
+    Header temp;
+    memcpy( &temp, &mData + HEADER_OFFSET, sizeof( PackedData::header ) );
+    return temp;
+  }
+
+  Length FrameType::getPayloadLength() const
+  {
+    Length temp;
+    memcpy( &temp, &mData + MSG_LEN_OFFSET, sizeof( PackedData::length ) );
+    return temp;
+  }
+
+  Payload FrameType::getPayload() const
+  {
+    Payload temp;
+    memcpy( &temp, &mData + PAYLOAD_OFFSET, sizeof( PackedData::payload ) );
+    return temp;
+  }
+
+  RF24::LogicalAddress FrameType::getDst() const
+  {
+    RF24::LogicalAddress temp;
+    memcpy( &temp, &mData.header.dstNode, sizeof( PackedHeader::dstNode ) );
+    return temp;
+  }
+
+  RF24::LogicalAddress FrameType::getSrc() const
+  {
+    RF24::LogicalAddress temp;
+    memcpy( &temp, &mData.header.srcNode, sizeof( PackedHeader::srcNode ) );
+    return temp;
+  }
+
+  RF24::Network::HeaderMessage FrameType::getType() const
+  {
+    RF24::Network::HeaderMessage temp;
+    memcpy( &temp, &mData.header.type, sizeof( PackedHeader::type ) );
+    return temp;
+  }
+
+  /*------------------------------------------------
+  Data Setters
+  ------------------------------------------------*/
+  void FrameType::updateCRC()
+  {
+    if ( mStaleData )
     {
-      data.crc = calculateCRC();
-      staleData = false;
+      mData.crc  = calculateCRC();
+      mStaleData = false;
     }
   }
 
-  uint8_t *FrameHelper::getBuffer()
+  void FrameType::setDst( const RF24::LogicalAddress dst )
   {
-    return mBuffer.data();
+    memcpy( &mData.header.dstNode, &dst, sizeof( RF24::LogicalAddress ) );
   }
 
-  bool FrameHelper::validateCRC()
+  void FrameType::setSrc( const RF24::LogicalAddress src )
   {
-    return ( ( data.crc - calculateCRC() ) == 0 );
+    memcpy( &mData.header.srcNode, &src, sizeof( RF24::LogicalAddress ) );
   }
 
-  uint16_t FrameHelper::calculateCRC()
+  void FrameType::setType( const RF24::Network::HeaderMessage type )
   {
-    return CRC::Calculate( &data.header, ( sizeof( FrameData ) - sizeof( FrameData::crc ) ), CRC::CRC_16_ARC() );
+    memcpy( &mData.header.type, &type, sizeof( RF24::Network::HeaderMessage ) );
   }
 
-  void FrameHelper::commitBuffer()
+  /*------------------------------------------------
+  Private Functions
+  ------------------------------------------------*/
+  uint16_t FrameType::calculateCRC()
   {
-    staleData = true;
-    memcpy( &data, mBuffer.data(), mBuffer.size() );
+    static_assert( sizeof( PackedData::crc ) == sizeof( uint16_t ), "Invalid CRC field length" );
+    return CRC::Calculate( &mData.header, ( sizeof( PackedData ) - sizeof( PackedData::crc ) ), CRC::CRC_16_ARC() );
   }
 
-  HeaderHelper FrameHelper::getHeader()
+  Buffer FrameType::toBuffer() const
   {
-    return HeaderHelper( data.header );
+    Buffer tmp;
+    memcpy( tmp.data(), &mData, sizeof( PackedData ) );
+    return tmp;
   }
 
-  FrameLengthField FrameHelper::getPayloadLength()
+  const RF24::Network::Frame::PackedData *const FrameType::getPackedData()
   {
-    return data.messageLength;
+    return &mData;
   }
 
-  FramePayloadField FrameHelper::getPayload()
-  {
-    /* Yes, the copy is intentional */
-    return data.message;
-  }
-
-}    // namespace RF24::Network
+}    // namespace RF24::Network::Frame

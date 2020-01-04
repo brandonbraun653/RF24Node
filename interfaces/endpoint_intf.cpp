@@ -114,7 +114,7 @@ size_t EP_nextPacketLength( RF24::EndpointInterface *obj )
 
 RF24::EndpointStatus EP_getEndpointStatus( RF24::EndpointInterface *obj )
 {
-  return obj->getEndpointStatus();
+  return obj->getStatus();
 }
 
 Chimera::Status_t EP_isConnected( RF24::EndpointInterface *obj )
