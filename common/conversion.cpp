@@ -64,7 +64,7 @@ namespace RF24::Physical::Conversion
     RF24::Physical::Shockburst::Packet packet;
     memcpy( &packet, pkt.data(), sizeof( RF24::Physical::Shockburst::Packet ) );
 
-    return decodeIP( packet.address );
+    return decodeIP( packet.data.address );
   }
 
   uint16_t decodePort( const uint64_t &address )
@@ -81,10 +81,10 @@ namespace RF24::Physical::Conversion
     RF24::Physical::Shockburst::Packet packet;
     memcpy( &packet, pkt.data(), sizeof( RF24::Physical::Shockburst::Packet ) );
 
-    return decodePort( packet.address );
+    return decodePort( packet.data.address );
   }
 
-  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber_t pipeNum )
+  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum )
   {
     /*------------------------------------------------
     The ports have to be unique across all nodeIDs, so 
@@ -100,7 +100,7 @@ namespace RF24::Physical::Conversion
 
   #else  /* !RF24_SIMULATOR */
 
-  PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber_t pipeNum )
+  PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber pipeNum )
   {
   /*------------------------------------------------
     These bytes take on many uses. They can represent pipe numbers, device numbers,

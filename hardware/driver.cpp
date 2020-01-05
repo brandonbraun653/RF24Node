@@ -320,7 +320,7 @@ namespace RF24::Hardware
     }
   }
 
-  void Driver::toggleAutoAck( const bool state, const PipeNumber_t pipe )
+  void Driver::toggleAutoAck( const bool state, const PipeNumber pipe )
   {
     if ( ( pipe == PIPE_NUM_ALL ) && state )
     {
@@ -508,7 +508,7 @@ namespace RF24::Hardware
     return status;
   }
 
-  Chimera::Status_t Driver::writeAckPayload( const PipeNumber_t pipe, const void *const buffer, const size_t len )
+  Chimera::Status_t Driver::writeAckPayload( const PipeNumber pipe, const void *const buffer, const size_t len )
   {
     // TODO: Magic numbers abound in this function. Get rid of them.
     size_t size = std::min( len, static_cast<size_t>( 32 ) ) + 1u;

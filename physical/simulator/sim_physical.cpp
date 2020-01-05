@@ -8,9 +8,20 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+/* Chimera Includes */
+#include <Chimera/chimera.hpp>
+#include <Chimera/threading.hpp>
+
+/* Logger Includes */
+#include <uLog/types.hpp>
+#include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_intf.hpp>
+
 /* RF24 Includes */
 #include <RF24Node/physical/simulator/sim_physical.hpp>
 #include <RF24Node/hardware/register.hpp>
+#include <RF24Node/physical/simulator/shockburst.hpp>
+#include <RF24Node/network/frame/frame.hpp>
 
 namespace RF24::Physical
 {
@@ -23,6 +34,8 @@ namespace RF24::Physical
 
     mDataRate = Hardware::DR_1MBPS;
     mPALevel  = Hardware::PA_LOW;
+
+    logger = uLog::getRootSink();
   }
 
   SimulatorDriver::~SimulatorDriver()
@@ -36,8 +49,14 @@ namespace RF24::Physical
     ------------------------------------------------*/
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
-      mDataPipes[ x ] = std::make_unique<Shockburst::DataPipe>( static_cast<RF24::Hardware::PipeNumber_t>( x ), ioService );
+      mDataPipes[ x ] = std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService );
     }
+
+    /*------------------------------------------------
+    Start the thread that mimics hardware processing of
+    the pipe TX/RX FIFO queues.
+    ------------------------------------------------*/
+    FIFOProcessingThread = std::thread( &SimulatorDriver::QueueHandler, this );
 
     flagInitialized = true;
     return Chimera::CommonStatusCodes::OK;
@@ -59,7 +78,7 @@ namespace RF24::Physical
   Chimera::Status_t SimulatorDriver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
                                                  const bool validate )
   {
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->setRetryDelay( delay );
       mDataPipes[ x ]->setRetryLimit( count );
@@ -70,13 +89,13 @@ namespace RF24::Physical
   Chimera::Status_t SimulatorDriver::setChannel( const size_t channel, const bool validate )
   {
     /*------------------------------------------------
-    For our purposes, the channel is the IP address of the 
+    For our purposes, the channel is the IP address of the
     pipes. Given that this is fixed to local-host, there is nothing
     to do here. Left as a variable so minimal code changes
     will be needed later should I switch this up.
     ------------------------------------------------*/
     IPAddress = "127.0.0.1";
-    mChannel = channel;
+    mChannel  = channel;
     return Chimera::CommonStatusCodes::OK;
   }
 
@@ -98,7 +117,7 @@ namespace RF24::Physical
 
   size_t SimulatorDriver::getDynamicPayloadSize()
   {
-    //Will likely have to peek the RX queue
+    // Will likely have to peek the RX queue
     return 0;
   }
 
@@ -108,7 +127,7 @@ namespace RF24::Physical
     In hardware, this is done by toggling a physical pin
     and setting a few register bits.
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->startListening();
     }
@@ -119,18 +138,18 @@ namespace RF24::Physical
   Chimera::Status_t SimulatorDriver::stopListening()
   {
     /*------------------------------------------------
-    In hardware, this is done by toggling a physical pin that 
+    In hardware, this is done by toggling a physical pin that
     places the chip in a standby mode. We don't have that in
     software, so simply tell the pipes to plug their ears.
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->stopListening();
     }
 
     return Chimera::CommonStatusCodes::OK;
   }
-   
+
   Chimera::Status_t SimulatorDriver::pauseListening()
   {
     return stopListening();
@@ -141,7 +160,7 @@ namespace RF24::Physical
     return startListening();
   }
 
-  Chimera::Status_t SimulatorDriver::openWritePipe( const uint64_t address )
+  Chimera::Status_t SimulatorDriver::openWritePipe( const RF24::PhysicalAddress address )
   {
     return ( mDataPipes[ 0 ]->openWritePipe( address ) ? Chimera::CommonStatusCodes::OK : Chimera::CommonStatusCodes::FAIL );
   }
@@ -151,47 +170,80 @@ namespace RF24::Physical
     return ( mDataPipes[ 0 ]->closeWritePipe() ? Chimera::CommonStatusCodes::OK : Chimera::CommonStatusCodes::FAIL );
   }
 
-  Chimera::Status_t SimulatorDriver::openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+  Chimera::Status_t SimulatorDriver::openReadPipe( const RF24::Hardware::PipeNumber pipe, const RF24::PhysicalAddress address,
                                                    const bool validate )
   {
     return ( mDataPipes[ pipe ]->openReadPipe( address ) ? Chimera::CommonStatusCodes::OK : Chimera::CommonStatusCodes::FAIL );
   }
 
-  Chimera::Status_t SimulatorDriver::closeReadPipe( const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t SimulatorDriver::closeReadPipe( const RF24::Hardware::PipeNumber pipe )
   {
     return ( mDataPipes[ pipe ]->closeReadPipe() ? Chimera::CommonStatusCodes::OK : Chimera::CommonStatusCodes::FAIL );
   }
 
-  RF24::Hardware::PipeNumber_t SimulatorDriver::payloadAvailable()
+  RF24::Hardware::PipeNumber SimulatorDriver::payloadAvailable()
   {
-    if ( mPendingPipeData.empty() )
+    std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+    if ( !RxFIFO.empty() )
     {
-      return Hardware::PIPE_INVALID;
+      auto elem = RxFIFO.front();
+      return elem.pipe;
     }
     else
     {
-      return mPendingPipeData.front();
+      return RF24::Hardware::PIPE_INVALID;
     }
   }
 
-  size_t SimulatorDriver::getPayloadSize( const RF24::Hardware::PipeNumber_t pipe )
+  size_t SimulatorDriver::getPayloadSize( const RF24::Hardware::PipeNumber pipe )
   {
-    //Will likely have to peek the RX queue
-    return 0;
+    std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+    if ( !RxFIFO.empty() )
+    {
+      auto elem = RxFIFO.front();
+
+      RF24::Network::Frame::FrameType tempFrame( elem.payload );
+      return tempFrame.getPayloadLength();
+    }
+    else
+    {
+      return 0;
+    }
   }
 
-  Chimera::Status_t SimulatorDriver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
+  Chimera::Status_t SimulatorDriver::readPayload( RF24::Network::Frame::Buffer &buffer, const size_t length )
   {
-    return Chimera::Status_t();
+    std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+    if ( !RxFIFO.empty() )
+    {
+      auto elem = RxFIFO.front();
+      memcpy( buffer.data(), elem.payload.data(), length );
+      return Chimera::CommonStatusCodes::OK;
+    }
+    else
+    {
+      return Chimera::CommonStatusCodes::EMPTY;
+    }
   }
 
-  Chimera::Status_t SimulatorDriver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
+  Chimera::Status_t SimulatorDriver::immediateWrite( const RF24::Network::Frame::Buffer &buffer, const size_t length )
   {
+    std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+    if ( TxFIFO.size() < RF24::Physical::Shockburst::FIFO_QUEUE_MAX_SIZE )
+    {
+      FIFOElement elem;
+      elem.pipe = RF24::Hardware::PIPE_NUM_0;
+      elem.payload = buffer;
+      elem.size = length;
 
-    Oy vey....need to actually implement this function!!!!!!
-    Also a write function for the Shockburst thing.
-
-    return Chimera::Status_t();
+      TxFIFO.push( elem );
+      return Chimera::CommonStatusCodes::OK;
+    }
+    else
+    {
+      logger->flog( uLog::Level::LVL_INFO, "%d PHY: Failed writing payload due to FIFO queue full\n", Chimera::millis() );
+      return Chimera::CommonStatusCodes::FULL;
+    }
   }
 
   Chimera::Status_t SimulatorDriver::txStandBy( const size_t timeout, const bool startTx )
@@ -199,8 +251,10 @@ namespace RF24::Physical
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t SimulatorDriver::stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len )
+  Chimera::Status_t SimulatorDriver::stageAckPayload( const RF24::Hardware::PipeNumber pipe,
+                                                      const RF24::Network::Frame::Buffer &buffer, size_t length )
   {
+    // Will need to support this directly in the pipes
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
@@ -209,7 +263,7 @@ namespace RF24::Physical
     /*------------------------------------------------
     Normally this is done with a single command in hardware
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->flushTX();
     }
@@ -223,7 +277,7 @@ namespace RF24::Physical
     /*------------------------------------------------
     Normally this is done with a single command in hardware
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->flushRX();
     }
@@ -237,7 +291,7 @@ namespace RF24::Physical
     /*------------------------------------------------
     Normally this is done with a single command in hardware
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->toggleDynamicPayloads( state );
     }
@@ -273,16 +327,78 @@ namespace RF24::Physical
     return RF24::Hardware::DataRate();
   }
 
-  Chimera::Status_t SimulatorDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t SimulatorDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe )
   {
     /*------------------------------------------------
     Normally this is done with a single command in hardware
     ------------------------------------------------*/
-    for( size_t x=0; x<mDataPipes.size(); x++ )
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->toggleAutoAck( state );
     }
 
     return Chimera::CommonStatusCodes::OK;
   }
+
+  void SimulatorDriver::QueueHandler()
+  {
+    try
+    {
+      while ( !killFlag )
+      {
+        std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+        
+        /*------------------------------------------------
+        Handle RX Payloads
+        ------------------------------------------------*/
+        for ( size_t x = 0; x < mDataPipes.size(); x++ )
+        {
+          if ( mDataPipes[ x ]->available() )
+          {
+            FIFOElement elem;
+            elem.pipe;
+            mDataPipes[ x ]->read( elem.payload );
+
+            if ( RxFIFO.size() < RF24::Physical::Shockburst::FIFO_QUEUE_MAX_SIZE )
+            {
+              RxFIFO.push( elem );
+            }
+            else
+            {
+              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full", Chimera::millis(), x );
+            }
+          }
+        }
+
+        /*------------------------------------------------
+        Handle TX Payloads
+        ------------------------------------------------*/
+        while ( !TxFIFO.empty() )
+        {
+          /*------------------------------------------------
+          We can't transmit if the user enabled listening mode
+          ------------------------------------------------*/
+          if ( mDataPipes[ 0 ]->isListening() )
+          {
+            break;
+          }
+
+          auto elem = TxFIFO.front();
+          mDataPipes[ 0 ]->write( elem.payload );
+          TxFIFO.pop();
+        }
+
+        /*------------------------------------------------
+        Make sure other threads can do work
+        ------------------------------------------------*/
+        Chimera::Threading::yield();
+        Chimera::delayMilliseconds( 5 );
+      }
+    }
+    catch ( const std::exception & )
+    {
+      //Exiting
+    }
+  }
+
 }    // namespace RF24::Physical

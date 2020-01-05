@@ -19,6 +19,8 @@
 #include <RF24Node/hardware/register.hpp>
 #include <RF24Node/physical/physical.hpp>
 
+#if !defined( RF24_SIMULATOR )
+
 namespace RF24::Physical
 {
   HardwareDriver::HardwareDriver()
@@ -380,7 +382,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t HardwareDriver::openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+  Chimera::Status_t HardwareDriver::openReadPipe( const RF24::Hardware::PipeNumber pipe, const uint64_t address,
                                                   const bool validate )
   {
     using namespace RF24::Hardware;
@@ -455,7 +457,7 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t HardwareDriver::closeReadPipe( const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t HardwareDriver::closeReadPipe( const RF24::Hardware::PipeNumber pipe )
   {
     using namespace RF24::Hardware;
 
@@ -470,11 +472,11 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
   }
 
-  RF24::Hardware::PipeNumber_t HardwareDriver::payloadAvailable()
+  RF24::Hardware::PipeNumber HardwareDriver::payloadAvailable()
   {
     using namespace RF24::Hardware;
 
-    PipeNumber_t pipeWithPayload = PIPE_NUM_MAX;
+    PipeNumber pipeWithPayload = PIPE_NUM_MAX;
 
     /*-------------------------------------------------
     Figure out which pipe has data available, as reported
@@ -482,13 +484,13 @@ namespace RF24::Physical
     -------------------------------------------------*/
     if ( !mHWDriver->rxFifoEmpty() )
     {
-      pipeWithPayload = static_cast<PipeNumber_t>( ( mHWDriver->getStatus() >> STATUS_RX_P_NO_Pos ) & STATUS_RX_P_NO_Wid );
+      pipeWithPayload = static_cast<PipeNumber>( ( mHWDriver->getStatus() >> STATUS_RX_P_NO_Pos ) & STATUS_RX_P_NO_Wid );
     }
 
     return pipeWithPayload;
   }
 
-  size_t HardwareDriver::getPayloadSize( const RF24::Hardware::PipeNumber_t pipe )
+  size_t HardwareDriver::getPayloadSize( const RF24::Hardware::PipeNumber pipe )
   {
     using namespace RF24::Hardware;
 
@@ -785,9 +787,11 @@ namespace RF24::Physical
     return mHWDriver->readRegister( reg ) & bitmask;
   }
 
-  Chimera::Status_t HardwareDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe )
+  Chimera::Status_t HardwareDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe )
   {
     mHWDriver->toggleAutoAck( state, pipe );
     return Chimera::CommonStatusCodes::OK;
   }
 }    // namespace RF24::Physical
+
+#endif /* !RF24_SIMULATOR */

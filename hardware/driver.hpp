@@ -210,7 +210,7 @@ namespace RF24::Hardware
      *   @param[in]  validate    Check if the value was set correctly
      *   @return True if success, false if not
      */
-    void toggleAutoAck( const bool state, const PipeNumber_t pipe );
+    void toggleAutoAck( const bool state, const PipeNumber pipe );
 
     void toggleAckPayloads( const bool state );
 
@@ -344,7 +344,7 @@ namespace RF24::Hardware
      */
     bool txStandBy();
 
-    Chimera::Status_t writeAckPayload( const PipeNumber_t pipe, const void *const buffer, const size_t len );
+    Chimera::Status_t writeAckPayload( const PipeNumber pipe, const void *const buffer, const size_t len );
 
     size_t getDynamicPayloadSize();
 

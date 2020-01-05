@@ -79,19 +79,17 @@ namespace RF24::Physical::Pipe
 
   private:
     void updateThread();
-
     void onAsyncTransmit( const boost::system::error_code &error, size_t bytes_transferred );
 
-    boost::asio::io_service &ioService;          /**< IoService needed to run event handling */
-    boost::asio::ip::udp::socket txSocket;       /**< UDP socket that models the TX pipe */
-    boost::thread txThread;                      /**< Event handler thread */
-    std::mutex FIFOLock;                         /**< Lock for the FIFO message queue */
-    std::queue<Shockburst::PacketBuffer> txFIFO; /**< FIFO message queue */
-    Shockburst::PacketBuffer networkBuffer;      /**< Raw buffer for outgoing messages */
-    std::atomic<bool> txEventProcessed;          /**< Flag indicating when the RX event was processed */
-    TXPipeCallback userCallback;                 /**< User callback for RX event */
+    boost::asio::io_service &mIOService;    /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket mTXSocket; /**< UDP socket that models the TX pipe */
+    boost::thread mTXThread;                /**< Event handler thread */
+    std::mutex mBufferLock;                 /**< Lock for the FIFO message queue */
+    Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for outgoing messages */
+    std::atomic<bool> mTXEventProcessed;    /**< Flag indicating when the RX event was processed */
+    TXPipeCallback mUserCallback;           /**< User callback for RX event */
 
-    uLog::SinkHandle logger;
+    uLog::SinkHandle mLogger;
   };
 
   class RX
@@ -129,6 +127,13 @@ namespace RF24::Physical::Pipe
      *  @return void
      */
     void stopListening();
+
+    /**
+     *  Checks if the pipe is currently listening
+     *  
+     *  @return bool
+     */
+    bool isListening();
 
     /**
      *  Checks if there is any data available to be read
@@ -177,17 +182,16 @@ namespace RF24::Physical::Pipe
     void onAsyncReceive( const boost::system::error_code &error, size_t bytes_transferred );
 
 
-    boost::asio::io_service &ioService;          /**< IoService needed to run event handling */
-    boost::asio::ip::udp::socket rxSocket;       /**< UDP socket that models the RX pipe */
-    boost::thread rxThread;                      /**< Event handler thread */
-    RXPipeCallback userCallback;                 /**< User callback for RX event */
-    Shockburst::PacketBuffer networkBuffer;      /**< Raw buffer for incoming messages */
-    std::atomic<bool> allowListening;            /**< Flag to enable/disable listening for messages */
-    std::atomic<bool> rxEventProcessed;          /**< Flag indicating when the RX event was processed */
-    std::mutex FIFOLock;                         /**< Lock for the FIFO message queue */
-    std::queue<Shockburst::PacketBuffer> rxFIFO; /**< FIFO message queue */
+    boost::asio::io_service &mIOService;    /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket mRXSocket; /**< UDP socket that models the RX pipe */
+    boost::thread mRXThread;                /**< Event handler thread */
+    RXPipeCallback mUserCallback;           /**< User callback for RX event */
+    Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for incoming messages */
+    std::atomic<bool> mAllowListening;      /**< Flag to enable/disable listening for messages */
+    std::atomic<bool> mRXEventProcessed;    /**< Flag indicating when the RX event was processed */
+    std::mutex mBufferLock;                 /**< Lock for the FIFO message queue */
 
-    uLog::SinkHandle logger;
+    uLog::SinkHandle mLogger;
   };
 
 }    // namespace RF24::Physical::Pipe

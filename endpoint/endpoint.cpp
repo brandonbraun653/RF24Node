@@ -286,7 +286,7 @@ namespace RF24
 
     for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
     {
-      auto pipe = static_cast<Hardware::PipeNumber_t>( i );
+      auto pipe = static_cast<Hardware::PipeNumber>( i );
       auto addr = getPhysicalAddress( nodeAddress, pipe );
 
       configResult |= physical->openReadPipe( pipe, addr, true );

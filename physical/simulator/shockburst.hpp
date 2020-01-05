@@ -3,7 +3,7 @@
  *    shockburst.hpp
  *
  *  Description:
- *    
+ *
  *
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
@@ -24,64 +24,87 @@
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
 #include <RF24Node/hardware/types.hpp>
+#include <RF24Node/network/frame/types.hpp>
 #include <RF24Node/physical/simulator/pipe.hpp>
 #include <RF24Node/physical/simulator/shockburst_types.hpp>
 
 namespace RF24::Physical::Shockburst
 {
-  
   /**
-   *  Models a physical transceiver channel on the NRF24L01. Ideally this behaves as 
+   *  Models a physical transceiver channel on the NRF24L01. Ideally this behaves as
    *  functionally close as possible to the real hardware.
    */
-  class DataPipe
+  class Socket
   {
   public:
-    DataPipe( const RF24::Hardware::PipeNumber_t pipe, boost::asio::io_service &io_service );
-    ~DataPipe();
+    Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service );
+    ~Socket();
 
     /**
      *  If this channel has a write pipe available in hardware, the tx
      *  pipe will be configured.
-     *  
+     *
      *  @param[in]  address   The address containing the IP and port configuration
      *  @return bool
      */
-    bool openWritePipe( const uint64_t address );
+    bool openWritePipe( const RF24::PhysicalAddress address );
 
-    /** 
+    /**
      *  Closes the TX pipe if available in hardware
-     *  
+     *
      *  @return bool
      */
     bool closeWritePipe();
 
-    /** 
+    /**
+     *  Writes the buffer to the previously opened pipe
+     *
+     *  @param[in]  buffer    The data to be written
+     *  @return void
+     */
+    void write( const RF24::Network::Frame::Buffer &buffer );
+
+    /**
      *  Opens the RX pipe to listen to the given address
-     *  
+     *
      *  @param[in]  address   The address containing the IP and port configuration
      *  @return bool
      */
-    bool openReadPipe( const uint64_t address );
+    bool openReadPipe( const RF24::PhysicalAddress address );
 
-    /** 
+    /**
      *  Closes the RX pipe
-     *  
+     *
      *  @return bool
      */
     bool closeReadPipe();
 
     /**
+     *	Reads some data out from the pipe
+     *
+     *	@param[in]	buffer    The buffer to be read into
+     *	@return bool
+     */
+    bool read( RF24::Network::Frame::Buffer &buffer );
+
+    /**
+     *  Checks if any data is available to be read out of the RX pipe
+     *
+     *	@return bool
+     */
+    bool available();
+
+    /**
      *  Sets the number of retries allowed for a packet TX before giving up
-     *  
+     *
      *  @param[in]  limit   The number of attempts
      *  @return void
      */
     void setRetryLimit( const size_t limit );
 
     /**
-     *  Sets the delay between retries (in uS) 
-     *  
+     *  Sets the delay between retries (in uS)
+     *
      *  @param[in]  delay   The delay in microseconds
      *  @return void
      */
@@ -89,24 +112,48 @@ namespace RF24::Physical::Shockburst
 
     /**
      *  Enables the receiver to listen to incoming data
-     *  
+     *
      *  @return void
      */
     void startListening();
 
     /**
      *  Disables the receiver from listening to incoming data
-     *  
+     *
      *  @return void
      */
     void stopListening();
 
+    bool isListening();
+
+    /**
+     *  Flushes the TX pipe
+     *
+     *	@return void
+     */
     void flushTX();
 
+    /**
+     *  Flushes the RX pipe
+     *
+     *	@return void
+     */
     void flushRX();
 
+    /**
+     *  Enables/disables the dynamic payload functionality
+     *
+     *	@param[in]	state   Enable/disable
+     *	@return void
+     */
     void toggleDynamicPayloads( const bool state );
 
+    /**
+     *  Enables/disables the auto-acknowledgment functionality
+     *
+     *	@param[in]	state   Enable/disable
+     *	@return void
+     */
     void toggleAutoAck( const bool state );
 
   private:
@@ -115,18 +162,18 @@ namespace RF24::Physical::Shockburst
     bool mHasUserTxPipe; /**< Does this channel allow the user to write to the TX pipe? */
     bool mUseDynamicPayloads;
     bool mUseAutoAcknowledge;
-    size_t mRetryLimit;  /**< Max number of retries before quitting TX */
-    size_t mRetryDelay;  /**< Microsecond delay between TX retries */
+    size_t mRetryLimit; /**< Max number of retries before quitting TX */
+    size_t mRetryDelay; /**< Microsecond delay between TX retries */
 
     Pipe::RX rxPipe;
     Pipe::TX txPipe;
 
-    uint64_t cachedTXAddress;
-    const RF24::Hardware::PipeNumber_t pipeID;
+    RF24::PhysicalAddress cachedTXAddress;
+    const RF24::Hardware::PipeNumber pipeID;
   };
 
-  using DataPipe_sPtr = std::shared_ptr<DataPipe>;
-  using DataPipe_uPtr = std::unique_ptr<DataPipe>;
-}
+  using DataPipe_sPtr = std::shared_ptr<Socket>;
+  using DataPipe_uPtr = std::unique_ptr<Socket>;
+}    // namespace RF24::Physical::Shockburst
 
 #endif /* !RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_HPP */

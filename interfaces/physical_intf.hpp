@@ -22,6 +22,7 @@
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/common/types.hpp>
 #include <RF24Node/physical/types.hpp>
+#include <RF24Node/network/frame/types.hpp>
 
 
 namespace RF24::Physical
@@ -148,7 +149,7 @@ namespace RF24::Physical
      *   @param[in]  address     The address for pipe 0 to write to
      *   @return Chimera::Status_t
      */
-    virtual Chimera::Status_t openWritePipe( const uint64_t address ) = 0;
+    virtual Chimera::Status_t openWritePipe( const PhysicalAddress address ) = 0;
 
     /**
      *  Closes pipe 0 for writing. Can be safely called without previously calling open.
@@ -182,7 +183,7 @@ namespace RF24::Physical
      *   @param[in]  validate    Optionally validate the address was set properly
      *   @return Chimera::Status_t
      */
-    virtual Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+    virtual Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber pipe, const PhysicalAddress address,
                                             const bool validate = false ) = 0;
 
     /**
@@ -192,7 +193,7 @@ namespace RF24::Physical
      *  @param[in]  pipe    Which pipe number to close, 0-5.
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber_t pipe ) = 0;
+    virtual Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber pipe ) = 0;
 
     /**
      *  Check if data is available to be read on any pipe. If so, returns a bitfield that indicates
@@ -200,7 +201,7 @@ namespace RF24::Physical
      *
      *  @return RF24::Hardware::PipeNum_t
      */
-    virtual RF24::Hardware::PipeNumber_t payloadAvailable() = 0;
+    virtual RF24::Hardware::PipeNumber payloadAvailable() = 0;
 
     /**
      *  Checks how many bytes are available in the RX payload for the given pipe
@@ -211,7 +212,7 @@ namespace RF24::Physical
      *  @param[in]  pipe    The pipe to check
      *  @return size_t      The number of bytes in the pipe's payload buffer
      */
-    virtual size_t getPayloadSize( const RF24::Hardware::PipeNumber_t pipe ) = 0;
+    virtual size_t getPayloadSize( const RF24::Hardware::PipeNumber pipe ) = 0;
 
     /**
      *  Read the available payload into a buffer
@@ -223,11 +224,11 @@ namespace RF24::Physical
      *  @see    getPayloadSize()
      *
      *  @param[out] buffer      Pointer to a buffer where the data should be written
-     *  @param[in]  len         Maximum number of bytes to read into the buffer
+     *  @param[in]  length      Maximum number of bytes to read into the buffer
      *
      *  @return void
      */
-    virtual Chimera::Status_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength ) = 0;
+    virtual Chimera::Status_t readPayload( RF24::Network::Frame::Buffer &buffer, const size_t length ) = 0;
 
     /**
      *  Immediately writes data to pipe 0 under the assumption that the hardware has already
@@ -240,11 +241,10 @@ namespace RF24::Physical
      *    3. stopListening() [Pipe 0 only]
      *
      *   @param[in]  buffer          Array of data to be sent
-     *   @param[in]  len             Number of bytes to be sent
-     *   @param[in]  multicast       If true, disables Auto-Acknowledgment feature for just this packet
+     *   @param[in]  length          Number of bytes to be sent from the buffer
      *   @return True if the payload was delivered successfully false if not
      */
-    virtual Chimera::Status_t immediateWrite( const void *const buffer, const size_t len, const bool multicast = false ) = 0;
+    virtual Chimera::Status_t immediateWrite( const RF24::Network::Frame::Buffer &buffer, const size_t length ) = 0;
 
     /**
      * This function allows extended blocking and auto-retries per a user defined timeout
@@ -265,10 +265,10 @@ namespace RF24::Physical
      *
      *   @param[in] pipe     Which pipe will get this response
      *   @param[in] buffer   Data to be sent
-     *   @param[in] len      Length of the data to send, up to 32 bytes max.  Not affected by the static payload set by
+     *   @param[in] length   Length of the data to send, up to 32 bytes max.  Not affected by the static payload set by
      * setPayloadSize().
      */
-    virtual Chimera::Status_t stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len ) = 0;
+    virtual Chimera::Status_t stageAckPayload( const RF24::Hardware::PipeNumber pipe, const RF24::Network::Frame::Buffer &buffer, size_t length ) = 0;
 
     /**
      *   Clears out the TX FIFO
@@ -328,7 +328,7 @@ namespace RF24::Physical
      */
     virtual RF24::Hardware::DataRate getDataRate() = 0;
 
-    virtual Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe ) = 0;
+    virtual Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) = 0;
   };
 
   using Interface_sPtr = std::shared_ptr<Interface>;

@@ -29,21 +29,24 @@ namespace RF24::Physical::Shockburst
   static constexpr uint32_t POSTAMBLE_T32 = 0x57637a51;
 
   static constexpr size_t FIFO_QUEUE_MAX_SIZE = 3;
-  static constexpr size_t INVALID_MEMORY = 0xFF;
+  static constexpr size_t INVALID_MEMORY      = 0xFF;
 
   /*------------------------------------------------
   Raw shockburst packet transmitted via sockets
   ------------------------------------------------*/
-#pragma pack( push, 1 )
-  struct Packet
+  struct _Data
   {
-    uint64_t address;
     uint16_t control;
+    uint64_t address;
     uint8_t payload[ RF24::Hardware::MAX_PAYLOAD_WIDTH ];
-    uint16_t crc;
     const uint32_t postamble = POSTAMBLE_T32;
   };
-#pragma pack( pop )
+
+  struct Packet
+  {
+    uint32_t crc;
+    _Data data;
+  };
 
   static_assert( sizeof( Packet ) % sizeof( size_t ) == 0, "Struct has invalid alignment for current architecture" );
 
@@ -51,6 +54,6 @@ namespace RF24::Physical::Shockburst
   Buffer used for transferring packets
   ------------------------------------------------*/
   using PacketBuffer = std::array<char, sizeof( Packet )>;
-}
+}    // namespace RF24::Physical::Shockburst
 
-#endif	/* !RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_TYPES_HPP */
+#endif /* !RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_TYPES_HPP */

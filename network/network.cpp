@@ -110,11 +110,10 @@ namespace RF24::Network
       /*------------------------------------------------
       Get the raw data and parse it into a frame
       ------------------------------------------------*/
-      Frame::FrameType frame;
       Frame::Buffer buffer;
-      radio->readPayload( buffer.data(), buffer.size(), radio->getDynamicPayloadSize() );
+      radio->readPayload( buffer, radio->getDynamicPayloadSize() );
       
-      frame = buffer;
+      Frame::FrameType frame = buffer;
 
       /*------------------------------------------------
       Assuming the frame is valid, handle the message appropriately
@@ -231,7 +230,7 @@ namespace RF24::Network
     result |= radio->openWritePipe( address );
 
     // TODO: Need to only transfer the exact amount
-    result |= radio->immediateWrite( buffer.data(), buffer.size(), false );
+    result |= radio->immediateWrite( buffer, buffer.size() );
 
     // TODO: Turn this into a literal constant
     result |= radio->txStandBy( 10 );
@@ -299,7 +298,7 @@ namespace RF24::Network
     using namespace ::RF24::Physical::Conversion;
 
     auto pipeOnParent  = getIdAtLevel( frame.getSrc(), getLevel( frame.getSrc() ) );
-    auto directAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber_t>( pipeOnParent ) );
+    auto directAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber>( pipeOnParent ) );
 
     frame.updateCRC();
 

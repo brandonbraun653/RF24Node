@@ -73,13 +73,8 @@ namespace RF24::Physical::Conversion
    *   @param[in]  pipe        The pipe number on the given nodeID
    *   @return The address assigned to that node's pipe
    */
-  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber_t pipeNum );
+  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum );
 
-  
-  /**
-   *   output is octal
-   */
-  LogicalAddress levelToLogicalAddress( uint8_t level );
 }
 
 #endif	/* !RF24_NODE_PHYSICAL_SIMULATOR_CONVERSION_HPP */

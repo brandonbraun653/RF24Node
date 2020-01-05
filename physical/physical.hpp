@@ -34,6 +34,8 @@
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/interfaces/physical_intf.hpp>
 
+#if !defined( RF24_SIMULATOR )
+
 namespace RF24::Physical
 {
   /**
@@ -72,11 +74,11 @@ namespace RF24::Physical
     Chimera::Status_t resumeListening() final override;
     Chimera::Status_t openWritePipe( const uint64_t address ) final override;
     Chimera::Status_t closeWritePipe() final override;
-    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber_t pipe, const uint64_t address,
+    Chimera::Status_t openReadPipe( const RF24::Hardware::PipeNumber pipe, const uint64_t address,
                                     const bool validate = false ) final override;
-    Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber_t pipe ) final override;
-    RF24::Hardware::PipeNumber_t payloadAvailable() final override;
-    size_t getPayloadSize( const RF24::Hardware::PipeNumber_t pipe ) final override;
+    Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber pipe ) final override;
+    RF24::Hardware::PipeNumber payloadAvailable() final override;
+    size_t getPayloadSize( const RF24::Hardware::PipeNumber pipe ) final override;
     Chimera::Status_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength ) final override;
     Chimera::Status_t immediateWrite( const void *const buffer, const size_t len, const bool multicast = false ) final override;
     Chimera::Status_t txStandBy( const size_t timeout, const bool startTx = false ) final override;
@@ -89,7 +91,7 @@ namespace RF24::Physical
     RF24::Hardware::PowerAmplitude getPALevel() final override;
     Chimera::Status_t setDataRate( const RF24::Hardware::DataRate speed ) final override;
     RF24::Hardware::DataRate getDataRate() final override;
-    Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber_t pipe ) final override;
+    Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) final override;
 
   protected:
     /**
@@ -129,4 +131,5 @@ namespace RF24::Physical
 
 }    // namespace RF24::Physical
 
+#endif /* !RF24_SIMULATOR */
 #endif /* NRF24L01_PHYSICAL_LAYER_HPP */

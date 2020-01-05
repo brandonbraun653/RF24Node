@@ -31,7 +31,7 @@ namespace RF24::Hardware
     PIPE_BF_MASK = 0x3Fu
   };
 
-  enum PipeNumber_t : size_t
+  enum PipeNumber : size_t
   {
     PIPE_NUM_0   = 0u,
     PIPE_NUM_1   = 1u,
