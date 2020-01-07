@@ -276,7 +276,7 @@ namespace RF24::Network
       A node is trying to directly connect with this node
       ------------------------------------------------*/
       case MSG_NET_REQUEST_BIND:
-        // Pass this up to the next layer.
+        Pass this up to the next layer
         break;
     }
 
@@ -302,9 +302,7 @@ namespace RF24::Network
 
     frame.updateCRC();
 
-    transferToPipe( directAddress, frame.toBuffer(), false );
-    radio->startListening();
-    return false;
+    return transferToPipe( directAddress, frame.toBuffer(), false );
   }
 
   bool Driver::writeRouted( Frame::FrameType &frame )

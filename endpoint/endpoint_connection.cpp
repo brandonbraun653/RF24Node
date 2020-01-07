@@ -106,7 +106,7 @@ namespace RF24
           frame.setType( Network::MSG_NET_REQUEST_BIND );
 
           network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
-
+          currentState = Static::CONNECT_WAIT_FOR_RESPONSE;
           break;
 
         case Static::CONNECT_WAIT_FOR_RESPONSE:

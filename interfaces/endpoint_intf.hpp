@@ -147,6 +147,8 @@ namespace RF24
 
     virtual Chimera::Status_t processEventHandlers() = 0;
 
+    virtual Chimera::Status_t processNetworking() = 0;
+
 
     /*-------------------------------------------------
     Data Transfer IO

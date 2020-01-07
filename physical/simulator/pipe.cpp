@@ -8,6 +8,9 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+/* C++ Includes */
+#include <type_traits>
+
 /* Boost Includes */
 #include <boost/chrono.hpp>
 #include <boost/thread.hpp>
@@ -52,7 +55,7 @@ namespace RF24::Physical::Pipe
     ------------------------------------------------*/
     if ( mTXSocket.is_open() )
     {
-      mTXSocket.close();
+      return;
     }
 
     /*------------------------------------------------
@@ -64,7 +67,7 @@ namespace RF24::Physical::Pipe
 
   void TX::closePipe()
   {
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
 
     /*------------------------------------------------
     Destroy the update thread
@@ -83,16 +86,21 @@ namespace RF24::Physical::Pipe
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
+  bool TX::isOpen()
+  {
+    return mTXSocket.is_open();
+  }
+
   void TX::write( const RF24::Physical::Shockburst::PacketBuffer &data )
   {
     /*------------------------------------------------
     Add work to process the TX request
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     auto ip   = address_v4::from_string( Conversion::decodeIP( data ) );
     auto port = Conversion::decodePort( data );
 
-    mLogger->flog( Level::LVL_DEBUG, "DBG: TX to IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
+    mLogger->flog( Level::LVL_DEBUG, "PIPE: TX to IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
 
     memcpy( mBuffer.data(), data.data(), mBuffer.size() );
     mTXSocket.async_send_to( boost::asio::buffer( mBuffer ), udp::endpoint( ip, port ),
@@ -106,13 +114,13 @@ namespace RF24::Physical::Pipe
     Make sure we aren't doing some kind of queue processing
     before assigning the callback.
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     mUserCallback = callback;
   }
 
   void TX::flush()
   {
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
@@ -154,6 +162,7 @@ namespace RF24::Physical::Pipe
       mUserCallback( this );
     }
   }
+
 
   /*------------------------------------------------
   RX Pipe Implementation
@@ -232,11 +241,15 @@ namespace RF24::Physical::Pipe
 
   bool RX::available()
   {
+    static_assert( sizeof( std::decay_t<decltype( mBuffer[ 0 ] )> ) ==
+                       sizeof( std::decay_t<decltype( RF24::Physical::Shockburst::INVALID_MEMORY )> ),
+                   "Invalid memory comparison types" );
+
     /*------------------------------------------------
-    Whenever we flush the buffer, it will always be filled with this pattern
+    Whenever we flush the buffer, it will always be filled with this pattern.
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
-    return !( ( mBuffer[ 0 ] == mBuffer[ mBuffer.size() - 1 ] ) && ( mBuffer[ 0 ] == RF24::Physical::Shockburst::INVALID_MEMORY ) );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+    return !( mBuffer[ 0 ] == RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
   RF24::Physical::Shockburst::PacketBuffer RX::read()
@@ -244,7 +257,7 @@ namespace RF24::Physical::Pipe
     /*------------------------------------------------
     Obtain access to the data and copy it out
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     RF24::Physical::Shockburst::PacketBuffer temp;
 
     if ( available() )
@@ -258,7 +271,7 @@ namespace RF24::Physical::Pipe
 
   void RX::flush()
   {
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
@@ -268,7 +281,7 @@ namespace RF24::Physical::Pipe
     Make sure we aren't doing some kind of queue processing
     before assigning the callback.
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     mUserCallback = callback;
   }
 
@@ -333,8 +346,11 @@ namespace RF24::Physical::Pipe
     /*------------------------------------------------
     Protect the queue from other threads
     ------------------------------------------------*/
-    std::lock_guard<std::mutex> guard( mBufferLock );
-    mLogger->flog( Level::LVL_DEBUG, "DBG: RX packet of size %lu\n", bytes_transferred );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+
+    auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
+    auto port = Conversion::decodePort( mBuffer );
+    mLogger->flog( Level::LVL_DEBUG, "PIPE: RX from IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
 
     /*------------------------------------------------
     Handle the user's callback

@@ -81,10 +81,16 @@ namespace RF24::Physical::Shockburst
     {
       return false;
     }
-
-    txPipe.openPipe();
-    cachedTXAddress = address;
-    return true;
+    else if ( txPipe.isOpen() )
+    {
+      return true;
+    }
+    else
+    {
+      txPipe.openPipe();
+      cachedTXAddress = address;
+      return true;
+    }
   }
 
   bool Socket::closeWritePipe()

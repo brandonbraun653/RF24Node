@@ -56,6 +56,13 @@ namespace RF24::Physical::Pipe
     void closePipe();
 
     /**
+     *  Checks if the pipe is currently open
+     *	
+     *	@return bool
+     */
+     bool isOpen();
+
+    /**
      *  Writes raw data to the configured RX pipe
      *
      *  @param[in]  data    The data to be written
@@ -84,7 +91,7 @@ namespace RF24::Physical::Pipe
     boost::asio::io_service &mIOService;    /**< IoService needed to run event handling */
     boost::asio::ip::udp::socket mTXSocket; /**< UDP socket that models the TX pipe */
     boost::thread mTXThread;                /**< Event handler thread */
-    std::mutex mBufferLock;                 /**< Lock for the FIFO message queue */
+    std::recursive_mutex mBufferLock;       /**< Lock for the FIFO message queue */
     Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for outgoing messages */
     std::atomic<bool> mTXEventProcessed;    /**< Flag indicating when the RX event was processed */
     TXPipeCallback mUserCallback;           /**< User callback for RX event */
@@ -189,7 +196,7 @@ namespace RF24::Physical::Pipe
     Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for incoming messages */
     std::atomic<bool> mAllowListening;      /**< Flag to enable/disable listening for messages */
     std::atomic<bool> mRXEventProcessed;    /**< Flag indicating when the RX event was processed */
-    std::mutex mBufferLock;                 /**< Lock for the FIFO message queue */
+    std::recursive_mutex mBufferLock;       /**< Lock for the FIFO message queue */
 
     uLog::SinkHandle mLogger;
   };

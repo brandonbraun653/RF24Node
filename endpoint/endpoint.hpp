@@ -55,6 +55,7 @@ namespace RF24
     Chimera::Status_t processDHCPServer() final override;
     Chimera::Status_t processMessageRequests() final override;
     Chimera::Status_t processEventHandlers() final override;
+    Chimera::Status_t processNetworking() final override;
     Chimera::Status_t write( const LogicalAddress dst, const void *const data, const size_t length ) final override;
     Chimera::Status_t read( void *const data, const size_t length ) final override;
     bool packetAvailable() final override;

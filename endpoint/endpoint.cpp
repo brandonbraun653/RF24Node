@@ -205,6 +205,13 @@ namespace RF24
     return Chimera::Status_t();
   }
 
+  Chimera::Status_t Endpoint::processNetworking()
+  {
+    network->updateRX();
+    network->updateTX();
+    return Chimera::CommonStatusCodes::OK;
+  }
+
   Chimera::Status_t Endpoint::write( const LogicalAddress dst, const void *const data, const size_t length )
   {
     return Chimera::Status_t();

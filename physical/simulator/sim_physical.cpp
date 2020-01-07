@@ -28,6 +28,7 @@ namespace RF24::Physical
   SimulatorDriver::SimulatorDriver()
   {
     flagInitialized    = false;
+    killFlag           = false;
     IPAddress          = "";
     mChannel           = 0;
     mStaticPayloadSize = 0;
@@ -117,8 +118,7 @@ namespace RF24::Physical
 
   size_t SimulatorDriver::getDynamicPayloadSize()
   {
-    // Will likely have to peek the RX queue
-    return 0;
+    return RF24::Network::Frame::size();
   }
 
   Chimera::Status_t SimulatorDriver::startListening()
@@ -248,7 +248,7 @@ namespace RF24::Physical
 
   Chimera::Status_t SimulatorDriver::txStandBy( const size_t timeout, const bool startTx )
   {
-    return Chimera::Status_t();
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t SimulatorDriver::stageAckPayload( const RF24::Hardware::PipeNumber pipe,
@@ -346,8 +346,6 @@ namespace RF24::Physical
     {
       while ( !killFlag )
       {
-        std::lock_guard<std::recursive_mutex> guard( FIFOLock );
-        
         /*------------------------------------------------
         Handle RX Payloads
         ------------------------------------------------*/
@@ -356,19 +354,23 @@ namespace RF24::Physical
           if ( mDataPipes[ x ]->available() )
           {
             FIFOElement elem;
-            elem.pipe;
+            elem.pipe = static_cast<RF24::Hardware::PipeNumber>( x );
             mDataPipes[ x ]->read( elem.payload );
 
             if ( RxFIFO.size() < RF24::Physical::Shockburst::FIFO_QUEUE_MAX_SIZE )
             {
+              std::lock_guard<std::recursive_mutex> guard( FIFOLock );
+              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Enqueue RX payload on pipe %d\n", Chimera::millis(), elem.pipe );
               RxFIFO.push( elem );
             }
             else
             {
-              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full", Chimera::millis(), x );
+              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full\n", Chimera::millis(), x );
             }
           }
         }
+
+        //there are multiple threads being created....
 
         /*------------------------------------------------
         Handle TX Payloads
