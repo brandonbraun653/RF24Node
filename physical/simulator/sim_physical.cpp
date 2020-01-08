@@ -48,6 +48,7 @@ namespace RF24::Physical
     /*------------------------------------------------
     Create the low level IO transceivers
     ------------------------------------------------*/
+    ioService.reset();
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ] = std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService );

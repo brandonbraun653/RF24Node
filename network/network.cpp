@@ -271,12 +271,8 @@ namespace RF24::Network
       ------------------------------------------------*/
       case MSG_NETWORK_PING:
         break;
-            
-      /*------------------------------------------------
-      A node is trying to directly connect with this node
-      ------------------------------------------------*/
-      case MSG_NET_REQUEST_BIND:
-        Pass this up to the next layer
+      
+      default:
         break;
     }
 
