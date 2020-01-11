@@ -10,13 +10,15 @@
 
 /* C++ Includes */
 
+/* Chimera Includes */
+#include <Chimera/threading.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/network/queue/queue.hpp>
 
 namespace RF24::Network::Queue
 {
-  ManagedFIFO::ManagedFIFO()
+  ManagedFIFO::ManagedFIFO() : ringBuffer( 10 )
   {
     element_depth = 10;
   }
@@ -99,7 +101,7 @@ namespace RF24::Network::Queue
     Once we know the element exists, copy out the data
     and then free the allocated memory.
     ------------------------------------------------*/
-    auto element = peekNextElement();
+    auto element = peek();
 
     if ( element.payload && element.size )
     {
@@ -107,13 +109,23 @@ namespace RF24::Network::Queue
       memcpy( data, element.payload, bytesToCopy );
 
       heap.free( element.payload );
+      ringBuffer.pop_front();
     }
 
     return Chimera::CommonStatusCodes::OK;
   }
 
-  RF24::Network::Queue::Element ManagedFIFO::peekNextElement()
+  RF24::Network::Queue::Element ManagedFIFO::peek()
   {
+    if ( ringBuffer.empty() )
+    {
+      Element x;
+      x.size    = 0;
+      x.payload = nullptr;
+
+      return x;
+    }
+
     return ringBuffer.front();
   }
 
@@ -127,4 +139,15 @@ namespace RF24::Network::Queue
 
     return Chimera::CommonStatusCodes::OK;
   }
+
+  bool ManagedFIFO::empty()
+  {
+    return ringBuffer.empty();
+  }
+
+  bool ManagedFIFO::full()
+  {
+    return ringBuffer.full();
+  }
+
 }    // namespace RF24::Network::Queue

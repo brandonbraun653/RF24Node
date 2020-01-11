@@ -8,6 +8,9 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+/* C++ Includes */
+#include <string_view>
+
 /* Chimera Includes */
 #include <Chimera/threading.hpp>
 
@@ -26,24 +29,27 @@
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/physical/simulator/sim_physical.hpp>
 
-RF24::Endpoint *new__Endpoint()
+RF24::Endpoint::Device *new__Endpoint()
 {
-  return new RF24::Endpoint();
+  return new RF24::Endpoint::Device();
 }
 
-void delete__Endpoint( RF24::Endpoint *obj )
+void delete__Endpoint( RF24::Endpoint::Device *obj )
 {
   delete obj;
 }
 
-namespace RF24
+namespace RF24::Endpoint
 {
-  Endpoint::Endpoint()
+  Device::Device()
   {
     /*------------------------------------------------
     Initialize class vars
     ------------------------------------------------*/
-    memset( &mConfig, 0, sizeof( EndpointConfig ) );
+    memset( &mConfig, 0, sizeof( Config ) );
+    memset( mNodeName, 0, sizeof( mNodeName ) );
+    mDeviceAddress = 0;
+    mParentAddress = 0;
 
     /*------------------------------------------------
     Initialize class composite objects
@@ -58,11 +64,11 @@ namespace RF24
 #endif 
   }
 
-  Endpoint::~Endpoint()
+  Device::~Device()
   {
   }
 
-  Chimera::Status_t Endpoint::attachLogger( uLog::SinkHandle sink )
+  Chimera::Status_t Device::attachLogger( uLog::SinkHandle sink )
   {
     if ( Chimera::Threading::LockGuard( *this ).lock( 100 ) )
     {
@@ -74,7 +80,7 @@ namespace RF24
     return Chimera::CommonStatusCodes::LOCKED;
   }
 
-  Chimera::Status_t Endpoint::configure( const EndpointConfig &cfg )
+  Chimera::Status_t Device::configure( const Config &cfg )
   {
     auto configResult = Chimera::CommonStatusCodes::OK;
     auto lockGuard    = Chimera::Threading::LockGuard( *this );
@@ -106,37 +112,57 @@ namespace RF24
     return configResult;
   }
 
-  Chimera::Status_t Endpoint::setNetworkingMode( const Network::Mode mode )
+  
+  void Device::setName( const std::string_view &name )
+  {
+    /*------------------------------------------------
+    Make sure we leave a character for null termination
+    ------------------------------------------------*/
+    size_t bytesToCopy = name.size();
+    if ( bytesToCopy > MAX_CHARS_IN_DEVICE_NAME )
+    {
+      static_assert( sizeof( mNodeName ) == MAX_CHARS_IN_DEVICE_NAME + 1u, "Invalid device name array length" );
+      bytesToCopy = MAX_CHARS_IN_DEVICE_NAME;
+    }
+
+    /*------------------------------------------------
+    Force null terminate regardless of previous data
+    ------------------------------------------------*/
+    memset( mNodeName, 0, sizeof( mNodeName ) );
+    memcpy( mNodeName, name.data(), bytesToCopy );
+  }
+
+  Chimera::Status_t Device::setNetworkingMode( const ::RF24::Network::Mode mode )
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::setEnpointStaticAddress( const LogicalAddress address )
+  Chimera::Status_t Device::setEnpointStaticAddress( const ::RF24::LogicalAddress address )
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::setParentStaticAddress( const LogicalAddress address )
+  Chimera::Status_t Device::setParentStaticAddress( const ::RF24::LogicalAddress address )
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::requestAddress()
+  Chimera::Status_t Device::requestAddress()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::renewAddressReservation()
+  Chimera::Status_t Device::renewAddressReservation()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::releaseAddress()
+  Chimera::Status_t Device::releaseAddress()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::connect( const size_t timeout )
+  Chimera::Status_t Device::connect( const size_t timeout )
   {
     /*------------------------------------------------
     Make sure someone can't interrupt us
@@ -170,89 +196,129 @@ namespace RF24
     }
   }
 
-  Chimera::Status_t Endpoint::disconnect()
+  Chimera::Status_t Device::disconnect()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::reconnect()
+  Chimera::Status_t Device::reconnect()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::onEvent( const Event event, const EventFuncPtr_t function )
+  Chimera::Status_t Device::onEvent( const ::RF24::Event event, const ::RF24::EventFuncPtr_t function )
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::processMessageBuffers()
+  Chimera::Status_t Device::doAsyncProcessing()
   {
-    return Chimera::Status_t();
+    auto result = Chimera::CommonStatusCodes::OK;
+    RF24::Network::Frame::FrameType frame;
+
+    result |= processNetworking();
+   
+    if ( network->read( frame ) )
+    {
+      result |= processMessageRequests( frame );
+      result |= processDHCPServer( frame );
+      result |= processEventHandlers( frame );
+    }
+
+    return result;
   }
 
-  Chimera::Status_t Endpoint::processDHCPServer()
+  Chimera::Status_t Device::processDHCPServer( RF24::Network::Frame::FrameType &frame )
   {
-    return Chimera::Status_t();
+    auto result = Chimera::CommonStatusCodes::OK;
+
+    return result;
   }
 
-  Chimera::Status_t Endpoint::processMessageRequests()
+  Chimera::Status_t Device::processMessageRequests( RF24::Network::Frame::FrameType &frame )
   {
-    return Chimera::Status_t();
+    auto result = Chimera::CommonStatusCodes::OK;
+    RF24::Network::Frame::FrameType response;
+
+    switch ( frame.getType() )
+    {
+      case Network::MSG_NET_REQUEST_BIND:
+        response.setSrc( mDeviceAddress );
+        response.setDst( frame.getSrc() );
+        response.setType( Network::MSG_NET_REQUEST_BIND_FULL );
+        response.setLength( sizeof( RF24::Network::Frame::PackedData ) - RF24::Network::Frame::PAYLOAD_SIZE );
+
+        // Will likely need to get original sender for multi hop??? Maybe add it in the payload.
+        if ( bindChildNode( frame.getSrc() ) )
+        {
+          response.setType( Network::MSG_NET_REQUEST_BIND_ACK );
+        }
+
+        network->write( response, RF24::Network::RoutingStyle::ROUTE_DIRECT );
+        break;
+
+      default:
+        break;
+    }
+
+    return result;
   }
 
-  Chimera::Status_t Endpoint::processEventHandlers()
+  Chimera::Status_t Device::processEventHandlers( RF24::Network::Frame::FrameType &frame )
   {
-    return Chimera::Status_t();
+    auto result = Chimera::CommonStatusCodes::OK;
+
+    return result;
   }
 
-  Chimera::Status_t Endpoint::processNetworking()
+  Chimera::Status_t Device::processNetworking()
   {
     network->updateRX();
     network->updateTX();
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Endpoint::write( const LogicalAddress dst, const void *const data, const size_t length )
+  Chimera::Status_t Device::write( const ::RF24::LogicalAddress dst, const void *const data, const size_t length )
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::read( void *const data, const size_t length )
+  Chimera::Status_t Device::read( void *const data, const size_t length )
   {
     return Chimera::Status_t();
   }
 
-  bool Endpoint::packetAvailable()
+  bool Device::packetAvailable()
   {
     return false;
   }
 
-  size_t Endpoint::nextPacketLength()
+  size_t Device::nextPacketLength()
   {
     return size_t();
   }
 
-  EndpointStatus Endpoint::getStatus()
+  Status Device::getStatus()
   {
-    return EndpointStatus();
+    return Status();
   }
 
-  EndpointConfig &Endpoint::getConfig()
+  Config &Device::getConfig()
   {
     return mConfig;
   }
 
-  LogicalAddress Endpoint::getLogicalAddress()
+  ::RF24::LogicalAddress Device::getLogicalAddress()
   {
-    return mCurrentAddress;
+    return mDeviceAddress;
   }
 
-  Chimera::Status_t Endpoint::isConnected()
+  Chimera::Status_t Device::isConnected()
   {
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Endpoint::initHardwareLayer()
+  Chimera::Status_t Device::initHardwareLayer()
   {
 #if !defined( RF24_SIMULATOR )
 #error Need initialization of the hardware layer
@@ -260,7 +326,7 @@ namespace RF24
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Endpoint::initPhysicalLayer()
+  Chimera::Status_t Device::initPhysicalLayer()
   {
     using namespace Physical::Conversion;
 
@@ -309,7 +375,7 @@ namespace RF24
     return configResult;
   }
 
-  Chimera::Status_t Endpoint::initNetworkLayer()
+  Chimera::Status_t Device::initNetworkLayer()
   {
     Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
 
@@ -326,10 +392,19 @@ namespace RF24
     configResult |= network->attachPhysicalDriver( physical );
     configResult |= network->initialize();
 
+    /*------------------------------------------------
+    Track our current network address
+    ------------------------------------------------*/
+    if ( configResult == Chimera::CommonStatusCodes::OK )
+    {
+      mDeviceAddress = mConfig.network.nodeStaticAddress;
+      mParentAddress = mConfig.network.parentStaticAddress;
+    }
+
     return configResult;
   }
 
-  Chimera::Status_t Endpoint::initMeshLayer()
+  Chimera::Status_t Device::initMeshLayer()
   {
     if ( mConfig.network.mode == Network::Mode::NET_MODE_MESH )
     {
@@ -338,5 +413,6 @@ namespace RF24
 
     return Chimera::CommonStatusCodes::OK;
   }
+
 
 }    // namespace RF24

@@ -29,7 +29,7 @@ namespace RF24::Physical::Shockburst
   static constexpr uint32_t POSTAMBLE_T32 = 0x57637a51;
 
   static constexpr size_t FIFO_QUEUE_MAX_SIZE = 3;
-  static constexpr char INVALID_MEMORY        = 0xFF;
+  static constexpr char INVALID_MEMORY        = static_cast<char>( 0xFF );
 
   /*------------------------------------------------
   Raw shockburst packet transmitted via sockets

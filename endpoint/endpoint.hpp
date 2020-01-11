@@ -17,6 +17,9 @@
 #ifndef RF24_NODE_ENDPOINT_HPP
 #define RF24_NODE_ENDPOINT_HPP
 
+/* C++ Includes */
+#include <string_view>
+
 /* Chimera Includes */
 #include <Chimera/threading.hpp>
 #include <Chimera/types/common_types.hpp>
@@ -25,22 +28,23 @@
 #include <uLog/types.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/endpoint/config.hpp>
 #include <RF24Node/interfaces/endpoint_intf.hpp>
 #include <RF24Node/interfaces/network_intf.hpp>
 #include <RF24Node/interfaces/physical_intf.hpp>
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/simulator/sim_definitions.hpp>
 
-namespace RF24
+namespace RF24::Endpoint
 {
-  class Endpoint : public EndpointInterface, public Chimera::Threading::Lockable
+  class Device : public Interface, public Chimera::Threading::Lockable
   {
   public:
-    Endpoint();
-    ~Endpoint();
+    Device();
+    ~Device();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink );
-    Chimera::Status_t configure( const EndpointConfig &cfg ) override;
+    Chimera::Status_t configure( const Config &cfg ) override;
     Chimera::Status_t setNetworkingMode( const Network::Mode mode ) final override;
     Chimera::Status_t setEnpointStaticAddress( const LogicalAddress address ) final override;
     Chimera::Status_t setParentStaticAddress( const LogicalAddress address ) final override;
@@ -51,19 +55,21 @@ namespace RF24
     Chimera::Status_t disconnect() final override;
     Chimera::Status_t reconnect() final override;
     Chimera::Status_t onEvent( const Event event, const EventFuncPtr_t function ) final override;
-    Chimera::Status_t processMessageBuffers() final override;
-    Chimera::Status_t processDHCPServer() final override;
-    Chimera::Status_t processMessageRequests() final override;
-    Chimera::Status_t processEventHandlers() final override;
+    Chimera::Status_t doAsyncProcessing() final override;
+    Chimera::Status_t processDHCPServer( RF24::Network::Frame::FrameType &frame ) final override;
+    Chimera::Status_t processMessageRequests( RF24::Network::Frame::FrameType &frame ) final override;
+    Chimera::Status_t processEventHandlers( RF24::Network::Frame::FrameType &frame ) final override;
     Chimera::Status_t processNetworking() final override;
     Chimera::Status_t write( const LogicalAddress dst, const void *const data, const size_t length ) final override;
     Chimera::Status_t read( void *const data, const size_t length ) final override;
     bool packetAvailable() final override;
     size_t nextPacketLength() final override;
-    EndpointStatus getStatus() final override;
-    EndpointConfig &getConfig() final override;
+    Status getStatus() final override;
+    Config &getConfig() final override;
     LogicalAddress getLogicalAddress() final override;
     Chimera::Status_t isConnected() final override;
+
+    void setName( const std::string_view &name ) final override;
 
   protected:
     /**
@@ -87,13 +93,19 @@ namespace RF24
      */
     Chimera::Status_t makeMeshConnection( const size_t timeout );
 
+
+    bool bindChildNode( const LogicalAddress address );
+
   private:
-    EndpointConfig mConfig;            /**< User endpoint configuration for this node */
+    Config mConfig;                    /**< User endpoint configuration for this node */
     Physical::Interface_sPtr physical; /**< Physical layer object */
     Network::Interface_uPtr network;   /**< Network layer object */
     uLog::SinkHandle logger;           /**< Logger object */
 
-    LogicalAddress mCurrentAddress;
+    LogicalAddress mDeviceAddress;
+    LogicalAddress mParentAddress;
+
+    char mNodeName[ MAX_CHARS_IN_DEVICE_NAME + 1u ];
 
 
     Chimera::Status_t initHardwareLayer();
@@ -106,7 +118,7 @@ namespace RF24
 /*------------------------------------------------
 Exported functions for construction/destruction of Endpoints
 ------------------------------------------------*/
-extern "C" RF24API RF24::Endpoint *new__Endpoint();
-extern "C" RF24API void delete__Endpoint( RF24::Endpoint *obj );
+extern "C" RF24API RF24::Endpoint::Device *new__Endpoint();
+extern "C" RF24API void delete__Endpoint( RF24::Endpoint::Device *obj );
 
 #endif /* !RF24_NODE_ENDPOINT_HPP*/

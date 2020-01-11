@@ -41,7 +41,7 @@ namespace RF24::Network
   class Driver : public Interface
   {
   public:
-    Driver( ::RF24::EndpointInterface *const node );
+    Driver( ::RF24::Endpoint::Interface *const node );
     ~Driver();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
@@ -51,7 +51,7 @@ namespace RF24::Network
     Chimera::Status_t initialize() final override;
     HeaderMessage updateRX() final override;
     void updateTX() final override;
-    bool available() const final override;
+    bool available() final override;
     bool peek( Frame::FrameType &frame ) final override;
     bool read( Frame::FrameType &frame ) final override;
     bool write( Frame::FrameType &frame, const RoutingStyle route ) final override;
@@ -88,27 +88,26 @@ namespace RF24::Network
     bool mReturnSystemMessages;
     bool mMulticastRelay;
     size_t mLastTxTime;
-    ::RF24::EndpointInterface *const mNode;
+    ::RF24::Endpoint::Interface *const mNode;
 
 
     RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
-    Frame::Cache frameQueue;              /**< Space for a small set of frames that need to be delivered to the app layer */
-
-
     RF24::Network::Queue::ManagedFIFO txQueue;
     RF24::Network::Queue::ManagedFIFO rxQueue;
 
     uLog::SinkHandle logger;
 
-    void enqueue( Frame::FrameType &frame );
+    void enqueueRXPacket( Frame::Buffer &buffer );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const bool autoAck );
 
-    HeaderMessage handleDestination( Frame::FrameType &frame ); 
-    HeaderMessage handlePassthrough( Frame::FrameType &frame );
+    HeaderMessage handleDestination( Frame::Buffer &buffer ); 
+    HeaderMessage handlePassthrough( Frame::Buffer &frame );
 
     bool writeDirect( Frame::FrameType &frame );
     bool writeRouted( Frame::FrameType &frame );
     bool writeMulticast( Frame::FrameType &frame );
+
+    bool readWithPop( Frame::FrameType &frame, const bool pop );
   };
 }    // namespace RF24::Network
 

@@ -99,7 +99,7 @@ namespace RF24::Network
      *
      *  @return bool
      */
-    virtual bool available() const = 0;
+    virtual bool available() = 0;
 
     /**
      *  Peeks the next available frame if it exists.

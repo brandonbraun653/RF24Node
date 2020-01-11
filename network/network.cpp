@@ -35,7 +35,7 @@
 namespace RF24::Network
 {
 
-  Driver::Driver( ::RF24::EndpointInterface *const node ) : mNode( node ), frameQueue( Frame::Cache( 3 ) )
+  Driver::Driver( ::RF24::Endpoint::Interface *const node ) : mNode( node )
   {
     mInitialized          = false;
     mReturnSystemMessages = false;
@@ -99,8 +99,8 @@ namespace RF24::Network
       return MSG_NETWORK_ERR;
     }
 
-    uint8_t pipeNum         = 0u;
-    HeaderMessage returnVal = MSG_TX_NORMAL;
+    uint8_t pipeNum      = 0u;
+    HeaderMessage sysMsg = MSG_TX_NORMAL;
 
     /*------------------------------------------------
     Process the incoming data
@@ -108,41 +108,33 @@ namespace RF24::Network
     while ( radio->payloadAvailable() < RF24::Hardware::PIPE_NUM_MAX )
     {
       /*------------------------------------------------
-      Get the raw data and parse it into a frame
+      Get the raw data and validate that CRC
       ------------------------------------------------*/
       Frame::Buffer buffer;
       radio->readPayload( buffer, radio->getDynamicPayloadSize() );
-      
-      Frame::FrameType frame = buffer;
 
-      /*------------------------------------------------
-      Assuming the frame is valid, handle the message appropriately
-      ------------------------------------------------*/
-      if ( !frame.valid() )
+      auto reportedCRC   = Frame::getCRCFromBuffer( buffer );
+      auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
+      if ( reportedCRC != calculatedCRC )
       {
         IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d NET: Pkt dropped due to CRC failure\n", Chimera::millis() ); );
         continue;
       }
-      else if ( frame.getDst() == mNode->getLogicalAddress() )
+
+      /*------------------------------------------------
+      Assuming the frame is valid, handle the message appropriately
+      ------------------------------------------------*/
+      if ( Frame::getDestinationFromBuffer( buffer ) == mNode->getLogicalAddress() )
       {
-        returnVal = handleDestination( frame );
+        sysMsg = handleDestination( buffer );
       }
       else
       {
-        returnVal = handlePassthrough( frame );
-      }
-
-      /*------------------------------------------------
-      Does the result of handling the frame require more 
-      interaction from the caller?
-      ------------------------------------------------*/
-      if ( mReturnSystemMessages )
-      {
-        return returnVal;
+        sysMsg = handlePassthrough( buffer );
       }
     }
 
-    return returnVal;
+    return sysMsg;
   }
 
   void Driver::updateTX()
@@ -150,35 +142,19 @@ namespace RF24::Network
   
   }
 
-  bool Driver::available() const
+  bool Driver::available()
   {
-    return !frameQueue.empty();
+    return !rxQueue.empty();
   }
 
   bool Driver::peek( Frame::FrameType &frame )
   {
-    if ( available() )
-    {
-      frame = frameQueue.front();
-      return frame.valid();
-    }
-
-    return false;
+    return readWithPop( frame, false );
   }
 
   bool Driver::read( Frame::FrameType &frame )
   {
-    /*------------------------------------------------
-    Pop off the data and perform a CRC check
-    ------------------------------------------------*/
-    if ( available() )
-    {
-      frame = frameQueue.front();
-      frameQueue.pop_front();
-      return frame.valid();
-    }
-
-    return false;
+    return readWithPop( frame, true );
   }
 
   bool Driver::write( Frame::FrameType &frame, const RoutingStyle route )
@@ -198,6 +174,8 @@ namespace RF24::Network
     Invoke the appropriate transfer method
     ------------------------------------------------*/
     bool writeSuccess = false;
+
+    // TODO: I need to push these through the TX queuing system
 
     switch ( route )
     {
@@ -238,11 +216,12 @@ namespace RF24::Network
     return ( result == Chimera::CommonStatusCodes::OK );
   }
 
-  void Driver::enqueue( Frame::FrameType &frame )
+  void Driver::enqueueRXPacket( Frame::Buffer &buffer )
   {
-    if ( !frameQueue.full() )
+    if ( !rxQueue.full())
     {
-      frameQueue.push_back( frame.toBuffer() );
+      auto size = Frame::getFrameLengthFromBuffer( buffer );
+      rxQueue.push( buffer.data(), size );
     }
     else
     {
@@ -260,9 +239,9 @@ namespace RF24::Network
     mMulticastRelay = state;
   }
 
-  HeaderMessage Driver::handleDestination( Frame::FrameType &frame )
+  HeaderMessage Driver::handleDestination( Frame::Buffer &buffer )
   {
-    HeaderMessage message = frame.getType();
+    HeaderMessage message = Frame::getHeaderTypeFromBuffer( buffer );
 
     switch ( message )
     {
@@ -279,12 +258,12 @@ namespace RF24::Network
     /*------------------------------------------------
     Getting here means the frame is destined for the user
     ------------------------------------------------*/
-    enqueue( frame );
+    enqueueRXPacket( buffer );
 
-    return MSG_NETWORK_ERR;
+    return message;
   }
 
-  HeaderMessage Driver::handlePassthrough( Frame::FrameType &frame )
+  HeaderMessage Driver::handlePassthrough( Frame::Buffer &buffer )
   {
     return MSG_NETWORK_ERR;
   }
@@ -310,6 +289,48 @@ namespace RF24::Network
   bool Driver::writeMulticast( Frame::FrameType &frame )
   {
     radio->startListening();
+    return false;
+  }
+
+  bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
+  {
+    if ( !rxQueue.empty() )
+    {
+      /*------------------------------------------------
+      Peek the next element and verify it contains data
+      ------------------------------------------------*/
+      Frame::Buffer tempBuffer;
+      auto element = rxQueue.peek();
+      bool validity = false;
+
+      if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
+      {
+        return false;
+      }
+
+      /*------------------------------------------------
+      Fill the buffer with zeros since it's likely not a full packet
+      ------------------------------------------------*/
+      tempBuffer.fill( 0 );
+      memcpy( tempBuffer.data(), element.payload, element.size );
+
+      /*------------------------------------------------
+      Refresh the user's frame with the buffer data and check the CRC
+      ------------------------------------------------*/
+      frame = tempBuffer;
+      validity = frame.valid();
+
+      /*------------------------------------------------
+      Optionally pop the data off the queue
+      ------------------------------------------------*/
+      if ( pop )
+      {
+        rxQueue.pop( element.payload, element.size );
+      }
+
+      return validity;
+    }
+
     return false;
   }
 

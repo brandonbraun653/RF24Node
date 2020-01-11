@@ -20,6 +20,7 @@
 
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
+#include <Chimera/threading.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/network/memory/heap.hpp>
@@ -32,7 +33,7 @@ namespace RF24::Network::Queue
     void *payload;  /**< Pointer to the data */
   };
 
-  class ManagedFIFO
+  class ManagedFIFO : public Chimera::Threading::Lockable
   {
   public:
     ManagedFIFO();
@@ -48,7 +49,11 @@ namespace RF24::Network::Queue
 
     Chimera::Status_t clear();
 
-    Element peekNextElement();
+    Element peek();
+
+    bool empty();
+
+    bool full();
 
   private:
     size_t element_depth;

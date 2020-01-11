@@ -17,7 +17,7 @@
 #include <RF24Node/common/utility.hpp>
 #include <RF24Node/endpoint/endpoint.hpp>
 
-namespace RF24
+namespace RF24::Endpoint
 {
   /*------------------------------------------------
   Static connection state machine possible actions
@@ -47,7 +47,7 @@ namespace RF24
    *  State machine for making a static (direct) connection to a node
    *  
    */
-  Chimera::Status_t Endpoint::makeStaticConnection( const size_t timeout )
+  Chimera::Status_t Device::makeStaticConnection( const size_t timeout )
   {
     /*------------------------------------------------
     Protect against multi-threaded access
@@ -104,6 +104,9 @@ namespace RF24
           frame.setDst( mConfig.network.parentStaticAddress );
           frame.setSrc( mConfig.network.nodeStaticAddress );
           frame.setType( Network::MSG_NET_REQUEST_BIND );
+          
+          // TODO: Update this function to be intelligent......
+          frame.setLength( sizeof( RF24::Network::Frame::PackedData ) - RF24::Network::Frame::PAYLOAD_SIZE );
 
           network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
           currentState = Static::CONNECT_WAIT_FOR_RESPONSE;
@@ -115,11 +118,11 @@ namespace RF24
           {
             network->peek( frame );
 
-            //if ( ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
-            //     ( header.getSourceNode() == mConfig.network.parentStaticAddress ) )
-            //{
-            //  currentState = Static::CONNECT_RESPONSE;
-            //}
+            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
+                 ( frame.getSrc() == mParentAddress ) )
+            {
+              currentState = Static::CONNECT_RESPONSE;
+            }
           }
 
           break;
@@ -130,14 +133,14 @@ namespace RF24
         case Static::CONNECT_RESPONSE:
           packetValidity = network->read( frame );
 
-          //if ( packetValidity && ( header.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
-          //{
-          //  currentState = Static::CONNECT_SUCCESS;
-          //}
-          //else
-          //{
-          //  currentState = Static::CONNECT_TERMINATE;
-          //}
+          if ( packetValidity && ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
+          {
+            currentState = Static::CONNECT_SUCCESS;
+          }
+          else
+          {
+            currentState = Static::CONNECT_TERMINATE;
+          }
           break;
 
         /*------------------------------------------------
@@ -181,10 +184,14 @@ namespace RF24
     return connectionResult;
   }
 
-  Chimera::Status_t Endpoint::makeMeshConnection( const size_t timeout )
+  Chimera::Status_t Device::makeMeshConnection( const size_t timeout )
   {
     return Chimera::CommonStatusCodes::TIMEOUT;
   }
 
-
+  
+  bool Device::bindChildNode( const ::RF24::LogicalAddress address )
+  {
+    return true;
+  }
 }

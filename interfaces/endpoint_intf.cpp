@@ -16,108 +16,88 @@
 
 #if defined( RF24DLL )
 
-Chimera::Status_t EP_configure( RF24::EndpointInterface *obj, const RF24::EndpointConfig *const cfg )
+Chimera::Status_t EP_configure( ::RF24::Endpoint::Interface *obj, const ::RF24::Endpoint::Config *const cfg )
 {
-  RF24::EndpointConfig localCfg;
+  ::RF24::Endpoint::Config localCfg;
 
-  memset( &localCfg, 0, sizeof( RF24::EndpointConfig ) );
-  memcpy( &localCfg, cfg, sizeof( RF24::EndpointConfig ) );
+  memset( &localCfg, 0, sizeof( ::RF24::Endpoint::Config ) );
+  memcpy( &localCfg, cfg, sizeof( ::RF24::Endpoint::Config ) );
 
   return obj->configure( localCfg );
 }
 
-Chimera::Status_t EP_setNetworkingMode( RF24::EndpointInterface *obj, const RF24::Network::Mode mode )
+Chimera::Status_t EP_setNetworkingMode( ::RF24::Endpoint::Interface *obj, const RF24::Network::Mode mode )
 {
   return obj->setNetworkingMode( mode );
 }
 
-Chimera::Status_t EP_setEnpointStaticAddress( RF24::EndpointInterface *obj, const RF24::LogicalAddress address )
+Chimera::Status_t EP_setEnpointStaticAddress( ::RF24::Endpoint::Interface *obj, const RF24::LogicalAddress address )
 {
   return obj->setEnpointStaticAddress( address );
 }
 
-Chimera::Status_t EP_setParentStaticAddress( RF24::EndpointInterface *obj, const RF24::LogicalAddress address )
+Chimera::Status_t EP_setParentStaticAddress( ::RF24::Endpoint::Interface *obj, const RF24::LogicalAddress address )
 {
   return obj->setParentStaticAddress( address );
 }
 
-Chimera::Status_t EP_requestAddress( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_requestAddress( ::RF24::Endpoint::Interface *obj )
 {
   return obj->requestAddress();
 }
 
-Chimera::Status_t EP_renewAddressReservation( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_renewAddressReservation( ::RF24::Endpoint::Interface *obj )
 {
   return obj->renewAddressReservation();
 }
 
-Chimera::Status_t EP_connect( RF24::EndpointInterface *obj, const size_t timeout )
+Chimera::Status_t EP_connect( ::RF24::Endpoint::Interface *obj, const size_t timeout )
 {
   return obj->connect( timeout );
 }
 
-Chimera::Status_t EP_disconnect( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_disconnect( ::RF24::Endpoint::Interface *obj )
 {
   return obj->disconnect();
 }
 
-Chimera::Status_t EP_reconnect( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_reconnect( ::RF24::Endpoint::Interface *obj )
 {
   return obj->reconnect();
 }
 
-Chimera::Status_t EP_onEvent( RF24::EndpointInterface *obj, const RF24::Event event, const RF24::EventFuncPtr_t function )
+Chimera::Status_t EP_onEvent( ::RF24::Endpoint::Interface *obj, const RF24::Event event, const RF24::EventFuncPtr_t function )
 {
   return obj->onEvent( event, function );
 }
 
-Chimera::Status_t EP_processMessageBuffers( RF24::EndpointInterface *obj )
-{
-  return obj->processMessageBuffers();
-}
-
-Chimera::Status_t EP_processDHCPServer( RF24::EndpointInterface *obj )
-{
-  return obj->processDHCPServer();
-}
-
-Chimera::Status_t EP_processMessageRequests( RF24::EndpointInterface *obj )
-{
-  return obj->processMessageRequests();
-}
-
-Chimera::Status_t EP_processEventHandlers( RF24::EndpointInterface *obj )
-{
-  return obj->processEventHandlers();
-}
-
-Chimera::Status_t EP_write( RF24::EndpointInterface *obj, const RF24::LogicalAddress dst, const void *const data,
+Chimera::Status_t EP_write( ::RF24::Endpoint::Interface *obj, const RF24::LogicalAddress dst, const void *const data,
                             const size_t length )
 {
   return obj->write( dst, data, length );
 }
 
-Chimera::Status_t EP_read( RF24::EndpointInterface *obj, void *const data, const size_t length )
+Chimera::Status_t EP_read( ::RF24::Endpoint::Interface *obj, void *const data, const size_t length )
 {
   return obj->read( data, length );
 }
 
-bool EP_packetAvailable( RF24::EndpointInterface *obj )
+bool EP_packetAvailable( ::RF24::Endpoint::Interface *obj )
 {
   return obj->packetAvailable();
 }
 
-size_t EP_nextPacketLength( RF24::EndpointInterface *obj )
+size_t EP_nextPacketLength( ::RF24::Endpoint::Interface *obj )
 {
   return obj->nextPacketLength();
 }
 
-RF24::EndpointStatus EP_getEndpointStatus( RF24::EndpointInterface *obj )
+RF24::Endpoint::Status EP_getEndpointStatus( ::RF24::Endpoint::Interface *obj )
 {
   return obj->getStatus();
 }
 
-Chimera::Status_t EP_isConnected( RF24::EndpointInterface *obj )
+Chimera::Status_t EP_isConnected( ::RF24::Endpoint::Interface *obj )
 {
   return obj->isConnected();
 }

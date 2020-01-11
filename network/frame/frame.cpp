@@ -10,6 +10,7 @@
 
 /* C++ Includes */
 #include <cstring>
+#include <cstddef>
 
 /* CRC Includes */
 #include "CRC.h"
@@ -156,6 +157,11 @@ namespace RF24::Network::Frame
     memcpy( &mData.header.type, &type, sizeof( RF24::Network::HeaderMessage ) );
   }
 
+  void FrameType::setLength( const Length len )
+  {
+    memcpy( &mData.length, &len, sizeof( Length ) );
+  }
+
   /*------------------------------------------------
   Private Functions
   ------------------------------------------------*/
@@ -175,6 +181,64 @@ namespace RF24::Network::Frame
   const RF24::Network::Frame::PackedData *const FrameType::getPackedData()
   {
     return &mData;
+  }
+
+  ::RF24::Network::HeaderMessage getHeaderTypeFromBuffer( const Buffer &buffer )
+  {
+    using namespace ::RF24::Network;
+
+    HeaderMessage msg         = MSG_NO_MESSAGE;
+    constexpr auto hdrOffset  = offsetof( PackedData, header );
+    constexpr auto typeOffset = offsetof( PackedHeader, type );
+    auto readPtr              = buffer.data() + hdrOffset + typeOffset;
+
+    memcpy( &msg, readPtr, sizeof( msg ) );
+    return msg;
+  }
+
+  Length getFrameLengthFromBuffer( const Buffer &buffer )
+  {
+    Length len               = 0;
+    constexpr auto lenOffset = offsetof( PackedData, length );
+    auto readPtr             = buffer.data() + lenOffset;
+
+    memcpy( &len, readPtr, sizeof( len ) );
+    return len;
+  }
+
+  CRC16_t getCRCFromBuffer( const Buffer &buffer )
+  {
+    CRC16_t temp = 0;
+    auto readPtr = buffer.data() + offsetof( PackedData, crc );
+
+    memcpy( &temp, readPtr, sizeof( temp ) );
+    return temp;
+  }
+
+  CRC16_t calculateCRCFromBuffer( const Buffer &buffer )
+  {
+    constexpr auto crcLen = sizeof( PackedData ) - sizeof( PackedData::crc );
+    auto readPtr          = buffer.data() + offsetof( PackedData, header );
+
+    return CRC::Calculate( readPtr, crcLen, CRC::CRC_16_ARC() );
+  }
+
+  RF24::LogicalAddress getDestinationFromBuffer( const Buffer &buffer )
+  {
+    RF24::LogicalAddress temp = 0;
+    auto readPtr              = buffer.data() + offsetof( PackedData, header ) + offsetof( PackedHeader, dstNode );
+    
+    memcpy( &temp, readPtr, sizeof( temp ) );
+    return temp;
+  }
+
+  RF24::LogicalAddress getSourceFromBuffer( const Buffer &buffer )
+  {
+    RF24::LogicalAddress temp = 0;
+    auto readPtr              = buffer.data() + offsetof( PackedData, header ) + offsetof( PackedHeader, srcNode );
+
+    memcpy( &temp, readPtr, sizeof( temp ) );
+    return temp;
   }
 
 }    // namespace RF24::Network::Frame

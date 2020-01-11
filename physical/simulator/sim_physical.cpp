@@ -219,6 +219,7 @@ namespace RF24::Physical
     {
       auto elem = RxFIFO.front();
       memcpy( buffer.data(), elem.payload.data(), length );
+      RxFIFO.pop();
       return Chimera::CommonStatusCodes::OK;
     }
     else

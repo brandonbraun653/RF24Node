@@ -19,6 +19,60 @@
 namespace RF24::Network::Frame
 {
   /**
+   *  Copies out the header message type found in the frame buffer
+   *
+   *  @param[in]  buffer      The raw frame buffer received from the hardware
+   *  @return HeaderMessage
+   */
+  ::RF24::Network::HeaderMessage getHeaderTypeFromBuffer( const Buffer &buffer );
+
+  /**
+   *  Returns the destination node address from the buffer
+   *
+   *	@param[in]	buffer      The raw frame buffer received from the hardware
+   *	@return RF24::LogicalAddress
+   */
+  LogicalAddress getDestinationFromBuffer( const Buffer &buffer );
+
+  /**
+   *  Returns the source node address from the buffer
+   *
+   *	@param[in]	buffer      The raw frame buffer received from the hardware
+   *	@return RF24::LogicalAddress
+   */
+  LogicalAddress getSourceFromBuffer( const Buffer &buffer );
+
+  /**
+   *  Returns the actual length of the frame stored in the buffer.
+   *
+   *  Due to dynamic payloads, the total length of the frame may not be the full
+   *  supported 32 bytes. Some pieces of data, like the header, are fixed in sized
+   *  and will always be present, but the payload can vary widely.
+   *
+   *  @param[in]  buffer      The raw frame buffer received from the hardware
+   *  @return Length
+   */
+  Length getFrameLengthFromBuffer( const Buffer &buffer );
+
+  /**
+   *	Returns the CRC field of the buffer (does not calculate it)
+   *
+   *	@param[in]	buffer      The raw frame buffer received from the hardware
+   *	@return RF24::Network::Frame::CRC16_t
+   */
+  CRC16_t getCRCFromBuffer( const Buffer &buffer );
+
+  /**
+   *	Returns the current calculated CRC of the buffer. Note that this is not the
+   *  same as reading the CRC field from this buffer.
+   *
+   *	@param[in]	buffer      The raw frame buffer received from the hardware
+   *	@return RF24::Network::Frame::CRC16_t
+   */
+  CRC16_t calculateCRCFromBuffer( const Buffer &buffer );
+
+
+  /**
    *   Base frame structure for sending messages around
    *
    *
@@ -41,7 +95,7 @@ namespace RF24::Network::Frame
     void operator=( const FrameType &frame );
     void operator=( const PackedData &rawFrame );
 
-    bool operator==( const FrameType &rhs);
+    bool operator==( const FrameType &rhs );
 
     /**
      *  Empties the frame and fills it with zeros
@@ -50,8 +104,8 @@ namespace RF24::Network::Frame
     void clear();
 
     /**
-     *  Calculates the CRC of the current data and compares it to the 
-     *  actual CRC given in the Frame. If the two match, the data is 
+     *  Calculates the CRC of the current data and compares it to the
+     *  actual CRC given in the Frame. If the two match, the data is
      *  assumed to be valid.
      *
      *  @return bool
@@ -79,6 +133,7 @@ namespace RF24::Network::Frame
     void setDst( const RF24::LogicalAddress dst );
     void setSrc( const RF24::LogicalAddress src );
     void setType( const RF24::Network::HeaderMessage type );
+    void setLength( const Length len );
 
   private:
     uint16_t calculateCRC();

@@ -19,9 +19,9 @@
 #include <RF24Node/physical/types.hpp>
 #include <RF24Node/network/types.hpp>
 
-namespace RF24
+namespace RF24::Endpoint
 {
-  struct EndpointConfig
+  struct Config
   {
     uint32_t version; /**< Version ID */
 
@@ -29,9 +29,15 @@ namespace RF24
     Physical::Config physical; /**< Physical layer configuration */
   };
 
-  struct EndpointStatus
+  struct Status
   {
     bool connected;
+  };
+
+  struct Node
+  {
+    LogicalAddress logicalAddress;
+    PhysicalAddress physicalAddress;
   };
 }
 
