@@ -25,7 +25,6 @@
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/network/types.hpp>
 #include <RF24Node/network/frame/frame.hpp>
-#include <RF24Node/network/node/node.hpp>
 
 /* uLog Includes */
 #include <uLog/ulog.hpp>

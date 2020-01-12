@@ -24,7 +24,6 @@
 #include <RF24Node/common/conversion.hpp>
 #include <RF24Node/physical/simulator/shockburst_types.hpp>
 #include <RF24Node/network/definitions.hpp>
-#include <RF24Node/network/node/node.hpp>
 
 namespace RF24::Physical::Conversion
 {

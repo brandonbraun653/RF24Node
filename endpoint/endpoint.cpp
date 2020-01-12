@@ -22,7 +22,9 @@
 /* RF24 Includes */
 #include <RF24Node/common/conversion.hpp>
 #include <RF24Node/common/utility.hpp>
+#include <RF24Node/endpoint/connection.hpp>
 #include <RF24Node/endpoint/endpoint.hpp>
+#include <RF24Node/endpoint/registration.hpp>
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/network/network.hpp>
 #include <RF24Node/network/queue/queue.hpp>
@@ -41,13 +43,13 @@ void delete__Endpoint( RF24::Endpoint::Device *obj )
 
 namespace RF24::Endpoint
 {
-  Device::Device()
+  Device::Device() : mConectionManager( *this )
   {
     /*------------------------------------------------
     Initialize class vars
     ------------------------------------------------*/
     memset( &mConfig, 0, sizeof( Config ) );
-    memset( mNodeName, 0, sizeof( mNodeName ) );
+    memset( mDeviceName, 0, sizeof( mDeviceName ) );
     mDeviceAddress = 0;
     mParentAddress = 0;
 
@@ -112,7 +114,6 @@ namespace RF24::Endpoint
     return configResult;
   }
 
-  
   void Device::setName( const std::string_view &name )
   {
     /*------------------------------------------------
@@ -121,15 +122,15 @@ namespace RF24::Endpoint
     size_t bytesToCopy = name.size();
     if ( bytesToCopy > MAX_CHARS_IN_DEVICE_NAME )
     {
-      static_assert( sizeof( mNodeName ) == MAX_CHARS_IN_DEVICE_NAME + 1u, "Invalid device name array length" );
+      static_assert( sizeof( mDeviceName ) == MAX_CHARS_IN_DEVICE_NAME + 1u, "Invalid device name array length" );
       bytesToCopy = MAX_CHARS_IN_DEVICE_NAME;
     }
 
     /*------------------------------------------------
     Force null terminate regardless of previous data
     ------------------------------------------------*/
-    memset( mNodeName, 0, sizeof( mNodeName ) );
-    memcpy( mNodeName, name.data(), bytesToCopy );
+    memset( mDeviceName, 0, sizeof( mDeviceName ) );
+    memcpy( mDeviceName, name.data(), bytesToCopy );
   }
 
   Chimera::Status_t Device::setNetworkingMode( const ::RF24::Network::Mode mode )
@@ -182,11 +183,11 @@ namespace RF24::Endpoint
     switch ( mConfig.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
-        return makeStaticConnection( timeout );
+        return mConectionManager.makeStaticConnection( timeout );
         break;
 
       case Network::Mode::NET_MODE_MESH:
-        return makeMeshConnection( timeout );
+        return mConectionManager.makeMeshConnection( timeout );
         break;
 
       case Network::Mode::NET_MODE_INVALID:
@@ -246,10 +247,10 @@ namespace RF24::Endpoint
         response.setSrc( mDeviceAddress );
         response.setDst( frame.getSrc() );
         response.setType( Network::MSG_NET_REQUEST_BIND_FULL );
-        response.setLength( sizeof( RF24::Network::Frame::PackedData ) - RF24::Network::Frame::PAYLOAD_SIZE );
+        response.setLength( RF24::Network::Frame::EMPTY_PAYLOAD_SIZE );
 
         // Will likely need to get original sender for multi hop??? Maybe add it in the payload.
-        if ( bindChildNode( frame.getSrc() ) )
+        if ( mRegistrationManager.bind( frame.getSrc() ) )
         {
           response.setType( Network::MSG_NET_REQUEST_BIND_ACK );
         }
@@ -413,6 +414,8 @@ namespace RF24::Endpoint
 
     return Chimera::CommonStatusCodes::OK;
   }
+
+
 
 
 }    // namespace RF24

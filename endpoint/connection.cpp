@@ -1,23 +1,25 @@
 /********************************************************************************
-*  File Name:
-*    endpoint_connection.cpp
-*
-*  Description:
-*    
-*
-*  2019 | Brandon Braun | brandonbraun653@gmail.com
-********************************************************************************/
+ *  File Name:
+ *    endpoint_connection.cpp
+ *
+ *  Description:
+ *
+ *
+ *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
 
 /* C++ Includes */
 
 /* Chimera Includes */
 #include <Chimera/chimera.hpp>
+#include <Chimera/threading.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/common/utility.hpp>
+#include <RF24Node/endpoint/connection.hpp>
 #include <RF24Node/endpoint/endpoint.hpp>
 
-namespace RF24::Endpoint
+namespace RF24::Endpoint::Internal
 {
   /*------------------------------------------------
   Static connection state machine possible actions
@@ -43,16 +45,22 @@ namespace RF24::Endpoint
     CONNECT_EXIT_LOOP
   };
 
-  /**
-   *  State machine for making a static (direct) connection to a node
-   *  
-   */
-  Chimera::Status_t Device::makeStaticConnection( const size_t timeout )
+  
+  ConnectionManager::ConnectionManager( ::RF24::Endpoint::Device &endpoint ) : endpoint( endpoint )
+  {
+    
+  }
+
+  ConnectionManager::~ConnectionManager()
+  {
+  }
+
+  Chimera::Status_t ConnectionManager::makeStaticConnection( const size_t timeout )
   {
     /*------------------------------------------------
     Protect against multi-threaded access
     ------------------------------------------------*/
-    auto lockGuard        = Chimera::Threading::LockGuard( *this );
+    auto lockGuard = Chimera::Threading::LockGuard( endpoint );
     if ( !lockGuard.lock() )
     {
       return ::Chimera::CommonStatusCodes::LOCKED;
@@ -73,9 +81,7 @@ namespace RF24::Endpoint
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      network->updateRX();
-      // The network layer might need to disable certain kinds of communication until it knows we are connected...
-      // perhaps use "services" to describe this? Bit field....forward to parent, consume, DHCP, etc.
+      endpoint.network->updateRX();
 
       /*------------------------------------------------
       Handle the current state
@@ -91,8 +97,8 @@ namespace RF24::Endpoint
           No point in continuing if parent/child addresses
           are invalid. Parent is allowed to be any valid address.
           ------------------------------------------------*/
-          if ( !( isAddressValid( mConfig.network.parentStaticAddress ) &&
-                  isAddressChild( mConfig.network.nodeStaticAddress ) ) )
+          if ( !( isAddressValid( endpoint.mConfig.network.parentStaticAddress ) &&
+                  isAddressChild( endpoint.mConfig.network.nodeStaticAddress ) ) )
           {
             currentState = Static::CONNECT_TERMINATE;
           }
@@ -100,38 +106,39 @@ namespace RF24::Endpoint
           currentState = Static::CONNECT_REQUEST;
           break;
 
+        /*------------------------------------------------
+        Make the request to the configured nodes 
+        ------------------------------------------------*/
         case Static::CONNECT_REQUEST:
-          frame.setDst( mConfig.network.parentStaticAddress );
-          frame.setSrc( mConfig.network.nodeStaticAddress );
+          frame.setDst( endpoint.mConfig.network.parentStaticAddress );
+          frame.setSrc( endpoint.mConfig.network.nodeStaticAddress );
           frame.setType( Network::MSG_NET_REQUEST_BIND );
-          
-          // TODO: Update this function to be intelligent......
-          frame.setLength( sizeof( RF24::Network::Frame::PackedData ) - RF24::Network::Frame::PAYLOAD_SIZE );
+          frame.setLength( RF24::Network::Frame::EMPTY_PAYLOAD_SIZE );
 
-          network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
+          endpoint.network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
           currentState = Static::CONNECT_WAIT_FOR_RESPONSE;
           break;
 
+        /*------------------------------------------------
+        Wait for the potential parent node to respond
+        ------------------------------------------------*/
         case Static::CONNECT_WAIT_FOR_RESPONSE:
-          
-          if ( network->available() )
+          if ( endpoint.network->available() )
           {
-            network->peek( frame );
+            endpoint.network->peek( frame );
 
-            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
-                 ( frame.getSrc() == mParentAddress ) )
+            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) && ( frame.getSrc() == endpoint.mParentAddress ) )
             {
               currentState = Static::CONNECT_RESPONSE;
             }
           }
-
           break;
 
         /*------------------------------------------------
         Check the response from the parent node to see if we connected
         ------------------------------------------------*/
         case Static::CONNECT_RESPONSE:
-          packetValidity = network->read( frame );
+          packetValidity = endpoint.network->read( frame );
 
           if ( packetValidity && ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
           {
@@ -147,11 +154,9 @@ namespace RF24::Endpoint
         Connected and registered with the parent device
         ------------------------------------------------*/
         case Static::CONNECT_SUCCESS:
-          // Send ACK back.
-
           connectionResult = true;
-          currentState = Static::CONNECT_EXIT_LOOP;
-          startTime = Chimera::millis(); // Prevent the timeout check from firing
+          currentState     = Static::CONNECT_EXIT_LOOP;
+          startTime        = Chimera::millis();    // Prevent the timeout check from firing
           break;
 
         /*------------------------------------------------
@@ -159,9 +164,10 @@ namespace RF24::Endpoint
         ------------------------------------------------*/
         case Static::CONNECT_TERMINATE:
           connectionResult = false;
-          currentState = Static::CONNECT_EXIT_LOOP;
+          currentState     = Static::CONNECT_EXIT_LOOP;
+          startTime        = Chimera::millis();    // Prevent the timeout check from firing
           break;
-        
+
         /*------------------------------------------------
         Immediately signal the loop to go through exit process
         ------------------------------------------------*/
@@ -177,21 +183,16 @@ namespace RF24::Endpoint
       {
         currentState = Static::CONNECT_TERMINATE;
       }
-      
+
+      /* Yield cause we want to run as fast as possible without blocking other threads */
       Chimera::Threading::yield();
     }
 
     return connectionResult;
   }
 
-  Chimera::Status_t Device::makeMeshConnection( const size_t timeout )
+  Chimera::Status_t ConnectionManager::makeMeshConnection( const size_t timeout )
   {
     return Chimera::CommonStatusCodes::TIMEOUT;
   }
-
-  
-  bool Device::bindChildNode( const ::RF24::LogicalAddress address )
-  {
-    return true;
-  }
-}
+}    // namespace RF24::Endpoint

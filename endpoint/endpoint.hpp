@@ -28,7 +28,9 @@
 #include <uLog/types.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/endpoint/connection.hpp>
 #include <RF24Node/endpoint/config.hpp>
+#include <RF24Node/endpoint/registration.hpp>
 #include <RF24Node/interfaces/endpoint_intf.hpp>
 #include <RF24Node/interfaces/network_intf.hpp>
 #include <RF24Node/interfaces/physical_intf.hpp>
@@ -37,6 +39,9 @@
 
 namespace RF24::Endpoint
 {
+  /**
+   *  Primary interface that describes interaction with an RF24L01 device node.
+   */
   class Device : public Interface, public Chimera::Threading::Lockable
   {
   public:
@@ -72,31 +77,9 @@ namespace RF24::Endpoint
     void setName( const std::string_view &name ) final override;
 
   protected:
-    /**
-     *	Makes a connection to the network using previously configured addressing
-     *  information.
-     *
-     *  @note   setEndpointStaticAddress() and setParentStaticAddress() need to be
-     *          called before this function will succeed.
-     *
-     *	@param[in]	timeout
-     *	@return Chimera::Status_t
-     */
-    Chimera::Status_t makeStaticConnection( const size_t timeout );
+    friend Internal::RegistrationManager;
+    friend Internal::ConnectionManager;
 
-    /**
-     *	Makes a connection to the network and requests an address from the DHCP provider.
-     *  This is done dynamically, so no previously configured addressing information is needed.
-     *
-     *	@param[in]	timeout       Timeout in milliseconds for connection to succeed
-     *	@return Chimera::Status_t
-     */
-    Chimera::Status_t makeMeshConnection( const size_t timeout );
-
-
-    bool bindChildNode( const LogicalAddress address );
-
-  private:
     Config mConfig;                    /**< User endpoint configuration for this node */
     Physical::Interface_sPtr physical; /**< Physical layer object */
     Network::Interface_uPtr network;   /**< Network layer object */
@@ -105,15 +88,18 @@ namespace RF24::Endpoint
     LogicalAddress mDeviceAddress;
     LogicalAddress mParentAddress;
 
-    char mNodeName[ MAX_CHARS_IN_DEVICE_NAME + 1u ];
+  private:
+    char mDeviceName[ MAX_CHARS_IN_DEVICE_NAME + 1u ];
 
+    Internal::RegistrationManager mRegistrationManager;
+    Internal::ConnectionManager mConectionManager;
 
     Chimera::Status_t initHardwareLayer();
     Chimera::Status_t initPhysicalLayer();
     Chimera::Status_t initNetworkLayer();
     Chimera::Status_t initMeshLayer();
   };
-}    // namespace RF24
+}    // namespace RF24::Endpoint
 
 /*------------------------------------------------
 Exported functions for construction/destruction of Endpoints
