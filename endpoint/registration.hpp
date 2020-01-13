@@ -45,11 +45,66 @@ namespace RF24::Endpoint::Internal
      */
     void detach( const RF24::LogicalAddress address );
 
-    template<typename Class>
-    bool detachable( const Class x );
+    /**
+     *  Checks if the device specified by 'address' has already been bound to a pipe
+     *
+     *	@param[in]	address       The address of the node to check
+     *	@return bool
+     */
+    bool isNodeBound( const RF24::LogicalAddress address );
 
-    template<typename Class>
-    bool isBound( const Class x );
+    /**
+     *  Checks if the given pipe already has a child bound to it
+     *
+     *	@param[in]	pipe          The pipe to check for a bound child
+     *	@return bool
+     */
+    bool isPipeBound( const RF24::Hardware::PipeNumber pipe );
+
+    /**
+     *	Looks up the logical address that has been bound to a given pipe
+     *
+     *	@param[in]	pipe          The pipe to return the bound address for
+     *	@return RF24::LogicalAddress
+     */
+    RF24::LogicalAddress getBoundAddress( const RF24::Hardware::PipeNumber pipe );
+
+    /**
+     *  Gets the pipe that the address is bound to via lookup through all
+     *  registered addresses.
+     *
+     *	@param[in]	address       The address of the node to check
+     *	@return RF24::Hardware::PipeNumber
+     */
+    RF24::Hardware::PipeNumber getBoundPipe( const RF24::LogicalAddress address );
+
+    /**
+     *	Gets the Node structure that was bound to the given pipe
+     *
+     *	@param[in]	pipe          The pipe to return the bound node for
+     *	@return RF24::Endpoint::Node
+     */
+    const RF24::Endpoint::Node *const getBoundNode( const RF24::LogicalAddress pipe );
+
+  protected:
+    /**
+     *	Resets the registration structure for the given pipe, effectively
+     *  detaching that node from the parent.
+     *
+     *	@param[in]	pipe          The pipe to be reset
+     *	@return void
+     */
+    void resetRegistration( const RF24::Hardware::PipeNumber pipe );
+
+    /**
+     *	Binds a new address to the given pipe and performs any initialization
+     *  steps needed to complete the binding process.
+     *
+     *	@param[in]	pipe          The pipe to bind the address to
+     *	@param[in]	address       The address to be bound
+     *	@return bool
+     */
+    bool initRegistration( const RF24::Hardware::PipeNumber pipe, const RF24::LogicalAddress address );
 
   private:
     std::array<Node, RF24::Hardware::MAX_NUM_PIPES> mChildren;

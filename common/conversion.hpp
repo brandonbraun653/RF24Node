@@ -75,6 +75,13 @@ namespace RF24::Physical::Conversion
    */
   PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum );
 
+  /**
+   *	
+   *	
+   *	@param[in]	address
+   *	@return RF24::Hardware::PipeNumber
+   */
+   RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address );
 }
 
 #endif	/* !RF24_NODE_PHYSICAL_SIMULATOR_CONVERSION_HPP */

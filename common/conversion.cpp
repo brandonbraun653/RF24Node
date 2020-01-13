@@ -22,6 +22,7 @@
 
 /* RF24 Includes */
 #include <RF24Node/common/conversion.hpp>
+#include <RF24Node/common/utility.hpp>
 #include <RF24Node/physical/simulator/shockburst_types.hpp>
 #include <RF24Node/network/definitions.hpp>
 
@@ -96,6 +97,29 @@ namespace RF24::Physical::Conversion
     return encodeAddress( actualIP, actualPort );
   }
 
+  RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address )
+  {
+    auto level = getLevel( address );
+    
+    if ( level == RF24::NODE_LEVEL_1 )
+    {
+      /*------------------------------------------------
+      This node is directly connected to a root. The ID returned
+      here is exactly equal to root node RX pipe number.
+      ------------------------------------------------*/
+      auto id = getIdAtLevel( address, level );
+      return static_cast<RF24::Hardware::PipeNumber>( level );
+    }
+    else
+    {
+      /*------------------------------------------------
+      By using the level just one above this node, we can get the 
+      id of the pipe that this node is connected to on the parent.
+      ------------------------------------------------*/
+      auto id = getIdAtLevel( address, level - 1 );
+      return static_cast<RF24::Hardware::PipeNumber>( id );
+    }
+  }
 
   #else  /* !RF24_SIMULATOR */
 
@@ -187,6 +211,7 @@ namespace RF24::Physical::Conversion
 
     return result;
   }
+
 
   #endif /* RF24_SIMULATOR */
 

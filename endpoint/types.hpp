@@ -18,13 +18,13 @@
 /* RF24 Includes */
 #include <RF24Node/physical/types.hpp>
 #include <RF24Node/network/types.hpp>
+#include <RF24Node/network/definitions.hpp>
 
 namespace RF24::Endpoint
 {
   struct Config
   {
-    uint32_t version; /**< Version ID */
-
+    uint32_t version;          /**< Version ID */
     Network::Config network;   /**< Network layer configuration */
     Physical::Config physical; /**< Physical layer configuration */
   };
@@ -34,8 +34,19 @@ namespace RF24::Endpoint
     bool connected;
   };
 
-  struct Node
+  class Node
   {
+  public:
+    Node()
+    {
+      logicalAddress  = RF24::Network::RSVD_ADDR_INVALID;
+      physicalAddress = 0u;
+    }
+
+    ~Node()
+    {
+    }
+
     LogicalAddress logicalAddress;
     PhysicalAddress physicalAddress;
   };
