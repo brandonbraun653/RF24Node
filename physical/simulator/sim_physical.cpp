@@ -51,7 +51,8 @@ namespace RF24::Physical
     ioService.reset();
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
-      mDataPipes[ x ] = std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService );
+      mDataPipes[ x ] =
+          std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService, cfg.deviceName );
     }
 
     /*------------------------------------------------
@@ -234,9 +235,9 @@ namespace RF24::Physical
     if ( TxFIFO.size() < RF24::Physical::Shockburst::FIFO_QUEUE_MAX_SIZE )
     {
       FIFOElement elem;
-      elem.pipe = RF24::Hardware::PIPE_NUM_0;
+      elem.pipe    = RF24::Hardware::PIPE_NUM_0;
       elem.payload = buffer;
-      elem.size = length;
+      elem.size    = length;
 
       TxFIFO.push( elem );
       return Chimera::CommonStatusCodes::OK;
@@ -367,12 +368,13 @@ namespace RF24::Physical
             }
             else
             {
-              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full\n", Chimera::millis(), x );
+              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full\n",
+                            Chimera::millis(), x );
             }
           }
         }
 
-        //there are multiple threads being created....
+        // there are multiple threads being created....
 
         /*------------------------------------------------
         Handle TX Payloads
@@ -401,7 +403,7 @@ namespace RF24::Physical
     }
     catch ( const std::exception & )
     {
-      //Exiting
+      // Exiting
     }
   }
 

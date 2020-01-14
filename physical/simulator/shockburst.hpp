@@ -37,7 +37,7 @@ namespace RF24::Physical::Shockburst
   class Socket
   {
   public:
-    Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service );
+    Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service, const std::string name );
     ~Socket();
 
     /**

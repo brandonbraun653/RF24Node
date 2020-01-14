@@ -22,8 +22,9 @@
 
 namespace RF24::Physical::Shockburst
 {
-  Socket::Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service ) :
-      rxPipe( io_service ), txPipe( io_service ), pipeID( pipe )
+  Socket::Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service, const std::string name ) :
+      rxPipe( io_service, name, static_cast<size_t>( pipe ) ), txPipe( io_service, name, static_cast<size_t>( pipe ) ),
+      pipeID( pipe )
   {
     mHasUserTxPipe      = false;
     mUseDynamicPayloads = false;

@@ -15,6 +15,7 @@
 /* C++ Includes */
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 
 /* Chimera Includes */
 #include <Chimera/types/spi_types.hpp>
@@ -35,6 +36,10 @@ namespace RF24::Physical
 
 #if !defined( RF24API )
     Chimera::SPI::DriverConfig spiConfig;
+#endif
+
+#if defined( RF24_SIMULATOR )
+    std::string deviceName;
 #endif
   };
 

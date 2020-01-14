@@ -101,6 +101,9 @@ namespace RF24::Endpoint
     else
     {
       mConfig = cfg;
+#if defined( RF24_SIMULATOR )
+      mConfig.physical.deviceName = cfg.physical.deviceName;
+#endif 
     }
 
     /*------------------------------------------------

@@ -38,7 +38,7 @@ namespace RF24::Physical::Pipe
   class TX
   {
   public:
-    TX( boost::asio::io_service &io_service );
+    TX(boost::asio::io_service &io_service, const std::string name, const size_t pipe );
     ~TX();
 
     /**
@@ -57,10 +57,10 @@ namespace RF24::Physical::Pipe
 
     /**
      *  Checks if the pipe is currently open
-     *	
+     *
      *	@return bool
      */
-     bool isOpen();
+    bool isOpen();
 
     /**
      *  Writes raw data to the configured RX pipe
@@ -97,12 +97,14 @@ namespace RF24::Physical::Pipe
     TXPipeCallback mUserCallback;           /**< User callback for RX event */
 
     uLog::SinkHandle mLogger;
+    const std::string mName;
+    const size_t mPipeNumber;
   };
 
   class RX
   {
   public:
-    RX( boost::asio::io_service &io_service );
+    RX( boost::asio::io_service &io_service, const std::string name, const size_t pipe  );
     ~RX();
 
     /**
@@ -137,7 +139,7 @@ namespace RF24::Physical::Pipe
 
     /**
      *  Checks if the pipe is currently listening
-     *  
+     *
      *  @return bool
      */
     bool isListening();
@@ -199,6 +201,8 @@ namespace RF24::Physical::Pipe
     std::recursive_mutex mBufferLock;       /**< Lock for the FIFO message queue */
 
     uLog::SinkHandle mLogger;
+    const std::string mName;
+    const size_t mPipeNumber;
   };
 
 }    // namespace RF24::Physical::Pipe

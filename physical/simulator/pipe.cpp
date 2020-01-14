@@ -15,6 +15,9 @@
 #include <boost/chrono.hpp>
 #include <boost/thread.hpp>
 
+/* Chimera Includes */
+#include <Chimera/chimera.hpp>
+
 /* Logger Includes */
 #include <uLog/types.hpp>
 #include <uLog/ulog.hpp>
@@ -34,7 +37,8 @@ namespace RF24::Physical::Pipe
   /*------------------------------------------------
   TX Pipe Implementation
   ------------------------------------------------*/
-  TX::TX( boost::asio::io_service &io_service ) : mTXSocket( io_service ), mIOService( io_service )
+  TX::TX( boost::asio::io_service &io_service, const std::string name, const size_t pipe ) :
+      mTXSocket( io_service ), mIOService( io_service ), mName( name ), mPipeNumber( pipe )
   {
     mTXThread     = {};
     mUserCallback = nullptr;
@@ -100,7 +104,8 @@ namespace RF24::Physical::Pipe
     auto ip   = address_v4::from_string( Conversion::decodeIP( data ) );
     auto port = Conversion::decodePort( data );
 
-    mLogger->flog( Level::LVL_DEBUG, "PIPE: TX to IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
+    mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: TX to IP[%s] on Port[%d]\n", Chimera::millis(), 
+      mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
 
     memcpy( mBuffer.data(), data.data(), mBuffer.size() );
     mTXSocket.async_send_to( boost::asio::buffer( mBuffer ), udp::endpoint( ip, port ),
@@ -167,7 +172,8 @@ namespace RF24::Physical::Pipe
   /*------------------------------------------------
   RX Pipe Implementation
   ------------------------------------------------*/
-  RX::RX( boost::asio::io_service &io_service ) : mIOService( io_service ), mRXSocket( io_service )
+  RX::RX( boost::asio::io_service &io_service, const std::string name, const size_t pipe  ) : 
+    mIOService( io_service ), mRXSocket( io_service ), mName( name ), mPipeNumber( pipe )
   {
     mAllowListening   = false;
     mRXEventProcessed = false;
@@ -259,6 +265,7 @@ namespace RF24::Physical::Pipe
     ------------------------------------------------*/
     std::lock_guard<std::recursive_mutex> guard( mBufferLock );
     RF24::Physical::Shockburst::PacketBuffer temp;
+    temp.fill( 0 );
 
     if ( available() )
     {
@@ -350,7 +357,8 @@ namespace RF24::Physical::Pipe
 
     auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
     auto port = Conversion::decodePort( mBuffer );
-    mLogger->flog( Level::LVL_DEBUG, "PIPE: RX from IP[%s] on Port[%d]\n", ip.to_string().c_str(), port );
+    mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: RX from IP[%s] on Port[%d]\n", Chimera::millis(),
+      mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
 
     /*------------------------------------------------
     Handle the user's callback
