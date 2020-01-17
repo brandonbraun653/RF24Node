@@ -9,6 +9,7 @@
  ********************************************************************************/
 
 /* C++ Includes */
+#include <cstring>
 
 /* Chimera Includes */
 #include <Chimera/threading.hpp>

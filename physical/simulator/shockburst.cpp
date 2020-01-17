@@ -9,6 +9,8 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+#if defined( _WIN32 ) || defined( _WIN64 )
+
 /* C++ Includes */
 #include <mutex>
 
@@ -199,3 +201,5 @@ namespace RF24::Physical::Shockburst
   }
 
 }    // namespace RF24::Physical::Shockburst
+
+#endif /* _WIN32 || _WIN64 */

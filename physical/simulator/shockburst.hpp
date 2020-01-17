@@ -12,6 +12,8 @@
 #ifndef RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_HPP
 #define RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_HPP
 
+#if defined( _WIN32 ) || defined( _WIN64 )
+
 /* C++ Includes */
 #include <array>
 #include <memory>
@@ -176,4 +178,6 @@ namespace RF24::Physical::Shockburst
   using DataPipe_uPtr = std::unique_ptr<Socket>;
 }    // namespace RF24::Physical::Shockburst
 
+
+#endif /* _WIN32 || _WIN64 */
 #endif /* !RF24_NODE_PHYSICAL_SIMULATOR_SHOCKBURST_HPP */

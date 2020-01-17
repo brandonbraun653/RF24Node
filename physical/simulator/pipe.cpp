@@ -8,6 +8,8 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
+#if defined( _WIN32 ) || defined( _WIN64 )
+
 /* C++ Includes */
 #include <type_traits>
 
@@ -372,3 +374,5 @@ namespace RF24::Physical::Pipe
   }
 
 }    // namespace RF24::Physical::Pipe
+
+#endif /* _WIN32 || _WIN64 */

@@ -79,10 +79,11 @@ namespace RF24::Physical
     Chimera::Status_t closeReadPipe( const RF24::Hardware::PipeNumber pipe ) final override;
     RF24::Hardware::PipeNumber payloadAvailable() final override;
     size_t getPayloadSize( const RF24::Hardware::PipeNumber pipe ) final override;
-    Chimera::Status_t readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength ) final override;
-    Chimera::Status_t immediateWrite( const void *const buffer, const size_t len, const bool multicast = false ) final override;
+    Chimera::Status_t readPayload( RF24::Network::Frame::Buffer &buffer, const size_t length ) final override;
+    Chimera::Status_t immediateWrite( const RF24::Network::Frame::Buffer &buffer, const size_t length ) final override;
     Chimera::Status_t txStandBy( const size_t timeout, const bool startTx = false ) final override;
-    Chimera::Status_t stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len ) final override;
+    Chimera::Status_t stageAckPayload( const RF24::Hardware::PipeNumber pipe, const RF24::Network::Frame::Buffer &buffer,
+                                       size_t length ) final override;
 
     Reg8_t flushTX() final override;
     Reg8_t flushRX() final override;

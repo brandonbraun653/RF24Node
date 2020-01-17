@@ -505,11 +505,11 @@ namespace RF24::Physical
     return 0u;
   }
 
-  Chimera::Status_t HardwareDriver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
+  Chimera::Status_t HardwareDriver::readPayload( RF24::Network::Frame::Buffer &buffer, const size_t length )
   {
     using namespace RF24::Hardware;
 
-    auto status = mHWDriver->readPayload( buffer, bufferLength, payloadLength );
+    //auto status = mHWDriver->readPayload( buffer, bufferLength, payloadLength );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1
@@ -517,10 +517,10 @@ namespace RF24::Physical
     Reg8_t statusVal = STATUS_RX_DR | STATUS_MAX_RT | STATUS_TX_DS;
     mHWDriver->writeRegister( REG_STATUS, statusVal );
 
-    return Chimera::CommonStatusCodes::OK;
+    return Chimera::CommonStatusCodes::FAIL;
   }
 
-  Chimera::Status_t HardwareDriver::immediateWrite( const void *const buffer, const size_t len, const bool multicast )
+  Chimera::Status_t HardwareDriver::immediateWrite( const RF24::Network::Frame::Buffer &buffer, const size_t length )
   {
     using namespace RF24::Hardware;
 
@@ -565,7 +565,8 @@ namespace RF24::Physical
     /*------------------------------------------------
     We're free! Load the data into the FIFO and kick off the transfer
     ------------------------------------------------*/
-    return startFastWrite( buffer, len, multicast, true );
+    // return startFastWrite( buffer, len, multicast, true );
+    return Chimera::CommonStatusCodes::FAIL;
   }
 
   Chimera::Status_t HardwareDriver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
@@ -676,8 +677,8 @@ namespace RF24::Physical
     return Chimera::CommonStatusCodes::OK;
   }
 
-
-  Chimera::Status_t HardwareDriver::stageAckPayload( const uint8_t pipe, const uint8_t *const buffer, size_t len )
+  Chimera::Status_t HardwareDriver::stageAckPayload( const RF24::Hardware::PipeNumber pipe,
+                                                     const RF24::Network::Frame::Buffer &buffer, size_t length )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }

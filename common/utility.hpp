@@ -102,7 +102,7 @@ namespace RF24
    *	@param[in]	level
    *	@return RF24::LogicalID
    */
-  constexpr LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level );
+  extern constexpr LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level );
 }    // namespace RF24
 
 #endif /* !RF24_NODE_COMMON_UTILITY_HPP */

@@ -12,6 +12,8 @@
 #ifndef RF24_NODE_PHYSICAL_SIMULATOR_PIPE_HPP
 #define RF24_NODE_PHYSICAL_SIMULATOR_PIPE_HPP
 
+#if defined( _WIN32 ) || defined( _WIN64 )
+
 /* C++ Includes */
 #include <atomic>
 #include <string>
@@ -207,4 +209,5 @@ namespace RF24::Physical::Pipe
 
 }    // namespace RF24::Physical::Pipe
 
+#endif /* _WIN32 || _WIN64 */
 #endif /* !RF24_NODE_PHYSICAL_SIMULATOR_PIPE_HPP */

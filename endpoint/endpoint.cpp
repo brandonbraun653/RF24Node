@@ -62,7 +62,7 @@ namespace RF24::Endpoint
 #if defined( RF24_SIMULATOR )
     physical = std::make_shared<Physical::SimulatorDriver>();
 #else
-    #error Need to initialize the hardware based physical driver
+    #warning  Need to initialize the hardware based physical driver
 #endif 
   }
 
@@ -325,7 +325,7 @@ namespace RF24::Endpoint
   Chimera::Status_t Device::initHardwareLayer()
   {
 #if !defined( RF24_SIMULATOR )
-#error Need initialization of the hardware layer
+#warning  Need initialization of the hardware layer
 #endif
     return Chimera::CommonStatusCodes::OK;
   }

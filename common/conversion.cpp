@@ -11,7 +11,9 @@
 /* C++ Includes */
 
 /* Boost Includes */
+#if defined( RF24_SIMULATOR )
 #include <boost/asio.hpp>
+#endif 
 
 /* uLog Includes */
 #include <uLog/ulog.hpp>
@@ -28,6 +30,31 @@
 
 namespace RF24::Physical::Conversion
 {
+  RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address )
+  {
+    auto level = getLevel( address );
+
+    if ( level == RF24::NODE_LEVEL_1 )
+    {
+      /*------------------------------------------------
+      This node is directly connected to a root. The ID returned
+      here is exactly equal to root node RX pipe number.
+      ------------------------------------------------*/
+      auto id = getIdAtLevel( address, level );
+      return static_cast<RF24::Hardware::PipeNumber>( level );
+    }
+    else
+    {
+      /*------------------------------------------------
+      By using the level just one above this node, we can get the
+      id of the pipe that this node is connected to on the parent.
+      ------------------------------------------------*/
+      auto id = getIdAtLevel( address, level - 1 );
+      return static_cast<RF24::Hardware::PipeNumber>( id );
+    }
+  }
+
+
 #if defined( RF24_SIMULATOR )
   static constexpr uint64_t IP_MASK         = 0xFFFFFFFF;
   static constexpr uint64_t IP_POS          = 0;
@@ -96,31 +123,6 @@ namespace RF24::Physical::Conversion
 
     return encodeAddress( actualIP, actualPort );
   }
-
-  RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address )
-  {
-    auto level = getLevel( address );
-    
-    if ( level == RF24::NODE_LEVEL_1 )
-    {
-      /*------------------------------------------------
-      This node is directly connected to a root. The ID returned
-      here is exactly equal to root node RX pipe number.
-      ------------------------------------------------*/
-      auto id = getIdAtLevel( address, level );
-      return static_cast<RF24::Hardware::PipeNumber>( level );
-    }
-    else
-    {
-      /*------------------------------------------------
-      By using the level just one above this node, we can get the 
-      id of the pipe that this node is connected to on the parent.
-      ------------------------------------------------*/
-      auto id = getIdAtLevel( address, level - 1 );
-      return static_cast<RF24::Hardware::PipeNumber>( id );
-    }
-  }
-
   #else  /* !RF24_SIMULATOR */
 
   PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber pipeNum )
@@ -139,77 +141,76 @@ namespace RF24::Physical::Conversion
     uint64_t result  = 0xCCCCCCCCCC;
     uint8_t *address = reinterpret_cast<uint8_t *>( &result );
 
+    return result; 
+
     /*------------------------------------------------
     If we want the master node (00), calculating the pipe address is easy. Simply
     replace the first bytes of the base address with the appropriate addressByte[].
     ------------------------------------------------*/
-    if ( !nodeID )
-    {
-      address[ 0 ] = addressBytePool[ pipeNum ];
-    }
-    else
-    {
-      RF24::Network::Node node;
-      node.fromOctal( nodeID );
-
-      /*------------------------------------------------
-      Calculate what byte goes at each level of the address scheme. The first byte
-      will always be associated with the pipe number. The remaining bytes are determined
-      like so (MSB -> LSB):
-
-      Level 0: (Direct child of master)
-          [ 0xCC, 0xCC, 0xCC, childID, pipeNum ]
-
-      Level 1: (Has a parent, ie 011: 1st child of the 1st level 0 node)
-          [ 0xCC, 0xCC, childID, parentID, pipeNum ]
-
-      Level 2: (Has a parent and grandparent)
-          [ 0xCC, childID, parentID, grandParentID, pipeNum ]
-
-      Level 3: (You get the idea)
-          [ childID, parentID, grandParentID, greatGrandParentID, pipeNum ]
-
-      Each level is limited to the range indicated by MIN_NODE_ID and MAX_NODE_ID.
-      ------------------------------------------------*/
-      address[ 0 ] = addressBytePool[ pipeNum ];
-
-      for ( uint8_t i = 1; i < RF24::Hardware::MAX_ADDRESS_WIDTH; i++ )
-      {
-        if ( node.greatGrandParentID_isValid() )
-        {
-          address[ i ]            = addressBytePool[ node.greatGrandParentID ];
-          node.greatGrandParentID = RF24::Network::INVALID_NODE_ID;
-          continue;
-        }
-        else if ( node.grandParentID_isValid() )
-        {
-          address[ i ]       = addressBytePool[ node.grandParentID ];
-          node.grandParentID = RF24::Network::INVALID_NODE_ID;
-          continue;
-        }
-        else if ( node.parentID_isValid() )
-        {
-          address[ i ]  = addressBytePool[ node.parentID ];
-          node.parentID = RF24::Network::INVALID_NODE_ID;
-          continue;
-        }
-        else if ( node.childID_isValid() )
-        {
-          address[ i ] = addressBytePool[ node.childID ];
-          node.childID = RF24::Network::INVALID_NODE_ID;
-          continue;
-        }
-        else
-        {
-          break;
-        }
-      }
-    }
-
-    IF_SERIAL_DEBUG( uLog::flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address 0x%05x\n\r", Chimera::millis(),
-                                 pipeNum, nodeID, result ); );
-
-    return result;
+//    if ( !nodeID )
+//    {
+//      address[ 0 ] = addressBytePool[ pipeNum ];
+//    }
+//    else
+//    {
+//      RF24::Network::Node node;
+//      node.fromOctal( nodeID );
+//
+//      /*------------------------------------------------
+//      Calculate what byte goes at each level of the address scheme. The first byte
+//      will always be associated with the pipe number. The remaining bytes are determined
+//      like so (MSB -> LSB):
+//
+//      Level 0: (Direct child of master)
+//          [ 0xCC, 0xCC, 0xCC, childID, pipeNum ]
+//
+//      Level 1: (Has a parent, ie 011: 1st child of the 1st level 0 node)
+//          [ 0xCC, 0xCC, childID, parentID, pipeNum ]
+//
+//      Level 2: (Has a parent and grandparent)
+//          [ 0xCC, childID, parentID, grandParentID, pipeNum ]
+//
+//      Level 3: (You get the idea)
+//          [ childID, parentID, grandParentID, greatGrandParentID, pipeNum ]
+//
+//      Each level is limited to the range indicated by MIN_NODE_ID and MAX_NODE_ID.
+//      ------------------------------------------------*/
+//      address[ 0 ] = addressBytePool[ pipeNum ];
+//
+//      for ( uint8_t i = 1; i < RF24::Hardware::MAX_ADDRESS_WIDTH; i++ )
+//      {
+//        if ( node.greatGrandParentID_isValid() )
+//        {
+//          address[ i ]            = addressBytePool[ node.greatGrandParentID ];
+//          node.greatGrandParentID = RF24::Network::INVALID_NODE_ID;
+//          continue;
+//        }
+//        else if ( node.grandParentID_isValid() )
+//        {
+//          address[ i ]       = addressBytePool[ node.grandParentID ];
+//          node.grandParentID = RF24::Network::INVALID_NODE_ID;
+//          continue;
+//        }
+//        else if ( node.parentID_isValid() )
+//        {
+//          address[ i ]  = addressBytePool[ node.parentID ];
+//          node.parentID = RF24::Network::INVALID_NODE_ID;
+//          continue;
+//        }
+//        else if ( node.childID_isValid() )
+//        {
+//          address[ i ] = addressBytePool[ node.childID ];
+//          node.childID = RF24::Network::INVALID_NODE_ID;
+//          continue;
+//        }
+//        else
+//        {
+//          break;
+//        }
+//      }
+//    }
+//
+//    return result;
   }
 
 
