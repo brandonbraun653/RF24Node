@@ -1,0 +1,221 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="endpoint">
+      <UniqueIdentifier>{cfead708-a340-48c7-90ba-a1f4a85e81bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{fa4b0e8c-01e0-4698-8cc0-29646ac32681}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="hardware">
+      <UniqueIdentifier>{afa73a20-e5c3-4278-a294-abeb7cf9c515}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="interfaces">
+      <UniqueIdentifier>{ec4f6769-2ad8-46d3-9177-15f1671a2e02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mesh">
+      <UniqueIdentifier>{ecc225f2-31ee-4179-8bb1-aabcb0e2075d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="network">
+      <UniqueIdentifier>{8f5e256e-7934-406b-8487-0d74b461b055}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="physical">
+      <UniqueIdentifier>{420e6489-ed6d-49ce-9fa8-52ad53245d6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="simulator">
+      <UniqueIdentifier>{d8ea0e9a-5078-49cd-a097-cfa7b9175c93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="network\frame">
+      <UniqueIdentifier>{59e43a6a-49a9-4f43-a9a6-36220aafc754}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="network\memory">
+      <UniqueIdentifier>{d7f378c2-22a0-4257-b66a-93d989bac9a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="network\path">
+      <UniqueIdentifier>{fedc9d8a-1787-42f3-9853-58e1402af6c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="network\queue">
+      <UniqueIdentifier>{09d0b931-d2c1-47a2-9e4f-5c05c83a28ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="physical\simulator">
+      <UniqueIdentifier>{255cf27a-52a3-4e45-8ff8-a27e177d8b41}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\common\conversion.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\common\utility.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\endpoint\connection.cpp">
+      <Filter>endpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\endpoint\endpoint.cpp">
+      <Filter>endpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\endpoint\registration.cpp">
+      <Filter>endpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\hardware\driver.cpp">
+      <Filter>hardware</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\interfaces\endpoint_intf.cpp">
+      <Filter>interfaces</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\mesh\mesh.cpp">
+      <Filter>mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\network.cpp">
+      <Filter>network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\queue\net_queue.cpp">
+      <Filter>network\queue</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\memory\heap.cpp">
+      <Filter>network\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\frame\frame.cpp">
+      <Filter>network\frame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\network\path\net_path.cpp">
+      <Filter>network\path</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\physical\physical.cpp">
+      <Filter>physical</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\physical\simulator\pipe.cpp">
+      <Filter>physical\simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\physical\simulator\shockburst.cpp">
+      <Filter>physical\simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\physical\simulator\sim_physical.cpp">
+      <Filter>physical\simulator</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\common\conversion.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\common\definitions.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\common\types.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\common\utility.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\connection.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\endpoint.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\fwd.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\registration.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\types.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\endpoint\config.hpp">
+      <Filter>endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\hardware\driver.hpp">
+      <Filter>hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\hardware\register.hpp">
+      <Filter>hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\hardware\types.hpp">
+      <Filter>hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\hardware\definitions.hpp">
+      <Filter>hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\interfaces\endpoint_intf.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\interfaces\network_intf.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\interfaces\physical_intf.hpp">
+      <Filter>interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\mesh\definitions.hpp">
+      <Filter>mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\mesh\mesh.hpp">
+      <Filter>mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\definitions.hpp">
+      <Filter>network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\network.hpp">
+      <Filter>network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\types.hpp">
+      <Filter>network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\queue\queue.hpp">
+      <Filter>network\queue</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\memory\heap.hpp">
+      <Filter>network\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\frame\definitions.hpp">
+      <Filter>network\frame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\frame\frame.hpp">
+      <Filter>network\frame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\frame\types.hpp">
+      <Filter>network\frame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\network\path\path.hpp">
+      <Filter>network\path</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\physical.hpp">
+      <Filter>physical</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\types.hpp">
+      <Filter>physical</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\simulator\pipe.hpp">
+      <Filter>physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\simulator\pipe_types.hpp">
+      <Filter>physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\simulator\shockburst.hpp">
+      <Filter>physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\simulator\shockburst_types.hpp">
+      <Filter>physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\physical\simulator\sim_physical.hpp">
+      <Filter>physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\simulator\sim_definitions.hpp">
+      <Filter>simulator</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\hardware\about.md">
+      <Filter>hardware</Filter>
+    </None>
+    <None Include="..\..\..\mesh\about.md">
+      <Filter>mesh</Filter>
+    </None>
+    <None Include="..\..\..\network\about.md">
+      <Filter>network</Filter>
+    </None>
+    <None Include="..\..\..\physical\about.md">
+      <Filter>physical</Filter>
+    </None>
+  </ItemGroup>
+</Project>
