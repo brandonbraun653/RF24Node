@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|arm-none-eabi">
+      <Configuration>Debug</Configuration>
+      <Platform>arm-none-eabi</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|arm-none-eabi">
+      <Configuration>Release</Configuration>
+      <Platform>arm-none-eabi</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -28,7 +36,6 @@
     <ClCompile Include="..\..\..\interfaces\endpoint_intf.cpp" />
     <ClCompile Include="..\..\..\mesh\mesh.cpp" />
     <ClCompile Include="..\..\..\network\frame\frame.cpp" />
-    <ClCompile Include="..\..\..\network\memory\heap.cpp" />
     <ClCompile Include="..\..\..\network\network.cpp" />
     <ClCompile Include="..\..\..\network\path\net_path.cpp" />
     <ClCompile Include="..\..\..\network\queue\net_queue.cpp" />
@@ -61,7 +68,6 @@
     <ClInclude Include="..\..\..\network\frame\definitions.hpp" />
     <ClInclude Include="..\..\..\network\frame\frame.hpp" />
     <ClInclude Include="..\..\..\network\frame\types.hpp" />
-    <ClInclude Include="..\..\..\network\memory\heap.hpp" />
     <ClInclude Include="..\..\..\network\network.hpp" />
     <ClInclude Include="..\..\..\network\path\path.hpp" />
     <ClInclude Include="..\..\..\network\queue\queue.hpp" />
@@ -80,6 +86,9 @@
     <None Include="..\..\..\mesh\about.md" />
     <None Include="..\..\..\network\about.md" />
     <None Include="..\..\..\physical\about.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="stm32.xml" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -136,6 +145,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="CommonProperties.props" />
   </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|arm-none-eabi'">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|arm-none-eabi'">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -149,14 +164,24 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm-none-eabi'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm-none-eabi'">
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);CHIMERA_LITTLE_ENDIAN</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -168,9 +193,10 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);$(ProjectCompilerDefinitions);;$(ProjectCompilerDefines);NOMINMAX;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -184,9 +210,11 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);$(ProjectCompilerDefinitions);;CHIMERA_LITTLE_ENDIAN;;$(ProjectCompilerDefines);NOMINMAX;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -202,9 +230,10 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);$(ProjectCompilerDefinitions);;$(ProjectCompilerDefines);NOMINMAX;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -212,6 +241,22 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm-none-eabi'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines)</PreprocessorDefinitions>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <SupportExceptions>false</SupportExceptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm-none-eabi'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraIncDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines)</PreprocessorDefinitions>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <SupportExceptions>false</SupportExceptions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

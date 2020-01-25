@@ -125,7 +125,7 @@ namespace RF24::Physical::Conversion
   }
   #else  /* !RF24_SIMULATOR */
 
-  PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber pipeNum )
+  RF24::PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber pipeNum )
   {
   /*------------------------------------------------
     These bytes take on many uses. They can represent pipe numbers, device numbers,

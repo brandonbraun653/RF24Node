@@ -104,7 +104,9 @@ namespace RF24::Endpoint
 /*------------------------------------------------
 Exported functions for construction/destruction of Endpoints
 ------------------------------------------------*/
+#if defined( RF24_SIMULATOR )
 extern "C" RF24API RF24::Endpoint::Device *new__Endpoint();
 extern "C" RF24API void delete__Endpoint( RF24::Endpoint::Device *obj );
+#endif 
 
 #endif /* !RF24_NODE_ENDPOINT_HPP*/

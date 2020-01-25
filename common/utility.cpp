@@ -222,7 +222,7 @@ namespace RF24
     return level;
   }
 
-  constexpr LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level )
+  LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level )
   {
     /*------------------------------------------------
     Root nodes don't have an ID at any level. They are (g)root.

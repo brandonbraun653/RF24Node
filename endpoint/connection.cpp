@@ -60,8 +60,8 @@ namespace RF24::Endpoint::Internal
     /*------------------------------------------------
     Protect against multi-threaded access
     ------------------------------------------------*/
-    auto lockGuard = Chimera::Threading::LockGuard( endpoint );
-    if ( !lockGuard.lock() )
+    auto lockGuard = Chimera::Threading::TimedLockGuard( endpoint );
+    if ( !lockGuard.try_lock_for( 100 ) )
     {
       return ::Chimera::CommonStatusCodes::LOCKED;
     }
@@ -185,7 +185,7 @@ namespace RF24::Endpoint::Internal
       }
 
       /* Yield cause we want to run as fast as possible without blocking other threads */
-      Chimera::Threading::yield();
+      Chimera::Threading::this_thread::yield();
     }
 
     return connectionResult;

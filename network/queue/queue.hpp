@@ -21,9 +21,7 @@
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
 #include <Chimera/threading.hpp>
-
-/* RF24 Includes */
-#include <RF24Node/network/memory/heap.hpp>
+#include <Chimera/modules/memory/heap/heap.hpp>
 
 namespace RF24::Network::Queue
 {
@@ -59,7 +57,7 @@ namespace RF24::Network::Queue
     size_t element_depth;
 
     boost::circular_buffer<Element> ringBuffer;
-    RF24::Network::Memory::Heap heap;
+    Chimera::Modules::Memory::Heap heap;
 
   };
 

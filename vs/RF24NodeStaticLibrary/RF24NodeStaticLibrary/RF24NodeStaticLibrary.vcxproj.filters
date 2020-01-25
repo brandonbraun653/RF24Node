@@ -28,9 +28,6 @@
     <Filter Include="network\frame">
       <UniqueIdentifier>{59e43a6a-49a9-4f43-a9a6-36220aafc754}</UniqueIdentifier>
     </Filter>
-    <Filter Include="network\memory">
-      <UniqueIdentifier>{d7f378c2-22a0-4257-b66a-93d989bac9a7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="network\path">
       <UniqueIdentifier>{fedc9d8a-1787-42f3-9853-58e1402af6c3}</UniqueIdentifier>
     </Filter>
@@ -39,6 +36,10 @@
     </Filter>
     <Filter Include="physical\simulator">
       <UniqueIdentifier>{255cf27a-52a3-4e45-8ff8-a27e177d8b41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VisualGDB settings">
+      <UniqueIdentifier>{17ec2dde-ac97-4a6e-ab9c-6d892678b9fc}</UniqueIdentifier>
+      <Extensions>vgdbsettings</Extensions>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -71,9 +72,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\network\queue\net_queue.cpp">
       <Filter>network\queue</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\network\memory\heap.cpp">
-      <Filter>network\memory</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\network\frame\frame.cpp">
       <Filter>network\frame</Filter>
@@ -164,9 +162,6 @@
     <ClInclude Include="..\..\..\network\queue\queue.hpp">
       <Filter>network\queue</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\network\memory\heap.hpp">
-      <Filter>network\memory</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\network\frame\definitions.hpp">
       <Filter>network\frame</Filter>
     </ClInclude>
@@ -217,5 +212,10 @@
     <None Include="..\..\..\physical\about.md">
       <Filter>physical</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="stm32.xml">
+      <Filter>VisualGDB settings</Filter>
+    </Xml>
   </ItemGroup>
 </Project>

@@ -31,6 +31,8 @@
 #include <RF24Node/physical/physical.hpp>
 #include <RF24Node/physical/simulator/sim_physical.hpp>
 
+
+#if defined( RF24_SIMULATOR )
 RF24::Endpoint::Device *new__Endpoint()
 {
   return new RF24::Endpoint::Device();
@@ -40,6 +42,7 @@ void delete__Endpoint( RF24::Endpoint::Device *obj )
 {
   delete obj;
 }
+#endif 
 
 namespace RF24::Endpoint
 {
@@ -62,7 +65,7 @@ namespace RF24::Endpoint
 #if defined( RF24_SIMULATOR )
     physical = std::make_shared<Physical::SimulatorDriver>();
 #else
-    #warning  Need to initialize the hardware based physical driver
+
 #endif 
   }
 
@@ -72,7 +75,7 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::attachLogger( uLog::SinkHandle sink )
   {
-    if ( Chimera::Threading::LockGuard( *this ).lock( 100 ) )
+    if ( Chimera::Threading::TimedLockGuard( *this ).try_lock_for( 100 ) )
     {
       logger = sink;
       network->attachLogger( logger );
@@ -85,12 +88,12 @@ namespace RF24::Endpoint
   Chimera::Status_t Device::configure( const Config &cfg )
   {
     auto configResult = Chimera::CommonStatusCodes::OK;
-    auto lockGuard    = Chimera::Threading::LockGuard( *this );
+    auto lockGuard    = Chimera::Threading::TimedLockGuard( *this );
 
     /*------------------------------------------------
     Make sure we can actually move forward with configuration
     ------------------------------------------------*/
-    if ( !lockGuard.lock() )
+    if ( !lockGuard.try_lock_for( 100 ) )
     {
       return Chimera::CommonStatusCodes::LOCKED;
     }
@@ -171,8 +174,8 @@ namespace RF24::Endpoint
     /*------------------------------------------------
     Make sure someone can't interrupt us
     ------------------------------------------------*/
-    auto lockGuard = Chimera::Threading::LockGuard( *this );
-    if ( !lockGuard.lock() )
+    auto lockGuard = Chimera::Threading::TimedLockGuard( *this );
+    if ( !lockGuard.try_lock_for( 100 ) )
     {
       return Chimera::CommonStatusCodes::LOCKED;
     }
@@ -324,9 +327,6 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::initHardwareLayer()
   {
-#if !defined( RF24_SIMULATOR )
-#warning  Need initialization of the hardware layer
-#endif
     return Chimera::CommonStatusCodes::OK;
   }
 

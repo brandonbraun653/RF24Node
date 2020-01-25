@@ -12,7 +12,7 @@
 #ifndef RF24_NODE_PHYSICAL_SIMULATOR_HPP
 #define RF24_NODE_PHYSICAL_SIMULATOR_HPP
 
-#if defined( _WIN32 ) || defined( _WIN64 )
+#if defined( RF24_SIMULATOR )
 
 /* C++ Includes */
 #include <atomic>
@@ -112,5 +112,5 @@ namespace RF24::Physical
   };
 }    // namespace RF24::Physical
 
-#endif /* _WIN32 || _WIN64 */
+#endif /* RF24_SIMULATOR */
 #endif /* !RF24_NODE_PHYSICAL_SIMULATOR_HPP */
