@@ -5,7 +5,7 @@
  *   Description:
  *     NRF24L01(+) low level hardware driver implementation
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *   2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 /* C++ Includes */
@@ -71,7 +71,7 @@ namespace RF24::Hardware
     ------------------------------------------------*/
     if ( !spi )
     {
-      spi = std::make_shared<Chimera::SPI::SPIClass>();
+      spi = Chimera::SPI::create_shared_ptr();
     }
 
     result |= spi->init( setup );

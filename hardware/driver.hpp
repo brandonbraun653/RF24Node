@@ -5,7 +5,7 @@
  *   Description:
  *     Hardware driver for the NRF24L01(+)
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *   2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -345,7 +345,7 @@ namespace RF24::Hardware
   private:
     Chimera::GPIO::GPIOClass_uPtr CSPin;
     Chimera::GPIO::GPIOClass_uPtr CEPin;
-    Chimera::SPI::SPIClass_sPtr spi;
+    Chimera::SPI::SPI_sPtr spi;
 
     std::array<uint8_t, SPI_BUFFER_LEN> spi_txbuff; /**< Internal transmit buffer */
     std::array<uint8_t, SPI_BUFFER_LEN> spi_rxbuff; /**< Internal receive buffer */
