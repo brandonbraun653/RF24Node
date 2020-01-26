@@ -38,7 +38,6 @@ namespace RF24::Hardware
   Driver::Driver()
   {
     spi = nullptr;
-    memset( &spiConfig, 0, sizeof( spiConfig ) );
 
     spi_txbuff.fill( 0u );
     spi_rxbuff.fill( 0u );
@@ -53,67 +52,39 @@ namespace RF24::Hardware
   }
 
   /*-------------------------------------------------
-  SPI Acceptor Functions
-  -------------------------------------------------*/
-  Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_sPtr &spi )
-  {
-    this->spi = spi;
-    return Chimera::CommonStatusCodes::OK;
-  }
-
-  Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup )
-  {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-  }
-
-  Chimera::Status_t Driver::attachSPI( Chimera::SPI::SPIClass_uPtr spi )
-  {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-  }
-
-  Chimera::Status_t Driver::attachCS( Chimera::GPIO::PinInit &CSConfig )
-  {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-  }
-
-  Chimera::Status_t Driver::attachCS( Chimera::GPIO::GPIOClass_sPtr &CSPin )
-  {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-  }
-
-  Chimera::Status_t Driver::attachCS( Chimera::GPIO::GPIOClass_uPtr CSPin )
-  {
-    return Chimera::CommonStatusCodes::NOT_SUPPORTED;
-  }
-
-  /*-------------------------------------------------
   Driver Functions
   -------------------------------------------------*/
-  Chimera::Status_t Driver::initialize( const Chimera::GPIO::PinInit &CE, const Chimera::GPIO::PinInit &CS )
+  Chimera::Status_t Driver::initialize( const Chimera::SPI::DriverConfig &setup, const Chimera::GPIO::PinInit &CE )
   {
+    auto result = Chimera::CommonStatusCodes::OK;
+
     /*------------------------------------------------
     Input Protection
     ------------------------------------------------*/
-    if ( !CE.validity || !CS.validity )
+    if ( !CE.validity )
     {
       return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
     }
-    else if ( !spi )
-    {
-      return Chimera::CommonStatusCodes::FAIL;
-    }
 
     /*------------------------------------------------
-    Configure the GPIO pins. SPI should already be initialized.
+    Create and configure the SPI driver
     ------------------------------------------------*/
-    auto result = Chimera::CommonStatusCodes::OK;
+    if ( !spi )
+    {
+      spi = std::make_shared<Chimera::SPI::SPIClass>();
+    }
 
+    result |= spi->init( setup );
+
+    /*------------------------------------------------
+    Configure radio chip enable & spi chip select pins
+    ------------------------------------------------*/
     CEPin = std::make_unique<Chimera::GPIO::GPIOClass>();
     result |= CEPin->init( CE );
     CEPin->setState( Chimera::GPIO::State::HIGH );
 
     CSPin = std::make_unique<Chimera::GPIO::GPIOClass>();
-    result |= CSPin->init( CS );
+    result |= CSPin->init( setup.CSInit );
     CSPin->setState( Chimera::GPIO::State::HIGH );
 
     /*------------------------------------------------
@@ -158,7 +129,7 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Read the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
+    if ( spi->try_lock_for( 100 ) )
     {
       CSPin->setState( Chimera::GPIO::State::LOW );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
@@ -198,7 +169,7 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Write the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    if ( spi->lock( 100 ) == Chimera::CommonStatusCodes::OK )
+    if ( spi->try_lock_for( 100 ) )
     {
       CSPin->setState( Chimera::GPIO::State::LOW );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );

@@ -46,7 +46,7 @@ namespace RF24::Hardware
    *        |     Max Clock | 8MHz           |
    *        |    CS Control | Manual         |
    */
-  class Driver : public Chimera::SPI::SPIAcceptor, public Chimera::Threading::Lockable
+  class Driver : public Chimera::Threading::Lockable
   {
   public:
     /*-------------------------------------------------
@@ -54,16 +54,6 @@ namespace RF24::Hardware
     -------------------------------------------------*/
     Driver();
     ~Driver();
-
-    /*-------------------------------------------------
-    SPI Acceptor Functions
-    -------------------------------------------------*/
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi ) final override;
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_sPtr &spi, Chimera::SPI::DriverConfig &setup ) final override;
-    Chimera::Status_t attachSPI( Chimera::SPI::SPIClass_uPtr spi ) final override;
-    Chimera::Status_t attachCS( Chimera::GPIO::PinInit &CSConfig ) final override;
-    Chimera::Status_t attachCS( Chimera::GPIO::GPIOClass_sPtr &CSPin ) final override;
-    Chimera::Status_t attachCS( Chimera::GPIO::GPIOClass_uPtr CSPin ) final override;
 
     /*-------------------------------------------------
     Driver Functions
@@ -85,7 +75,7 @@ namespace RF24::Hardware
      *  | NOT_INITIALIZED | The initialization sequence failed for some reason |
      *  |          LOCKED | The hardware is currently unavailabe               |
      */
-    Chimera::Status_t initialize( const Chimera::GPIO::PinInit &CE, const Chimera::GPIO::PinInit &CS );
+    Chimera::Status_t initialize( const Chimera::SPI::DriverConfig &setup, const Chimera::GPIO::PinInit &CE );
 
     /**
      *  Wipes out all configuration from the hardware registers and
@@ -356,7 +346,6 @@ namespace RF24::Hardware
     Chimera::GPIO::GPIOClass_uPtr CSPin;
     Chimera::GPIO::GPIOClass_uPtr CEPin;
     Chimera::SPI::SPIClass_sPtr spi;
-    Chimera::SPI::DriverConfig spiConfig;
 
     std::array<uint8_t, SPI_BUFFER_LEN> spi_txbuff; /**< Internal transmit buffer */
     std::array<uint8_t, SPI_BUFFER_LEN> spi_rxbuff; /**< Internal receive buffer */

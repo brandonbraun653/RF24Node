@@ -65,7 +65,7 @@ namespace RF24::Endpoint
 #if defined( RF24_SIMULATOR )
     physical = std::make_shared<Physical::SimulatorDriver>();
 #else
-
+    physical = std::make_shared<Physical::HardwareDriver>();
 #endif 
   }
 
@@ -368,8 +368,13 @@ namespace RF24::Endpoint
 
       configResult |= physical->openReadPipe( pipe, addr, true );
 
+      #if defined( RF24_SIMULATOR )
       IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has IP[%s] and Port[%d]\n",
                                      Chimera::millis(), pipe, nodeAddress, decodeIP( addr ).c_str(), decodePort( addr ) ); );
+      #else
+      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n",
+                                     Chimera::millis(), pipe, nodeAddress, addr ); );
+      #endif
     }
 
     /*------------------------------------------------

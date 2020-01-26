@@ -34,11 +34,10 @@ namespace RF24::Physical
     Hardware::PowerAmplitude powerAmplitude;
     Hardware::DataRate dataRate;
 
-#if !defined( RF24API )
+#if !defined( RF24_SIMULATOR )
     Chimera::SPI::DriverConfig spiConfig;
-#endif
-
-#if defined( RF24_SIMULATOR )
+    Chimera::GPIO::PinInit chipEnableConfig;
+#else
     std::string deviceName;
 #endif
   };

@@ -44,23 +44,23 @@ namespace RF24::Physical
   {
   }
 
-  Chimera::Status_t HardwareDriver::attachHWDriver( RF24::Hardware::Driver_sPtr &driver )
-  {
-    /*------------------------------------------------
-    Shared_ptr could be passed in but still empty
-    ------------------------------------------------*/
-    if ( !driver )
-    {
-      return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
-    }
-
-    mHWDriver = driver;
-    return Chimera::CommonStatusCodes::OK;
-  }
-
   Chimera::Status_t HardwareDriver::initialize( const RF24::Physical::Config &cfg )
   {
     mInitialized = false;
+
+    /*------------------------------------------------
+    Initialize the low level hardware driver
+    ------------------------------------------------*/
+    if ( !mHWDriver ) 
+    {
+      mHWDriver = std::make_shared<RF24::Hardware::Driver>();
+    }
+
+    if ( mHWDriver->initialize( cfg.spiConfig, cfg.chipEnableConfig ) != Chimera::CommonStatusCodes::OK )
+    {
+      mFailureCode = Chimera::CommonStatusCodes::FAILED_INIT;
+      return mFailureCode;
+    }
 
     /*-------------------------------------------------
     Check we can talk to the device and reset it back to
