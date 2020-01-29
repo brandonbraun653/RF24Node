@@ -210,7 +210,7 @@ namespace RF24::Network
     result |= radio->immediateWrite( buffer, buffer.size() );
 
     // TODO: Turn this into a literal constant
-    result |= radio->txStandBy( 10 );
+    result |= radio->txStandBy( 10, true );
 
     return ( result == Chimera::CommonStatusCodes::OK );
   }

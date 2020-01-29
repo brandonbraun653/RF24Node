@@ -132,34 +132,42 @@ namespace RF24::Hardware
     /**
      *  Writes a register on the device with a given value
      *
-     *  @warning This operation overwrites the entire register
+     *  @warning  This operation overwrites the entire register
+     *  @note     Validation only works in debug builds
      *
      *  @param[in]  addr    The address of the register to write
      *  @param[in]  value   The data to write to that register
+     *  @param[in]  check   Whether or not to validate the data was written correctly
      *  @return Reg8_t      The chip's status register
      */
-    Reg8_t writeRegister( const Reg8_t addr, const Reg8_t value );
+    Reg8_t writeRegister( const Reg8_t addr, const Reg8_t value, const bool check = true );
 
     /**
      *  Writes a register on the device with multiple bytes
      *
-     *  @warning This operation overwrites the entire register
+     *  @warning  This operation overwrites the entire register
+     *  @note     Validation only works in debug builds
      *
      *  @param[in]  addr    The address of the register to write
      *  @param[in]  buffer  The data to write to that register
      *  @param[in]  len     The number of bytes to write from the buffer
+     *  @param[in]  check   Whether or not to validate the data was written correctly
      *  @return Reg8_t      The chip's status register
      */
-    Reg8_t writeRegister( const Reg8_t addr, const void *const buffer, size_t len );
+    Reg8_t writeRegister( const Reg8_t addr, const void *const buffer, size_t len, const bool check = true );
 
     /**
      *  Performs a read/modify/write operation on a register to set specific bits
      *
+     *  @note   Occasionally setting a register bit invokes the hardware to actually clear a field
+     *          (I'm looking at you Status Register), so we allow disabling of the register checks
+     *
      *  @param[in]  addr    The address of the register to write
      *  @param[in]  mask    Mask of which bits should be set
+     *  @param[in]  check   Whether or not to validate the data was written correctly
      *  @return Reg8_t      The chip's status register
      */
-    Reg8_t setRegisterBits( const Reg8_t addr, const Reg8_t mask );
+    Reg8_t setRegisterBits( const Reg8_t addr, const Reg8_t mask, const bool check = true );
 
     /**
      *  Performs a read/modify/write operation on a register to clear specific bits

@@ -69,11 +69,11 @@ namespace RF24::Physical::Conversion
    *   Calculates the the pipe address of a logical node in the tree network. For information on exactly
    *   how the addressing is calculated, see: http://tmrh20.blogspot.com/ (scroll down mid-way)
    *
-   *   @param[in]  nodeID      Octal node address (00, 02125, 0444, etc)
+   *   @param[in]  address     Octal node address (00, 02125, 0444, etc)
    *   @param[in]  pipe        The pipe number on the given nodeID
    *   @return The address assigned to that node's pipe
    */
-  PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum );
+  PhysicalAddress getPhysicalAddress( const LogicalAddress address, const Hardware::PipeNumber pipeNum );
 
   /**
    *	

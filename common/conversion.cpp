@@ -13,7 +13,7 @@
 /* Boost Includes */
 #if defined( RF24_SIMULATOR )
 #include <boost/asio.hpp>
-#endif 
+#endif
 
 /* uLog Includes */
 #include <uLog/ulog.hpp>
@@ -56,6 +56,7 @@ namespace RF24::Physical::Conversion
 
 
 #if defined( RF24_SIMULATOR )
+
   static constexpr uint64_t IP_MASK         = 0xFFFFFFFF;
   static constexpr uint64_t IP_POS          = 0;
   static constexpr uint64_t ENCODED_IP_MASK = IP_MASK << IP_POS;
@@ -71,7 +72,7 @@ namespace RF24::Physical::Conversion
   {
     uint32_t ip_as_uint = boost::asio::ip::address_v4::from_string( ip ).to_uint();
 
-    uint64_t maskedIP = ( static_cast<uint64_t>( ip_as_uint ) << IP_POS ) & ENCODED_IP_MASK;
+    uint64_t maskedIP   = ( static_cast<uint64_t>( ip_as_uint ) << IP_POS ) & ENCODED_IP_MASK;
     uint64_t maskedPort = ( static_cast<uint64_t>( port ) << PORT_POS ) & ENCODED_PORT_MASK;
 
     return ( maskedIP | maskedPort );
@@ -114,106 +115,86 @@ namespace RF24::Physical::Conversion
   PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum )
   {
     /*------------------------------------------------
-    The ports have to be unique across all nodeIDs, so 
+    The ports have to be unique across all nodeIDs, so
     map each nodeID into a range of values that are mutually
-    exclusive from one another. 
+    exclusive from one another.
     ------------------------------------------------*/
     uint16_t actualPort  = BASE_PORT + ( nodeID * ( RF24::Hardware::MAX_NUM_PIPES + 1 ) ) + static_cast<uint16_t>( pipeNum );
     std::string actualIP = "127.0.0.1";
 
     return encodeAddress( actualIP, actualPort );
   }
-  #else  /* !RF24_SIMULATOR */
 
-  RF24::PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress nodeID, const RF24::Hardware::PipeNumber pipeNum )
+#else /* !RF24_SIMULATOR */
+
+  RF24::PhysicalAddress getPhysicalAddress( const RF24::LogicalAddress address, const RF24::Hardware::PipeNumber pipeNum )
   {
-  /*------------------------------------------------
-    These bytes take on many uses. They can represent pipe numbers, device numbers,
-    parent/child numbers, etc. They are really just a way to identify where a device
-    is inside the network. As needed, a byte can be used to compose an address.
-    ------------------------------------------------*/
-    static uint8_t addressBytePool[] = { 0xec, 0xc3, 0x3c, 0x33, 0xce, 0x3e };
+    uint64_t physicalAddress = 0u;
 
     /*------------------------------------------------
-    The base, 5 byte address we start off with. 0xCC is reserved to indicate
-    the master node.
+    Bytes to map a node id at a given level into a physical address
     ------------------------------------------------*/
-    uint64_t result  = 0xCCCCCCCCCC;
-    uint8_t *address = reinterpret_cast<uint8_t *>( &result );
+    /* clang-format off */
+    static std::array<uint8_t, RF24::Network::MAX_CHILDREN + 1> addressBytePool = {
+      0x5c,   /**< Byte for a root node address */
+      0xec,   /**< Byte for child 1 of a node */
+      0xc9,   /**< Byte for child 2 of a node */
+      0x3c,   /**< Etc.... */
+      0x33, 
+      0xce
+    };
 
-    return result; 
+    static std::array<uint8_t, RF24::Hardware::MAX_NUM_PIPES> addressPipePool = {
+      0xC0,
+      0xC1,
+      0xC2,
+      0xC3,
+      0xC4,
+      0xC5
+    };
+
+    static constexpr uint8_t empty_address_byte = 0xe7;
+    /* clang-format on */
 
     /*------------------------------------------------
-    If we want the master node (00), calculating the pipe address is easy. Simply
-    replace the first bytes of the base address with the appropriate addressByte[].
+    Replace the octal node address number with the appropriate address byte
     ------------------------------------------------*/
-//    if ( !nodeID )
-//    {
-//      address[ 0 ] = addressBytePool[ pipeNum ];
-//    }
-//    else
-//    {
-//      RF24::Network::Node node;
-//      node.fromOctal( nodeID );
-//
-//      /*------------------------------------------------
-//      Calculate what byte goes at each level of the address scheme. The first byte
-//      will always be associated with the pipe number. The remaining bytes are determined
-//      like so (MSB -> LSB):
-//
-//      Level 0: (Direct child of master)
-//          [ 0xCC, 0xCC, 0xCC, childID, pipeNum ]
-//
-//      Level 1: (Has a parent, ie 011: 1st child of the 1st level 0 node)
-//          [ 0xCC, 0xCC, childID, parentID, pipeNum ]
-//
-//      Level 2: (Has a parent and grandparent)
-//          [ 0xCC, childID, parentID, grandParentID, pipeNum ]
-//
-//      Level 3: (You get the idea)
-//          [ childID, parentID, grandParentID, greatGrandParentID, pipeNum ]
-//
-//      Each level is limited to the range indicated by MIN_NODE_ID and MAX_NODE_ID.
-//      ------------------------------------------------*/
-//      address[ 0 ] = addressBytePool[ pipeNum ];
-//
-//      for ( uint8_t i = 1; i < RF24::Hardware::MAX_ADDRESS_WIDTH; i++ )
-//      {
-//        if ( node.greatGrandParentID_isValid() )
-//        {
-//          address[ i ]            = addressBytePool[ node.greatGrandParentID ];
-//          node.greatGrandParentID = RF24::Network::INVALID_NODE_ID;
-//          continue;
-//        }
-//        else if ( node.grandParentID_isValid() )
-//        {
-//          address[ i ]       = addressBytePool[ node.grandParentID ];
-//          node.grandParentID = RF24::Network::INVALID_NODE_ID;
-//          continue;
-//        }
-//        else if ( node.parentID_isValid() )
-//        {
-//          address[ i ]  = addressBytePool[ node.parentID ];
-//          node.parentID = RF24::Network::INVALID_NODE_ID;
-//          continue;
-//        }
-//        else if ( node.childID_isValid() )
-//        {
-//          address[ i ] = addressBytePool[ node.childID ];
-//          node.childID = RF24::Network::INVALID_NODE_ID;
-//          continue;
-//        }
-//        else
-//        {
-//          break;
-//        }
-//      }
-//    }
-//
-//    return result;
+    const auto nodeLevel    = getLevel( address );
+    LogicalID nodeIdAtLevel = 0;
+    std::array<uint8_t, sizeof( uint64_t )> addressBuffer;
+
+    /* Preemptively default unused bytes to the datasheet's example address */
+    addressBuffer.fill( empty_address_byte );
+
+    /* The device can only use up to 5 bytes, so clear the remaining bytes to
+    avoid confusion during debugging. */
+    addressBuffer[ 5 ] = 0;
+    addressBuffer[ 6 ] = 0;
+    addressBuffer[ 7 ] = 0;
+
+    /* The first byte indicates which pipe to direct the data into */
+    addressBuffer[ 0 ] = addressPipePool[ static_cast<size_t>( pipeNum ) ];
+
+    /* The remaining bytes up to the node level are then filled in from the pool.
+    Essentially we are just using the nodeID as a lookup index. */
+    for ( LogicalLevel x = 1; x <= nodeLevel; x++ )
+    {
+      nodeIdAtLevel = getIdAtLevel( address, x );
+
+      if ( nodeIdAtLevel < addressBytePool.size() )
+      {
+        /* Single byte offset due to pipe being the first byte */
+        addressBuffer[ x ] = addressBytePool[ nodeIdAtLevel ];
+      }
+    }
+
+    /*------------------------------------------------
+    Copy over the newly formed memory and return it
+    ------------------------------------------------*/
+    memcpy( &physicalAddress, addressBuffer.data(), addressBuffer.size() );
+    return physicalAddress;
   }
 
-
-  #endif /* RF24_SIMULATOR */
+#endif /* RF24_SIMULATOR */
 
 }    // namespace RF24::Physical::Conversion

@@ -68,6 +68,8 @@ namespace RF24::Network
   constexpr LogicalAddress ADDR_LEVEL5_Msk = BASE_LEVEL_MASK << ADDR_LEVEL5_Pos;
   constexpr LogicalAddress ADDR_LEVEL5     = ADDR_LEVEL5_Msk;
 
+  constexpr LogicalAddress ADDR_MAX_LEVELS = 5;
+
 /*------------------------------------------------
 Config Options
 ------------------------------------------------*/

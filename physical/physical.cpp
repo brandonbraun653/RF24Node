@@ -241,7 +241,7 @@ namespace RF24::Physical
     setting PRIM_RX=1 and CE=1. Wait the required ~130uS
     RX settling time needed to get into RX mode.
     -------------------------------------------------*/
-    mHWDriver->setRegisterBits( REG_STATUS, STATUS_RX_DR | STATUS_TX_DS | STATUS_MAX_RT );
+    mHWDriver->setRegisterBits( REG_STATUS, ( STATUS_RX_DR | STATUS_TX_DS | STATUS_MAX_RT ), false );
     mHWDriver->setRegisterBits( REG_CONFIG, CONFIG_PRIM_RX );
     toggleChipEnablePin( true );
     Chimera::delayMilliseconds( 1 );

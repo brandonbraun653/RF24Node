@@ -9,6 +9,7 @@
  ********************************************************************************/
 
 /* C++ Includes */
+#include <array>
 #include <cstring>
 
 /* Chimera Includes */
@@ -23,6 +24,14 @@
 
 namespace RF24::Hardware
 {
+  /*------------------------------------------------
+  Static Data
+  ------------------------------------------------*/
+  static std::array<uint8_t, 25> sValidationBuffer;
+
+  /*------------------------------------------------
+  External Data
+  ------------------------------------------------*/
   const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = { REG_RX_ADDR_P0, REG_RX_ADDR_P1, REG_RX_ADDR_P2,
                                                                     REG_RX_ADDR_P3, REG_RX_ADDR_P4, REG_RX_ADDR_P5 };
 
@@ -145,12 +154,12 @@ namespace RF24::Hardware
     return std::numeric_limits<Reg8_t>::max();
   }
 
-  Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t value )
+  Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t value, const bool check )
   {
-    return writeRegister( addr, &value, 1u );
+    return writeRegister( addr, &value, 1u, check );
   }
 
-  Reg8_t Driver::writeRegister( const Reg8_t addr, const void *const buffer, size_t len )
+  Reg8_t Driver::writeRegister( const Reg8_t addr, const void *const buffer, size_t len, const bool check )
   {
     /*------------------------------------------------
     Input protection
@@ -176,18 +185,36 @@ namespace RF24::Hardware
       spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
       CSPin->setState( Chimera::GPIO::State::HIGH );
 
-      /* Return only the status code of the chip. The register values will be in the rx buff */
-      return spi_rxbuff[ 0 ];
+      /* Save off the return code because validation will overwrite the buffer */
+      auto returnCode = spi_rxbuff[ 0 ];
+
+      /*------------------------------------------------
+      Optionally validate whatever was just written
+      ------------------------------------------------*/
+#if defined( DEBUG )
+      if ( check )
+      {
+        sValidationBuffer.fill( 0 );
+        readRegister( addr, sValidationBuffer.data(), len );
+
+        if ( memcmp( buffer, sValidationBuffer.data(), len ) != 0 )
+        {
+          asm( "bkpt 255" );
+        }
+      }
+#endif /* DEBUG */
+
+      return returnCode;
     }
 
     return std::numeric_limits<Reg8_t>::max();
   }
 
-  Reg8_t Driver::setRegisterBits( const Reg8_t addr, const Reg8_t mask )
+  Reg8_t Driver::setRegisterBits( const Reg8_t addr, const Reg8_t mask, const bool check )
   {
     Reg8_t current = readRegister( addr );
     current |= mask;
-    return writeRegister( addr, current );
+    return writeRegister( addr, current, check );
   }
 
   Reg8_t Driver::clrRegisterBits( const Reg8_t addr, const Reg8_t mask )
@@ -363,7 +390,7 @@ namespace RF24::Hardware
     writeRegister( REG_RX_PW_P3, RX_PW_P3_Reset );
     writeRegister( REG_RX_PW_P4, RX_PW_P4_Reset );
     writeRegister( REG_RX_PW_P5, RX_PW_P5_Reset );
-    writeRegister( REG_FIFO_STATUS, FIFO_STATUS_Reset );
+    writeRegister( REG_FIFO_STATUS, FIFO_STATUS_Reset, false );
     writeRegister( REG_DYNPD, DYNPD_Reset );
     writeRegister( REG_FEATURE, FEATURE_Reset );
 
@@ -391,7 +418,6 @@ namespace RF24::Hardware
       CEPin->setState( Chimera::GPIO::State::LOW );
     }
   }
-
 
   Reg8_t Driver::writePayload( const void *const buf, const size_t len, const uint8_t writeType )
   {
@@ -684,6 +710,5 @@ namespace RF24::Hardware
 
     return result;
   }
-
 
 }    // namespace RF24::Hardware
