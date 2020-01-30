@@ -19,6 +19,11 @@
 #include <RF24Node/hardware/register.hpp>
 #include <RF24Node/physical/physical.hpp>
 
+/* uLog Includes */
+#include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_vgdb_semihosting.hpp>
+#include <uLog/sinks/sink_cout.hpp>
+
 #if !defined( RF24_SIMULATOR )
 
 namespace RF24::Physical
@@ -38,10 +43,17 @@ namespace RF24::Physical
     mCurrentMode          = RF24::Hardware::Mode::MAX_MODES;
     mHWDriver             = nullptr;
     mFailureCode          = Chimera::CommonStatusCodes::NOT_INITIALIZED;
+    logger                = nullptr;
   }
 
   HardwareDriver::~HardwareDriver()
   {
+  }
+
+  Chimera::Status_t HardwareDriver::attachLogger( uLog::SinkHandle sink )
+  {
+    logger = sink;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t HardwareDriver::initialize( const RF24::Physical::Config &cfg )
@@ -509,15 +521,15 @@ namespace RF24::Physical
   {
     using namespace RF24::Hardware;
 
-    //auto status = mHWDriver->readPayload( buffer, bufferLength, payloadLength );
+    auto status = mHWDriver->readPayload( buffer.data(), buffer.size(), length );
+    IF_SERIAL_DEBUG( logger->flog(uLog::Level::LVL_INFO, "%d-PHY: RX packet of length [%d]\n", Chimera::millis(), length ); );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1
     ------------------------------------------------*/
-    Reg8_t statusVal = STATUS_RX_DR | STATUS_MAX_RT | STATUS_TX_DS;
-    mHWDriver->writeRegister( REG_STATUS, statusVal );
+    mHWDriver->writeRegister( REG_STATUS, ( STATUS_RX_DR | STATUS_MAX_RT | STATUS_TX_DS ), false );
 
-    return Chimera::CommonStatusCodes::FAIL;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t HardwareDriver::immediateWrite( const RF24::Network::Frame::Buffer &buffer, const size_t length )
@@ -565,10 +577,18 @@ namespace RF24::Physical
     /*------------------------------------------------
     We're free! Load the data into the FIFO and kick off the transfer
     ------------------------------------------------*/
-    // return startFastWrite( buffer, len, multicast, true );
-    return Chimera::CommonStatusCodes::FAIL;
+    IF_SERIAL_DEBUG( logger->flog(uLog::Level::LVL_INFO, "%d-PHY: TX packet of length [%d]\n", Chimera::millis(), length ); );
+    return startFastWrite( buffer.data(), length, false, false );
   }
 
+  /******************************************************************************************************************** 
+   *  @copydoc HardwareDriver::startFastWrite(const void*const, const size_t, const bool, const bool)
+   *  
+   *  Copies over the buffer of data into the TX FIFO of the RF24 device. IF desired, will optionally enable
+   *  an ACK request from the receiver just for this transfer and then start the transfer. This is a pretty low level 
+   *  function that requires a fair amount of setup before use.
+   *  
+   *******************************************************************************************************************/
   Chimera::Status_t HardwareDriver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
                                                     const bool startTX )
   {

@@ -29,6 +29,9 @@
 #include <Chimera/gpio.hpp>
 #include <Chimera/types/common_types.hpp>
 
+/* uLog Includes */
+#include <uLog/types.hpp>
+
 /* Driver Includes */
 #include <RF24Node/hardware/driver.hpp>
 #include <RF24Node/hardware/types.hpp>
@@ -49,6 +52,8 @@ namespace RF24::Physical
   public:
     HardwareDriver();
     ~HardwareDriver();
+
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
 
     /**
      *  Attaches a low level hardware driver for the Physical layer to consume.
@@ -122,6 +127,8 @@ namespace RF24::Physical
     RF24::Hardware::Mode mCurrentMode;     /**< Keep track of which HW mode of the radio is likely to be in */
     RF24::Hardware::Driver_sPtr mHWDriver; /**< Low level radio module hardware driver */
     Chimera::Status_t mFailureCode;        /**< Latest reason why something failed. */
+
+    uLog::SinkHandle logger;
 
     bool _registerIsBitmaskSet( const uint8_t reg, const uint8_t bitmask );
     bool _registerIsAnySet( const uint8_t reg, const uint8_t bitmask );

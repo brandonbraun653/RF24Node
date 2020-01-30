@@ -98,7 +98,7 @@ namespace RF24::Network
     uLog::SinkHandle logger;
 
     void enqueueRXPacket( Frame::Buffer &buffer );
-    bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const bool autoAck );
+    bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );
 
     HeaderMessage handleDestination( Frame::Buffer &buffer ); 
     HeaderMessage handlePassthrough( Frame::Buffer &frame );

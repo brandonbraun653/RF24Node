@@ -110,13 +110,15 @@ namespace RF24::Network
       Get the raw data and validate that CRC
       ------------------------------------------------*/
       Frame::Buffer buffer;
+      buffer.fill( 0 );
+
       radio->readPayload( buffer, radio->getDynamicPayloadSize() );
 
       auto reportedCRC   = Frame::getCRCFromBuffer( buffer );
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
       if ( reportedCRC != calculatedCRC )
       {
-        IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d NET: Pkt dropped due to CRC failure\n", Chimera::millis() ); );
+        IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() ); );
         continue;
       }
 
@@ -194,7 +196,7 @@ namespace RF24::Network
     return writeSuccess;
   }
 
-  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const bool autoAck )
+  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
   {
     Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
 
@@ -205,11 +207,7 @@ namespace RF24::Network
     result |= radio->stopListening();
     result |= radio->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
     result |= radio->openWritePipe( address );
-
-    // TODO: Need to only transfer the exact amount
-    result |= radio->immediateWrite( buffer, buffer.size() );
-
-    // TODO: Turn this into a literal constant
+    result |= radio->immediateWrite( buffer, length );
     result |= radio->txStandBy( 10, true );
 
     return ( result == Chimera::CommonStatusCodes::OK );
@@ -224,7 +222,7 @@ namespace RF24::Network
     }
     else
     {
-      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d: NET **Drop Payload** Buffer Full\n", Chimera::millis() ); );
+      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() ); );
     }
   }
 
@@ -276,7 +274,10 @@ namespace RF24::Network
 
     frame.updateCRC();
 
-    return transferToPipe( directAddress, frame.toBuffer(), false );
+    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX packet of type [%d] from [%04o] to [%04o]\n",
+                                   Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst() ); );
+
+    return transferToPipe( directAddress, frame.toBuffer(), frame.getLength(), false );
   }
 
   bool Driver::writeRouted( Frame::FrameType &frame )

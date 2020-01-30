@@ -79,6 +79,7 @@ namespace RF24::Endpoint
     {
       logger = sink;
       network->attachLogger( logger );
+      physical->attachLogger( logger );
       return Chimera::CommonStatusCodes::OK;
     }
 

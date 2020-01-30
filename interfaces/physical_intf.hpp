@@ -18,6 +18,9 @@
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
 
+/* uLog Includes */
+#include <uLog/types.hpp>
+
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
 #include <RF24Node/common/types.hpp>
@@ -31,6 +34,15 @@ namespace RF24::Physical
   {
   public:
     virtual ~Interface() = default;
+
+    /**
+     *	Attaches a logging instance to the class so that we can log physical layer
+     *  messages as needed for debugging.
+     *
+     *	@param[in]	sink    The log sink
+     *	@return Chimera::Status_t
+     */
+    virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
 
     /**
      *   Initialize the chip and verify correct setup

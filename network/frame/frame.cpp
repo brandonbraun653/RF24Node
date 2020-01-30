@@ -95,11 +95,17 @@ namespace RF24::Network::Frame
     return temp;
   }
 
+  Length FrameType::getLength() const
+  {
+    static_assert( sizeof( PackedData::length ) == sizeof( Length ), "Invalid length size" );
+    Length temp;
+    memcpy( &temp, &mData.length, sizeof( Length ) );
+    return temp;
+  }
+
   Length FrameType::getPayloadLength() const
   {
-    Length temp;
-    memcpy( &temp, &mData + MSG_LEN_OFFSET, sizeof( PackedData::length ) );
-    return temp;
+    return getLength() - static_cast<Length>( EMPTY_PAYLOAD_SIZE );
   }
 
   Payload FrameType::getPayload() const

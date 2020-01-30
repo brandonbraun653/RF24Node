@@ -465,7 +465,8 @@ namespace RF24::Hardware
     /*-------------------------------------------------
     Cap the data length
     -------------------------------------------------*/
-    auto len = std::min( bufferLength, MAX_PAYLOAD_WIDTH );
+    auto readLength = std::min( bufferLength, payloadLength );
+    readLength      = std::min( readLength, MAX_PAYLOAD_WIDTH );
 
     /*-------------------------------------------------
     Calculate the number of bytes that do nothing. This is important for
@@ -490,12 +491,12 @@ namespace RF24::Hardware
     CSPin->setState( Chimera::GPIO::State::HIGH );
 
     status = spi_rxbuff[ 0 ];
-    memcpy( buffer, &spi_rxbuff[ 1 ], len );
+    memcpy( buffer, &spi_rxbuff[ 1 ], readLength );
 
     /*------------------------------------------------
     Clear (by setting) the RX_DR flag to signal we've read data
     ------------------------------------------------*/
-    setRegisterBits( REG_STATUS, STATUS_RX_DR );
+    setRegisterBits( REG_STATUS, STATUS_RX_DR, false );
 
     /*-------------------------------------------------
     Reset the chip enable back to the initial RX state
