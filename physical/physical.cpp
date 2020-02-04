@@ -112,11 +112,25 @@ namespace RF24::Physical
     ------------------------------------------------*/
     mHWDriver->setAddressWidth( RF24::Hardware::AddressWidth::AW_5Byte );
 
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_0, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_1, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_2, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_3, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_4, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_5, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+
     /*-------------------------------------------------
     Set the default channel to a value that likely won't
     congest the spectrum.
     -------------------------------------------------*/
     setChannel( 76 );
+
+    /*------------------------------------------------
+    Enable dynamic payloads so that each transfer can handle
+    a variable packet length. No need for fixed lengths.
+    ------------------------------------------------*/
+    mHWDriver->toggleFeatures( true );
+    mHWDriver->toggleDynamicPayloads( false );
 
     /*-------------------------------------------------
     Clear the buffers to start with a clean slate
@@ -211,6 +225,12 @@ namespace RF24::Physical
   Chimera::Status_t HardwareDriver::setStaticPayloadSize( const size_t size )
   {
     mPayloadSize = std::min( size, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_0, mPayloadSize );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_1, mPayloadSize );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_2, mPayloadSize );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_3, mPayloadSize );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_4, mPayloadSize );
+    mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_5, mPayloadSize );
     return Chimera::CommonStatusCodes::OK;
   }
 

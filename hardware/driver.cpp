@@ -44,6 +44,9 @@ namespace RF24::Hardware
   /*-------------------------------------------------
   Constructors/Destructors
   -------------------------------------------------*/
+  /**
+   *
+   */
   Driver::Driver()
   {
     spi = nullptr;
@@ -56,6 +59,10 @@ namespace RF24::Hardware
     mAddressBytes           = 0u;
   }
 
+
+  /**
+   *
+   */
   Driver::~Driver()
   {
   }
@@ -63,6 +70,9 @@ namespace RF24::Hardware
   /*-------------------------------------------------
   Driver Functions
   -------------------------------------------------*/
+  /**
+   *
+   */
   Chimera::Status_t Driver::initialize( const Chimera::SPI::DriverConfig &setup, const Chimera::GPIO::PinInit &CE )
   {
     auto result = Chimera::CommonStatusCodes::OK;
@@ -112,6 +122,10 @@ namespace RF24::Hardware
     return result;
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::readRegister( const Reg8_t addr )
   {
     Reg8_t tempBuffer = std::numeric_limits<Reg8_t>::max();
@@ -119,6 +133,10 @@ namespace RF24::Hardware
     return tempBuffer;
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::readRegister( const Reg8_t addr, void *const buf, size_t len )
   {
     /*------------------------------------------------
@@ -154,11 +172,19 @@ namespace RF24::Hardware
     return std::numeric_limits<Reg8_t>::max();
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t value, const bool check )
   {
     return writeRegister( addr, &value, 1u, check );
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::writeRegister( const Reg8_t addr, const void *const buffer, size_t len, const bool check )
   {
     /*------------------------------------------------
@@ -210,6 +236,10 @@ namespace RF24::Hardware
     return std::numeric_limits<Reg8_t>::max();
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::setRegisterBits( const Reg8_t addr, const Reg8_t mask, const bool check )
   {
     Reg8_t current = readRegister( addr );
@@ -217,6 +247,10 @@ namespace RF24::Hardware
     return writeRegister( addr, current, check );
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::clrRegisterBits( const Reg8_t addr, const Reg8_t mask )
   {
     Reg8_t current = readRegister( addr );
@@ -224,6 +258,10 @@ namespace RF24::Hardware
     return writeRegister( addr, current );
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleRFPower( const bool state )
   {
     if ( state && !( readRegister( REG_CONFIG ) & CONFIG_PWR_UP ) )
@@ -245,6 +283,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleFeatures( const bool state )
   {
     if ( !mFeaturesActivated )
@@ -269,6 +311,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleDynamicPayloads( const bool state )
   {
     if ( state )
@@ -305,6 +351,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleDynamicAck( const bool state )
   {
     if ( state )
@@ -318,6 +368,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleAutoAck( const bool state, const PipeNumber pipe )
   {
     if ( ( pipe == PIPE_NUM_ALL ) && state )
@@ -346,6 +400,10 @@ namespace RF24::Hardware
     /* Else invalid pipe input parameters */
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleAckPayloads( const bool state )
   {
     if ( !mDynamicPayloadsEnabled && state )
@@ -365,6 +423,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   Chimera::Status_t Driver::resetDevice()
   {
     toggleRFPower( false );
@@ -397,16 +459,28 @@ namespace RF24::Hardware
     return Chimera::CommonStatusCodes::OK;
   }
 
+
+  /**
+   *
+   */
   Chimera::Status_t Driver::selfTest( const bool rpd )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
+
+  /**
+   *
+   */
   Chimera::Status_t Driver::toggleRXDataPipe( const size_t pipe, const bool state )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
+
+  /**
+   *
+   */
   void Driver::toggleCE( const bool state )
   {
     if ( state )
@@ -419,6 +493,10 @@ namespace RF24::Hardware
     }
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::writePayload( const void *const buf, const size_t len, const uint8_t writeType )
   {
     if ( ( writeType != CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != CMD_W_TX_PAYLOAD ) )
@@ -451,6 +529,10 @@ namespace RF24::Hardware
     return spi_rxbuff[ 0 ];
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
   {
     using namespace RF24::Hardware;
@@ -506,6 +588,10 @@ namespace RF24::Hardware
     return status;
   }
 
+
+  /**
+   *
+   */
   Chimera::Status_t Driver::writeAckPayload( const PipeNumber pipe, const void *const buffer, const size_t len )
   {
     // TODO: Magic numbers abound in this function. Get rid of them.
@@ -522,6 +608,10 @@ namespace RF24::Hardware
     return Chimera::CommonStatusCodes::OK;
   }
 
+
+  /**
+   *
+   */
   Reg8_t Driver::writeCMD( const uint8_t cmd )
   {
     size_t txLength = 1;
@@ -539,6 +629,10 @@ namespace RF24::Hardware
     return spi_rxbuff[ 0 ];
   }
 
+
+  /**
+   *
+   */
   void Driver::writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length )
   {
     size_t size = std::min( length, ( spi_txbuff.size() - 1u ) );
@@ -552,6 +646,10 @@ namespace RF24::Hardware
     CSPin->setState( Chimera::GPIO::State::HIGH );
   }
 
+
+  /**
+   *
+   */
   void Driver::readCMD( const Reg8_t cmd, void *const buffer, const size_t length )
   {
     size_t size = std::min( length, ( spi_rxbuff.size() - 1u ) );
@@ -567,11 +665,19 @@ namespace RF24::Hardware
     memcpy( buffer, &spi_rxbuff[ 1 ], size );
   }
 
+
+  /**
+   *
+   */
   uint8_t Driver::getStatus()
   {
     return writeCMD( CMD_NOP );
   }
 
+
+  /**
+   *
+   */
   void Driver::setCRCLength( const CRCLength length )
   {
     uint8_t config = readRegister( REG_CONFIG ) & ~( CONFIG_CRCO | CONFIG_EN_CRC );
@@ -594,6 +700,10 @@ namespace RF24::Hardware
     writeRegister( REG_CONFIG, config );
   }
 
+
+  /**
+   *
+   */
   CRCLength Driver::getCRCLength()
   {
     CRCLength result = CRCLength::CRC_DISABLED;
@@ -616,12 +726,20 @@ namespace RF24::Hardware
     return result;
   }
 
+
+  /**
+   *
+   */
   void Driver::disableCRC()
   {
     uint8_t disable = readRegister( REG_CONFIG ) & ~CONFIG_EN_CRC;
     writeRegister( REG_CONFIG, disable );
   }
 
+
+  /**
+   *
+   */
   void Driver::maskIRQ( const bool tx_ok, const bool tx_fail, const bool rx_ready )
   {
     uint8_t config = readRegister( REG_CONFIG );
@@ -633,36 +751,84 @@ namespace RF24::Hardware
     writeRegister( REG_CONFIG, config );
   }
 
+
+  /**
+   *
+   */
   bool Driver::rxFifoFull()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
     return status & FIFO_STATUS_RX_FULL;
   }
 
+
+  /**
+   *
+   */
   bool Driver::rxFifoEmpty()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
     return status & FIFO_STATUS_RX_EMPTY;
   }
 
+
+  /**
+   *
+   */
   bool Driver::txFifoFull()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
     return status & FIFO_STATUS_TX_FULL;
   }
 
+
+  /**
+   *
+   */
   bool Driver::txFifoEmpty()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
     return status & FIFO_STATUS_TX_EMPTY;
   }
 
+
+  /**
+   *  Function:
+   *    setAddressWidth
+   *
+   *  Notes:
+   *    
+   */
   void Driver::setAddressWidth( const AddressWidth address_width )
   {
     writeRegister( REG_SETUP_AW, static_cast<Reg8_t>( address_width ) );
     mAddressBytes = getAddressWidthAsBytes();
   }
 
+  void Driver::setStaticPayloadWidth( const PipeNumber pipe, const size_t bytes )
+  {
+    if ( pipe < rxPipePayloadWidthRegister.size() )
+    {
+      writeRegister( rxPipePayloadWidthRegister[ pipe ], static_cast<Reg8_t>( bytes ) );
+    }
+  }
+
+  size_t Driver::getStaticPayloadWidth( const PipeNumber pipe )
+  {
+    if ( pipe < rxPipePayloadWidthRegister.size() )
+    {
+      return readRegister( rxPipePayloadWidthRegister[ pipe ] );
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+
+  /**
+   *
+   */
   size_t Driver::getAddressWidthAsBytes()
   {
     auto reg = readRegister( REG_SETUP_AW );
@@ -685,8 +851,12 @@ namespace RF24::Hardware
         return 0;
         break;
     }
-  }
+  } /* getAddressWidthAsBytes() */
 
+
+  /**
+   *
+   */
   size_t Driver::getDynamicPayloadSize()
   {
     auto result = MIN_PAYLOAD_WIDTH;
@@ -710,6 +880,6 @@ namespace RF24::Hardware
     }
 
     return result;
-  }
+  } /* getDynamicPayloadSize() */
 
 }    // namespace RF24::Hardware

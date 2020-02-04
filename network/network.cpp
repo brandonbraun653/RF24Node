@@ -100,11 +100,12 @@ namespace RF24::Network
 
     uint8_t pipeNum      = 0u;
     HeaderMessage sysMsg = MSG_TX_NORMAL;
+    RF24::Hardware::PipeNumber pipe = radio->payloadAvailable();
 
     /*------------------------------------------------
     Process the incoming data
     ------------------------------------------------*/
-    while ( radio->payloadAvailable() < RF24::Hardware::PIPE_NUM_MAX )
+    while ( pipe < RF24::Hardware::PIPE_NUM_MAX )
     {
       /*------------------------------------------------
       Get the raw data and validate that CRC
@@ -112,7 +113,7 @@ namespace RF24::Network
       Frame::Buffer buffer;
       buffer.fill( 0 );
 
-      radio->readPayload( buffer, radio->getDynamicPayloadSize() );
+      radio->readPayload( buffer, radio->getPayloadSize( pipe ) );
 
       auto reportedCRC   = Frame::getCRCFromBuffer( buffer );
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
@@ -133,6 +134,8 @@ namespace RF24::Network
       {
         sysMsg = handlePassthrough( buffer );
       }
+
+      pipe = radio->payloadAvailable();
     }
 
     return sysMsg;
@@ -209,6 +212,7 @@ namespace RF24::Network
     result |= radio->openWritePipe( address );
     result |= radio->immediateWrite( buffer, length );
     result |= radio->txStandBy( 10, true );
+    result |= radio->startListening();
 
     return ( result == Chimera::CommonStatusCodes::OK );
   }

@@ -276,6 +276,10 @@ namespace RF24::Hardware
      */
     void setAddressWidth( const AddressWidth address_width );
 
+    void setStaticPayloadWidth( const PipeNumber pipe, const size_t bytes );
+
+    size_t getStaticPayloadWidth( const PipeNumber pipe );
+
     /**
      *   Get the number of bytes used in the device address width
      *

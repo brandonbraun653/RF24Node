@@ -354,7 +354,7 @@ namespace RF24::Endpoint
     configResult |= physical->setPALevel( mConfig.physical.powerAmplitude );
     configResult |= physical->setDataRate( mConfig.physical.dataRate );
     configResult |= physical->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
-    configResult |= physical->toggleDynamicPayloads( true );
+    configResult |= physical->toggleDynamicPayloads( false );
     configResult |= physical->setStaticPayloadSize( RF24::Hardware::MAX_PAYLOAD_WIDTH );
 
     /*------------------------------------------------
