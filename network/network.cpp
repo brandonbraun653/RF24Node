@@ -14,9 +14,11 @@
 /* Boost Includes */
 #include <boost/circular_buffer.hpp>
 
+/* Aurora Includes */
+#include <Aurora/logging/serial_sink.hpp>
+
 /* Chimera Includes */
 #include <Chimera/chimera.hpp>
-#include <Chimera/modules/ulog/serial_sink.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/common/conversion.hpp>

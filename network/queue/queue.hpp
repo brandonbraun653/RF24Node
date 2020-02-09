@@ -21,7 +21,9 @@
 /* Chimera Includes */
 #include <Chimera/types/common_types.hpp>
 #include <Chimera/threading.hpp>
-#include <Chimera/modules/memory/heap/heap.hpp>
+
+/* Aurora Includes */
+#include <Aurora/memory/heap/heap.hpp>
 
 namespace RF24::Network::Queue
 {
