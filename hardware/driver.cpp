@@ -13,8 +13,8 @@
 #include <cstring>
 
 /* Chimera Includes */
-#include <Chimera/types/common_types.hpp>
-#include <Chimera/types/event_types.hpp>
+#include <Chimera/common>
+#include <Chimera/event>
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
@@ -98,13 +98,13 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Configure radio chip enable & spi chip select pins
     ------------------------------------------------*/
-    CEPin = std::make_unique<Chimera::GPIO::GPIOClass>();
-    result |= CEPin->init( CE );
-    CEPin->setState( Chimera::GPIO::State::HIGH );
+    CEPin = Chimera::GPIO::create_unique_ptr();
+    result |= CEPin->init( CE, 100 );
+    CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
-    CSPin = std::make_unique<Chimera::GPIO::GPIOClass>();
-    result |= CSPin->init( setup.CSInit );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin = Chimera::GPIO::create_unique_ptr();
+    result |= CSPin->init( setup.CSInit, 100 );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     /*------------------------------------------------
     Power down the device and make sure we actually achieve it
@@ -114,7 +114,7 @@ namespace RF24::Hardware
     resetDevice();
     readRegister( REG_CONFIG, &configState, 1 );
 
-    if ( configState & CONFIG_PWR_UP )
+    if ( ( configState & CONFIG_PWR_UP ) || ( result != Chimera::CommonStatusCodes::OK ) )
     {
       return Chimera::CommonStatusCodes::FAILED_INIT;
     }
@@ -158,10 +158,10 @@ namespace RF24::Hardware
     ------------------------------------------------*/
     if ( spi->try_lock_for( 100 ) )
     {
-      CSPin->setState( Chimera::GPIO::State::LOW );
+      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
       spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH );
+      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       memcpy( buf, &spi_rxbuff[ 1 ], len );
 
@@ -206,10 +206,10 @@ namespace RF24::Hardware
     ------------------------------------------------*/
     if ( spi->try_lock_for( 100 ) )
     {
-      CSPin->setState( Chimera::GPIO::State::LOW );
+      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
       spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH );
+      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       /* Save off the return code because validation will overwrite the buffer */
       auto returnCode = spi_rxbuff[ 0 ];
@@ -278,7 +278,7 @@ namespace RF24::Hardware
       /*-------------------------------------------------
       Force standby mode and power down the chip
       -------------------------------------------------*/
-      CEPin->setState( Chimera::GPIO::State::LOW );
+      CEPin->setState( Chimera::GPIO::State::LOW, 100 );
       clrRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
     }
   }
@@ -294,10 +294,10 @@ namespace RF24::Hardware
       spi_txbuff[ 0 ] = RF24::Hardware::CMD_ACTIVATE;
       spi_txbuff[ 1 ] = 0x73;
 
-      CSPin->setState( Chimera::GPIO::State::LOW );
+      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), 2, 100 );
       spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH );
+      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       mFeaturesActivated = true;
     }
@@ -485,11 +485,11 @@ namespace RF24::Hardware
   {
     if ( state )
     {
-      CEPin->setState( Chimera::GPIO::State::HIGH );
+      CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
     }
     else
     {
-      CEPin->setState( Chimera::GPIO::State::LOW );
+      CEPin->setState( Chimera::GPIO::State::LOW, 100 );
     }
   }
 
@@ -521,10 +521,10 @@ namespace RF24::Hardware
     memcpy( &spi_txbuff[ 1 ], buf, len );           /* Payload information */
     memset( &spi_txbuff[ len + 1 ], 0, blank_len ); /* Null out the remaining buffer space */
 
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     return spi_rxbuff[ 0 ];
   }
@@ -567,10 +567,10 @@ namespace RF24::Hardware
     /*-------------------------------------------------
     Read out the payload. The +1 is for the read command.
     -------------------------------------------------*/
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size + 1u, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     status = spi_rxbuff[ 0 ];
     memcpy( buffer, &spi_rxbuff[ 1 ], readLength );
@@ -583,7 +583,7 @@ namespace RF24::Hardware
     /*-------------------------------------------------
     Reset the chip enable back to the initial RX state
     -------------------------------------------------*/
-    CEPin->setState( Chimera::GPIO::State::HIGH );
+    CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     return status;
   }
@@ -600,10 +600,10 @@ namespace RF24::Hardware
     spi_txbuff[ 0 ] = RF24::Hardware::CMD_W_ACK_PAYLOAD | ( pipe & 0x07 );
     memcpy( &spi_txbuff[ 1 ], buffer, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     return Chimera::CommonStatusCodes::OK;
   }
@@ -620,10 +620,10 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Write the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     /* Return only the status code of the chip */
     return spi_rxbuff[ 0 ];
@@ -640,10 +640,10 @@ namespace RF24::Hardware
     spi_txbuff[ 0 ] = cmd;
     memcpy( &spi_txbuff[ 1 ], buffer, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
   }
 
 
@@ -657,10 +657,10 @@ namespace RF24::Hardware
     spi_txbuff[ 0 ] = cmd;
     memset( &spi_txbuff[ 1 ], 0, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW );
+    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
     spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH );
+    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     memcpy( buffer, &spi_rxbuff[ 1 ], size );
   }

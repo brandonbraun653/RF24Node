@@ -21,8 +21,8 @@
 #include <string_view>
 
 /* Chimera Includes */
-#include <Chimera/threading.hpp>
-#include <Chimera/types/common_types.hpp>
+#include <Chimera/thread>
+#include <Chimera/common>
 
 /* uLog Includes */
 #include <uLog/types.hpp>

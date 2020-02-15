@@ -17,10 +17,9 @@
 #include <memory>
 
 /* Chimera Includes */
-#include <Chimera/extensions/spi_ext.hpp>
-#include <Chimera/gpio.hpp>
-#include <Chimera/spi.hpp>
-#include <Chimera/threading.hpp>
+#include <Chimera/spi>
+#include <Chimera/gpio>
+#include <Chimera/thread>
 
 /* Driver Includes */
 #include <RF24Node/hardware/definitions.hpp>
@@ -355,8 +354,8 @@ namespace RF24::Hardware
 
 
   private:
-    Chimera::GPIO::GPIOClass_uPtr CSPin;
-    Chimera::GPIO::GPIOClass_uPtr CEPin;
+    Chimera::GPIO::GPIO_uPtr CSPin;
+    Chimera::GPIO::GPIO_uPtr CEPin;
     Chimera::SPI::SPI_sPtr spi;
 
     std::array<uint8_t, SPI_BUFFER_LEN> spi_txbuff; /**< Internal transmit buffer */

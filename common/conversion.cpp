@@ -20,7 +20,7 @@
 #include <uLog/sinks/sink_intf.hpp>
 
 /* Chimera Includes */
-#include <Chimera/chimera.hpp>
+#include <Chimera/common>
 
 /* RF24 Includes */
 #include <RF24Node/common/conversion.hpp>

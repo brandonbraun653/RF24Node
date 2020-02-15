@@ -19,8 +19,8 @@
 #include <boost/circular_buffer.hpp>
 
 /* Chimera Includes */
-#include <Chimera/types/common_types.hpp>
-#include <Chimera/threading.hpp>
+#include <Chimera/common>
+#include <Chimera/thread>
 
 /* Aurora Includes */
 #include <Aurora/memory/heap/heap.hpp>

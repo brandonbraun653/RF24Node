@@ -13,7 +13,7 @@
 #define RF24_NODE_ENDPOINT_INTERFACE_HPP
 
 /* Chimera Includes */
-#include <Chimera/types/common_types.hpp>
+#include <Chimera/common>
 
 /* RF24 Includes */
 #include <RF24Node/common/types.hpp>

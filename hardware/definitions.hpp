@@ -18,7 +18,7 @@
 #include <limits>
 
 /* Chimera Includes */
-#include <Chimera/types/spi_types.hpp>
+#include <Chimera/spi>
 
 namespace RF24::Hardware
 {

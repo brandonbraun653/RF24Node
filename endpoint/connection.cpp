@@ -8,11 +8,9 @@
  *  2019 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
-/* C++ Includes */
-
 /* Chimera Includes */
-#include <Chimera/chimera.hpp>
-#include <Chimera/threading.hpp>
+#include <Chimera/common>
+#include <Chimera/thread>
 
 /* RF24 Includes */
 #include <RF24Node/common/utility.hpp>

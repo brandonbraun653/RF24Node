@@ -12,7 +12,7 @@
 #include <cstring>
 
 /* Chimera Includes */
-#include <Chimera/threading.hpp>
+#include <Chimera/thread>
 
 /* RF24 Includes */
 #include <RF24Node/network/queue/queue.hpp>

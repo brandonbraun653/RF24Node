@@ -12,7 +12,7 @@
 #include <string_view>
 
 /* Chimera Includes */
-#include <Chimera/threading.hpp>
+#include <Chimera/thread>
 
 /* uLog Includes */
 #include <uLog/types.hpp>

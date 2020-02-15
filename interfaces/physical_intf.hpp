@@ -16,7 +16,7 @@
 #include <memory>
 
 /* Chimera Includes */
-#include <Chimera/types/common_types.hpp>
+#include <Chimera/common>
 
 /* uLog Includes */
 #include <uLog/types.hpp>

@@ -26,8 +26,8 @@
 #include <memory>
 
 /* Chimera Includes */
-#include <Chimera/gpio.hpp>
-#include <Chimera/types/common_types.hpp>
+#include <Chimera/gpio>
+#include <Chimera/common>
 
 /* uLog Includes */
 #include <uLog/types.hpp>

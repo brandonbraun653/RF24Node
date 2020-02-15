@@ -17,7 +17,7 @@
 #include <cstdlib>
 
 /* Chimera Includes */
-#include <Chimera/types/common_types.hpp>
+#include <Chimera/common>
 
 namespace RF24::Hardware
 {

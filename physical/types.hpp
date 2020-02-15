@@ -18,7 +18,7 @@
 #include <string>
 
 /* Chimera Includes */
-#include <Chimera/types/spi_types.hpp>
+#include <Chimera/spi>
 
 /* RF24 Includes */
 #include <RF24Node/hardware/types.hpp>
