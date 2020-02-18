@@ -73,6 +73,8 @@ namespace RF24::Physical
     RF24::Hardware::DataRate getDataRate() final override;
     Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) final override;
 
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
+
   private:
     bool flagInitialized;
 

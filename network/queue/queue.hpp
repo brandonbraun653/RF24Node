@@ -59,7 +59,7 @@ namespace RF24::Network::Queue
     size_t element_depth;
 
     boost::circular_buffer<Element> ringBuffer;
-    Chimera::Modules::Memory::Heap heap;
+    Aurora::Memory::Heap heap;
 
   };
 

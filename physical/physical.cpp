@@ -37,8 +37,8 @@ namespace RF24::Physical
     mPlusVariant          = false;
     mCurrentlyListening   = false;
     mListeningPaused      = false;
-    mAddressWidth         = std::numeric_limits<size_t>::min();
-    mPayloadSize          = std::numeric_limits<size_t>::min();
+    mAddressWidth         = std::numeric_limits<uint8_t>::min();
+    mPayloadSize          = std::numeric_limits<uint8_t>::min();
     mCachedPipe0RXAddress = std::numeric_limits<uint64_t>::min();
     mCurrentMode          = RF24::Hardware::Mode::MAX_MODES;
     mHWDriver             = nullptr;
@@ -206,7 +206,7 @@ namespace RF24::Physical
 
   Chimera::Status_t HardwareDriver::setChannel( const size_t channel, const bool validate )
   {
-    auto maskedChannel = channel & RF24::Hardware::RF_CH_Mask;
+    auto maskedChannel = static_cast<Reg8_t>( channel & RF24::Hardware::RF_CH_Mask );
     mHWDriver->writeRegister( RF24::Hardware::REG_RF_CH, maskedChannel );
 
     if ( validate && ( mHWDriver->readRegister( RF24::Hardware::REG_RF_CH ) != maskedChannel ) )
@@ -224,7 +224,7 @@ namespace RF24::Physical
 
   Chimera::Status_t HardwareDriver::setStaticPayloadSize( const size_t size )
   {
-    mPayloadSize = std::min( size, RF24::Hardware::MAX_PAYLOAD_WIDTH );
+    mPayloadSize = static_cast<Reg8_t>( std::min( size, RF24::Hardware::MAX_PAYLOAD_WIDTH ) );
     mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_0, mPayloadSize );
     mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_1, mPayloadSize );
     mHWDriver->setStaticPayloadWidth( RF24::Hardware::PIPE_NUM_2, mPayloadSize );

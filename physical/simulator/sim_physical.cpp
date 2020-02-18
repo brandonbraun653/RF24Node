@@ -11,7 +11,7 @@
 #if defined( RF24_SIMULATOR )
 
 /* Chimera Includes */
-#include <Chimera/chimera.hpp>
+#include <Chimera/common>
 #include <Chimera/thread>
 
 /* Logger Includes */
@@ -151,6 +151,8 @@ namespace RF24::Physical
       mDataPipes[ x ]->stopListening();
     }
 
+    Chimera::delayMilliseconds( 10 );
+
     return Chimera::CommonStatusCodes::OK;
   }
 
@@ -253,6 +255,7 @@ namespace RF24::Physical
 
   Chimera::Status_t SimulatorDriver::txStandBy( const size_t timeout, const bool startTx )
   {
+    Chimera::delayMilliseconds( timeout );
     return Chimera::CommonStatusCodes::OK;
   }
 
@@ -388,6 +391,7 @@ namespace RF24::Physical
           ------------------------------------------------*/
           if ( mDataPipes[ 0 ]->isListening() )
           {
+            logger->flog(uLog::Level::LVL_ERROR, "%d-PHY: Cannot TX while radio is listening\n", Chimera::millis() );
             break;
           }
 
@@ -399,7 +403,7 @@ namespace RF24::Physical
         /*------------------------------------------------
         Make sure other threads can do work
         ------------------------------------------------*/
-        Chimera::Threading::yield();
+        Chimera::Threading::this_thread::yield();
         Chimera::delayMilliseconds( 5 );
       }
     }
@@ -407,6 +411,11 @@ namespace RF24::Physical
     {
       // Exiting
     }
+  }
+
+  Chimera::Status_t SimulatorDriver::attachLogger( uLog::SinkHandle sink )
+  {
+    return Chimera::CommonStatusCodes::OK;
   }
 
 }    // namespace RF24::Physical

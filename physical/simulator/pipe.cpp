@@ -18,7 +18,7 @@
 #include <boost/thread.hpp>
 
 /* Chimera Includes */
-#include <Chimera/chimera.hpp>
+#include <Chimera/common>
 
 /* Logger Includes */
 #include <uLog/types.hpp>
