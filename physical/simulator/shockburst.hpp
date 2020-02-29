@@ -23,6 +23,9 @@
 /* Boost Includes */
 #include <boost/asio.hpp>
 
+/* uLog Includes */
+#include <uLog/ulog.hpp>
+
 /* RF24 Includes */
 #include <RF24Node/hardware/definitions.hpp>
 #include <RF24Node/hardware/types.hpp>
@@ -41,6 +44,8 @@ namespace RF24::Physical::Shockburst
   public:
     Socket( const RF24::Hardware::PipeNumber pipe, boost::asio::io_service &io_service, const std::string name );
     ~Socket();
+
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink );
 
     /**
      *  If this channel has a write pipe available in hardware, the tx
@@ -172,6 +177,8 @@ namespace RF24::Physical::Shockburst
 
     RF24::PhysicalAddress cachedTXAddress;
     const RF24::Hardware::PipeNumber pipeID;
+
+    uLog::SinkHandle logger;
   };
 
   using DataPipe_sPtr = std::shared_ptr<Socket>;

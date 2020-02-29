@@ -3,9 +3,9 @@
  *    sim_physical.hpp
  *
  *  Description:
+ *    Simulator version of the RF24L01 physical layer
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -103,14 +103,14 @@ namespace RF24::Physical
     std::atomic<bool> killFlag;
 
     /**
-     *	Implements a hardware feature in the NRF24L01 that manages the 
+     *	Implements a hardware feature in the NRF24L01 that manages the
      *	TX/RX FIFOs for data flowing through the pipes.
-     *	
+     *
      *	@note   This is a thread
-     *	
+     *
      *	@return void
      */
-     void QueueHandler();
+    void QueueHandler();
   };
 }    // namespace RF24::Physical
 

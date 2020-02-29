@@ -37,8 +37,6 @@ namespace RF24::Physical
 
     mDataRate = Hardware::DR_1MBPS;
     mPALevel  = Hardware::PA_LOW;
-
-    logger = uLog::getRootSink();
   }
 
   SimulatorDriver::~SimulatorDriver()
@@ -55,6 +53,11 @@ namespace RF24::Physical
     {
       mDataPipes[ x ] =
           std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService, cfg.deviceName );
+
+      if ( logger )
+      {
+        mDataPipes[ x ]->attachLogger( logger );
+      }
     }
 
     /*------------------------------------------------
@@ -131,6 +134,7 @@ namespace RF24::Physical
     In hardware, this is done by toggling a physical pin
     and setting a few register bits.
     ------------------------------------------------*/
+    logger->flog( uLog::Level::LVL_INFO, "Starting all pipes for listening\n" );
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->startListening();
@@ -146,6 +150,7 @@ namespace RF24::Physical
     places the chip in a standby mode. We don't have that in
     software, so simply tell the pipes to plug their ears.
     ------------------------------------------------*/
+    logger->flog( uLog::Level::LVL_INFO, "Stopping all pipes from listening\n" );
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->stopListening();
@@ -207,9 +212,7 @@ namespace RF24::Physical
     if ( !RxFIFO.empty() )
     {
       auto elem = RxFIFO.front();
-
-      RF24::Network::Frame::FrameType tempFrame( elem.payload );
-      return tempFrame.getPayloadLength();
+      return RF24::Network::Frame::getFrameLengthFromBuffer( elem.payload );
     }
     else
     {
@@ -222,6 +225,7 @@ namespace RF24::Physical
     std::lock_guard<std::recursive_mutex> guard( FIFOLock );
     if ( !RxFIFO.empty() )
     {
+      logger->flog( uLog::Level::LVL_INFO, "length of %d\n", length );
       auto elem = RxFIFO.front();
       memcpy( buffer.data(), elem.payload.data(), length );
       RxFIFO.pop();
@@ -332,7 +336,7 @@ namespace RF24::Physical
 
   RF24::Hardware::DataRate SimulatorDriver::getDataRate()
   {
-    return RF24::Hardware::DataRate();
+    return mDataRate;
   }
 
   Chimera::Status_t SimulatorDriver::toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe )
@@ -379,8 +383,6 @@ namespace RF24::Physical
           }
         }
 
-        // there are multiple threads being created....
-
         /*------------------------------------------------
         Handle TX Payloads
         ------------------------------------------------*/
@@ -415,6 +417,14 @@ namespace RF24::Physical
 
   Chimera::Status_t SimulatorDriver::attachLogger( uLog::SinkHandle sink )
   {
+    logger = sink;
+    for ( size_t x = 0; x < mDataPipes.size(); x++ )
+    {
+      if ( mDataPipes[ x ] )
+      {
+        mDataPipes[ x ]->attachLogger( logger );
+      }
+    }
     return Chimera::CommonStatusCodes::OK;
   }
 

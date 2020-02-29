@@ -6,10 +6,10 @@
  *    Implements a software version of the RF transmissions in the NRF24. This is 
  *    directly modeling the hardware transceiver and its associated packet logic.
  *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
-#if defined( _WIN32 ) || defined( _WIN64 )
+#if defined( RF24_SIMULATOR )
 
 /* C++ Includes */
 #include <mutex>
@@ -47,6 +47,14 @@ namespace RF24::Physical::Shockburst
 
   Socket::~Socket()
   {
+  }
+
+  Chimera::Status_t Socket::attachLogger( uLog::SinkHandle sink )
+  {
+    logger = sink;
+    txPipe.attachLogger( logger );
+    rxPipe.attachLogger( logger );
+    return Chimera::CommonStatusCodes::OK;
   }
 
   void Socket::setRetryLimit( const size_t limit )
@@ -162,6 +170,7 @@ namespace RF24::Physical::Shockburst
     Copy the packet data into a raw buffer and transmit it
     ------------------------------------------------*/
     PacketBuffer tmp;
+    tmp.fill(0);
     memcpy( tmp.data(), &pkt, tmp.size() );
     txPipe.write( tmp );
   }

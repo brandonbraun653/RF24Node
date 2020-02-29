@@ -5,10 +5,10 @@
  *  Description:
  *
  *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
-#if defined( _WIN32 ) || defined( _WIN64 )
+#if defined( RF24_SIMULATOR )
 
 /* C++ Includes */
 #include <type_traits>
@@ -46,12 +46,19 @@ namespace RF24::Physical::Pipe
     mUserCallback = nullptr;
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
 
-    mLogger = uLog::getRootSink();
+    mLogger = nullptr;
   }
 
   TX::~TX()
   {
     closePipe();
+  }
+
+  
+  Chimera::Status_t TX::attachLogger( uLog::SinkHandle sink )
+  {
+    mLogger = sink;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   void TX::openPipe()
@@ -192,6 +199,12 @@ namespace RF24::Physical::Pipe
   {
     stopListening();
     closePipe();
+  }
+
+  Chimera::Status_t RX::attachLogger( uLog::SinkHandle sink )
+  {
+    mLogger = sink;
+    return Chimera::CommonStatusCodes::OK;
   }
 
   void RX::openPipe( const std::string &ip, const uint16_t port )

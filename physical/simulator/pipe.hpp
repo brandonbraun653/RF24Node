@@ -12,7 +12,7 @@
 #ifndef RF24_NODE_PHYSICAL_SIMULATOR_PIPE_HPP
 #define RF24_NODE_PHYSICAL_SIMULATOR_PIPE_HPP
 
-#if defined( _WIN32 ) || defined( _WIN64 )
+#if defined( RF24_SIMULATOR )
 
 /* C++ Includes */
 #include <atomic>
@@ -28,6 +28,7 @@
 #include <boost/thread.hpp>
 
 /* uLog Includes */
+#include <uLog/ulog.hpp>
 #include <uLog/types.hpp>
 
 /* RF24 Includes */
@@ -42,6 +43,8 @@ namespace RF24::Physical::Pipe
   public:
     TX(boost::asio::io_service &io_service, const std::string name, const size_t pipe );
     ~TX();
+
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink );
 
     /**
      *  Opens the pipe
@@ -108,6 +111,8 @@ namespace RF24::Physical::Pipe
   public:
     RX( boost::asio::io_service &io_service, const std::string name, const size_t pipe  );
     ~RX();
+
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink );
 
     /**
      *  Opens the RX pipe for listening

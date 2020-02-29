@@ -1,11 +1,11 @@
 /********************************************************************************
- *   File Name:
+ *  File Name:
  *    network.cpp
  *
- *   Description:
+ *  Description:
  *    Implements the NRF24L01 network layer driver.
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 /* C++ Includes */
@@ -100,8 +100,9 @@ namespace RF24::Network
       return MSG_NETWORK_ERR;
     }
 
-    uint8_t pipeNum      = 0u;
-    HeaderMessage sysMsg = MSG_TX_NORMAL;
+    uint8_t pipeNum                 = 0u;
+    size_t payloadSize              = 0u;
+    HeaderMessage sysMsg            = MSG_TX_NORMAL;
     RF24::Hardware::PipeNumber pipe = radio->payloadAvailable();
 
     /*------------------------------------------------
@@ -115,7 +116,8 @@ namespace RF24::Network
       Frame::Buffer buffer;
       buffer.fill( 0 );
 
-      radio->readPayload( buffer, radio->getPayloadSize( pipe ) );
+      payloadSize = radio->getPayloadSize( pipe );
+      radio->readPayload( buffer, payloadSize );
 
       auto reportedCRC   = Frame::getCRCFromBuffer( buffer );
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
