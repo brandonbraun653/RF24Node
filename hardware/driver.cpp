@@ -160,7 +160,7 @@ namespace RF24::Hardware
     {
       CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
-      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
       CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       memcpy( buf, &spi_rxbuff[ 1 ], len );
@@ -208,7 +208,7 @@ namespace RF24::Hardware
     {
       CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
-      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
       CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       /* Save off the return code because validation will overwrite the buffer */
@@ -296,7 +296,7 @@ namespace RF24::Hardware
 
       CSPin->setState( Chimera::GPIO::State::LOW, 100 );
       spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), 2, 100 );
-      spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
       CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
       mFeaturesActivated = true;
@@ -523,7 +523,7 @@ namespace RF24::Hardware
 
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     return spi_rxbuff[ 0 ];
@@ -569,7 +569,7 @@ namespace RF24::Hardware
     -------------------------------------------------*/
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size + 1u, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     status = spi_rxbuff[ 0 ];
@@ -602,7 +602,7 @@ namespace RF24::Hardware
 
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     return Chimera::CommonStatusCodes::OK;
@@ -622,7 +622,7 @@ namespace RF24::Hardware
     ------------------------------------------------*/
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     /* Return only the status code of the chip */
@@ -642,7 +642,7 @@ namespace RF24::Hardware
 
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
   }
 
@@ -659,7 +659,7 @@ namespace RF24::Hardware
 
     CSPin->setState( Chimera::GPIO::State::LOW, 100 );
     spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::Trigger::TRANSFER_COMPLETE, 100 );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
     CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
 
     memcpy( buffer, &spi_rxbuff[ 1 ], size );
