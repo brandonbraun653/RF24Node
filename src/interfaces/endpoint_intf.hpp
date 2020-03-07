@@ -1,0 +1,290 @@
+/********************************************************************************
+ *  File Name:
+ *    endpoint.hpp
+ *
+ *  Description:
+ *    Describes a high level interface to configuring and using the NRF24L01
+ *
+ *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
+
+#pragma once
+#ifndef RF24_NODE_ENDPOINT_INTERFACE_HPP
+#define RF24_NODE_ENDPOINT_INTERFACE_HPP
+
+/* Chimera Includes */
+#include <Chimera/common>
+
+/* RF24 Includes */
+#include <RF24Node/src/common/types.hpp>
+#include <RF24Node/src/endpoint/types.hpp>
+#include <RF24Node/src/network/types.hpp>
+#include <RF24Node/src/network/frame/frame.hpp>
+#include <RF24Node/src/simulator/sim_definitions.hpp>
+
+namespace RF24::Endpoint
+{
+  class Interface
+  {
+  public:
+    virtual ~Interface() = default;
+
+    /*-------------------------------------------------
+    Initialization and Configuration
+    -------------------------------------------------*/
+    /**
+     *  Initializes the endpoint with critical settings needed to operate
+     *
+     *  @param[in]  cfg       The configuration details to be set
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t configure( const Config &cfg ) = 0;
+
+    /**
+     *	Assigns a human friendly name to the node. This makes it easy to
+     *  identify both in the field and in debugging sessions.
+     *	
+     *	@param[in]	name      The name for this device
+     *	@return void
+     */
+    virtual void setName( const std::string_view &name ) = 0;
+
+    /**
+     *  Change how the endpoint makes connections to the network
+     *
+     *  @param[in]  mode      The desired networking strategy
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t setNetworkingMode( const ::RF24::Network::Mode mode ) = 0;
+
+    /**
+     *  Manually sets the endpoint's logical address. This is essentially
+     *  the same as setting a static IP.
+     *
+     *  @warning  This only works if the networking mode is configured as NetworkMode::NET_MODE_STATIC
+     *
+     *  @param[in]  address   The new address to be set
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t setEnpointStaticAddress( const ::RF24::LogicalAddress address ) = 0;
+
+    /**
+     *  Manually sets the endpoint's logical address. This is essentially
+     *  the same as setting a static IP.
+     *
+     *  @warning  This only works if the networking mode is configured as NetworkMode::NET_MODE_STATIC
+     *
+     *  @param[in]  address   The new address to be set
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t setParentStaticAddress( const ::RF24::LogicalAddress address ) = 0;
+
+    /*-------------------------------------------------
+    Networking Operations
+    -------------------------------------------------*/
+    /**
+     *  Requests an address for this node from the network's DHCP server.
+     *
+     *  @warning This only works if the networking mode is configured as NetworkMode::NET_MODE_MESH
+     *
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t requestAddress() = 0;
+
+    /**
+     *  Talks with the DHCP server to renew our address allocation. Periodically the address
+     *  list will be pruned of stale nodes to free up addresses for new devices.
+     *
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t renewAddressReservation() = 0;
+
+    /**
+     *  Talks with the DHCP server to remove this device from the network.
+     *
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t releaseAddress() = 0;
+
+    /**
+     *  Attempts to connect to the network using previously configured settings
+     *
+     *  @warning  All nodes must use the same networking mode in order for the
+     *            connection to succeed. Otherwise nodes won't know how to talk
+     *            with one another.
+     *
+     *  @param[in]  timeout     Timeout in milliseconds to wait for success
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t connect( const size_t timeout ) = 0;
+
+    /**
+     *  Gracefully detaches from the network
+     *
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t disconnect() = 0;
+
+    /**
+     *  Reconnects the node to the network. If configured as a static network, will use the last
+     *  known network settings. If a mesh network, will try and dynamically obtain a new address
+     *  from the DHCP server.
+     *
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t reconnect() = 0;
+
+
+    /*-------------------------------------------------
+    Asynchronous Processing
+    -------------------------------------------------*/
+    /**
+     *	High level function to process the whole networking stack:
+     *
+     *  1. Transmits queued TX packets from the application layer
+     *  2. Enqueues RX packets destined for the application layer
+     *  3. Processes through all the lower layers to ensure the stack doesn't stall
+     *
+     *  @note   The frequency at which this should be called is dependent upon
+     *          system hardware. Generally faster is better, but don't get crazy.
+     *          Start at around 10mS and work backwards.
+     *	
+     *	@return Chimera::Status_t
+     */
+     virtual Chimera::Status_t doAsyncProcessing() = 0;
+
+    /**
+     *  Attaches a handler to be called whenever some kind of event occurs
+     *
+     *  @note   Currently only a single handler per event is supported
+     *
+     *  @param[in]  event       The event to attach the handler to
+     *  @param[in]  function    The handler to be invoked on event occurrence
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t onEvent( const Event event, const EventFuncPtr_t function ) = 0;
+
+    virtual Chimera::Status_t processDHCPServer( ::RF24::Network::Frame::FrameType &frame ) = 0;
+
+    /**
+     *	Interacts with the network layer to handle any complex messages that
+     *  should be dealt with internally.
+     *	
+     *	@return Chimera::Status_t
+     */
+    virtual Chimera::Status_t processMessageRequests( ::RF24::Network::Frame::FrameType &frame ) = 0;
+
+    virtual Chimera::Status_t processEventHandlers( ::RF24::Network::Frame::FrameType &frame ) = 0;
+
+    /**
+     *	Polls through the networking layer a single time in order to
+     *  keep data flowing in the TX and RX directions.
+     *	
+     *	@return Chimera::Status_t
+     */
+     virtual Chimera::Status_t processNetworking() = 0;
+
+
+    /*-------------------------------------------------
+    Data Transfer IO
+    -------------------------------------------------*/
+    /**
+     *  Writes some data to a particular node in the network
+     *
+     *  @param[in]  dst       The logical address of the destination node
+     *  @param[in]  data      The data to be sent
+     *  @param[in]  length    How long the data is in bytes
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t write( const ::RF24::LogicalAddress dst, const void *const data, const size_t length ) = 0;
+
+    /**
+     *  Reads the next available data packet into the buffer
+     *
+     *  @see packetAvailable()
+     *  @see nextPacketLength()
+     *
+     *  @param[out] data      Buffer to read into
+     *  @param[in]  length    How many bytes the data buffer can hold
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t read( void *const data, const size_t length ) = 0;
+
+    /**
+     *  Checks if there is any data waiting to be read from the RX queue
+     *
+     *  @return bool
+     */
+    virtual bool packetAvailable() = 0;
+
+    /**
+     *  If there is data ready to be consumed, returns the size in bytes
+     *
+     *  @note   Use read() to pull the next queued RX packet out
+     *
+     *  @see packetAvailable()
+     *  @return size_t
+     */
+    virtual size_t nextPacketLength() = 0;
+
+
+    /*-------------------------------------------------
+    Information Getters
+    -------------------------------------------------*/
+    /**
+     *  Gets the latest system status of the endpoint node
+     *
+     *  @return EndpointStatus
+     */
+    virtual Status getStatus() = 0;
+
+    /**
+     *  Gets the latest configuration information of the endpoint node
+     *
+     *  @return EndpointConfig
+     */
+    virtual Config &getConfig() = 0;
+
+    /**
+     *	Gets the currently assigned logical address of the node
+     *
+     *	@return RF24::LogicalAddress
+     */
+    virtual ::RF24::LogicalAddress getLogicalAddress() = 0;
+
+    /**
+     *  Checks if the node is still connected to the network with 
+     */
+    virtual bool isConnected() = 0;
+  };
+}    // namespace RF24
+
+/*------------------------------------------------
+Exported functions
+------------------------------------------------*/
+#if defined( RF24DLL )
+
+extern "C" RF24API Chimera::Status_t EP_configure( RF24::Endpoint::Interface *obj, const RF24::Endpoint::Config *const cfg );
+extern "C" RF24API Chimera::Status_t EP_setNetworkingMode( RF24::Endpoint::Interface *obj, const ::RF24::Network::Mode mode );
+extern "C" RF24API Chimera::Status_t EP_setEnpointStaticAddress( RF24::Endpoint::Interface *obj,
+                                                                 const RF24::LogicalAddress address );
+extern "C" RF24API Chimera::Status_t EP_setParentStaticAddress( RF24::Endpoint::Interface *obj,
+                                                                const RF24::LogicalAddress address );
+extern "C" RF24API Chimera::Status_t EP_requestAddress( RF24::Endpoint::Interface *obj );
+extern "C" RF24API Chimera::Status_t EP_renewAddressReservation( RF24::Endpoint::Interface *obj );
+extern "C" RF24API Chimera::Status_t EP_connect( RF24::Endpoint::Interface *obj, const size_t timeout );
+extern "C" RF24API Chimera::Status_t EP_disconnect( RF24::Endpoint::Interface *obj );
+extern "C" RF24API Chimera::Status_t EP_reconnect( RF24::Endpoint::Interface *obj );
+extern "C" RF24API Chimera::Status_t EP_onEvent( RF24::Endpoint::Interface *obj, const RF24::Event event,
+                                                 const RF24::EventFuncPtr_t function );
+extern "C" RF24API Chimera::Status_t EP_write( RF24::Endpoint::Interface *obj, const RF24::LogicalAddress dst,
+                                               const void *const data, const size_t length );
+extern "C" RF24API Chimera::Status_t EP_read( RF24::Endpoint::Interface *obj, void *const data, const size_t length );
+extern "C" RF24API bool EP_packetAvailable( RF24::Endpoint::Interface *obj );
+extern "C" RF24API size_t EP_nextPacketLength( RF24::Endpoint::Interface *obj );
+extern "C" RF24API RF24::Endpoint::Status EP_getEndpointStatus( RF24::Endpoint::Interface *obj );
+extern "C" RF24API Chimera::Status_t EP_isConnected( RF24::Endpoint::Interface *obj );
+
+#endif /* RF24DLL */
+
+#endif /* !RF24_NODE_ENDPOINT_INTERFACE_HPP*/

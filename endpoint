@@ -1,0 +1,18 @@
+/********************************************************************************
+ *  File Name:
+ *    endpoint
+ * 
+ *  Description:
+ *    RF24 Node Endpoint
+ * 
+ *  2020 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
+
+#pragma once
+#ifndef RF24_NODE_ENDPOINT_INCLUDES
+#define RF24_NODE_ENDPOINT_INCLUDES
+
+#include <RF24Node/src/endpoint/endpoint.hpp>
+#include <RF24Node/src/endpoint/types.hpp>
+
+#endif /* !RF24_NODE_ENDPOINT_INCLUDES */

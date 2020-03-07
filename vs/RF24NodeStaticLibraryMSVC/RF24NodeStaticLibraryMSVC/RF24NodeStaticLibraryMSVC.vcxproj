@@ -19,65 +19,67 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\common\conversion.hpp" />
-    <ClInclude Include="..\..\..\common\definitions.hpp" />
-    <ClInclude Include="..\..\..\common\types.hpp" />
-    <ClInclude Include="..\..\..\common\utility.hpp" />
-    <ClInclude Include="..\..\..\endpoint\config.hpp" />
-    <ClInclude Include="..\..\..\endpoint\connection.hpp" />
-    <ClInclude Include="..\..\..\endpoint\endpoint.hpp" />
-    <ClInclude Include="..\..\..\endpoint\fwd.hpp" />
-    <ClInclude Include="..\..\..\endpoint\registration.hpp" />
-    <ClInclude Include="..\..\..\endpoint\types.hpp" />
-    <ClInclude Include="..\..\..\hardware\definitions.hpp" />
-    <ClInclude Include="..\..\..\hardware\driver.hpp" />
-    <ClInclude Include="..\..\..\hardware\register.hpp" />
-    <ClInclude Include="..\..\..\hardware\types.hpp" />
-    <ClInclude Include="..\..\..\interfaces\endpoint_intf.hpp" />
-    <ClInclude Include="..\..\..\interfaces\network_intf.hpp" />
-    <ClInclude Include="..\..\..\interfaces\physical_intf.hpp" />
-    <ClInclude Include="..\..\..\mesh\definitions.hpp" />
-    <ClInclude Include="..\..\..\mesh\mesh.hpp" />
-    <ClInclude Include="..\..\..\network\definitions.hpp" />
-    <ClInclude Include="..\..\..\network\frame\definitions.hpp" />
-    <ClInclude Include="..\..\..\network\frame\frame.hpp" />
-    <ClInclude Include="..\..\..\network\frame\types.hpp" />
-    <ClInclude Include="..\..\..\network\network.hpp" />
-    <ClInclude Include="..\..\..\network\path\path.hpp" />
-    <ClInclude Include="..\..\..\network\queue\queue.hpp" />
-    <ClInclude Include="..\..\..\network\types.hpp" />
-    <ClInclude Include="..\..\..\physical\physical.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\pipe.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\pipe_types.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\shockburst.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\shockburst_types.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\sim_physical.hpp" />
-    <ClInclude Include="..\..\..\physical\types.hpp" />
-    <ClInclude Include="..\..\..\simulator\sim_definitions.hpp" />
+    <ClInclude Include="..\..\..\src\common\conversion.hpp" />
+    <ClInclude Include="..\..\..\src\common\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\common\types.hpp" />
+    <ClInclude Include="..\..\..\src\common\utility.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\fwd.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_registration.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\types.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\driver.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\register.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\types.hpp" />
+    <ClInclude Include="..\..\..\src\interfaces\endpoint_intf.hpp" />
+    <ClInclude Include="..\..\..\src\interfaces\network_intf.hpp" />
+    <ClInclude Include="..\..\..\src\interfaces\physical_intf.hpp" />
+    <ClInclude Include="..\..\..\src\mesh\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\mesh\mesh.hpp" />
+    <ClInclude Include="..\..\..\src\network\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\network\frame\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\network\frame\frame.hpp" />
+    <ClInclude Include="..\..\..\src\network\frame\types.hpp" />
+    <ClInclude Include="..\..\..\src\network\network.hpp" />
+    <ClInclude Include="..\..\..\src\network\path\path.hpp" />
+    <ClInclude Include="..\..\..\src\network\queue\queue.hpp" />
+    <ClInclude Include="..\..\..\src\network\types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\physical.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe_types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst_types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\sim_physical.hpp" />
+    <ClInclude Include="..\..\..\src\physical\types.hpp" />
+    <ClInclude Include="..\..\..\src\simulator\sim_definitions.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\hardware\about.md" />
-    <None Include="..\..\..\mesh\about.md" />
-    <None Include="..\..\..\network\about.md" />
-    <None Include="..\..\..\physical\about.md" />
+    <None Include="..\..\..\src\hardware\about.md" />
+    <None Include="..\..\..\src\mesh\about.md" />
+    <None Include="..\..\..\src\network\about.md" />
+    <None Include="..\..\..\src\physical\about.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\common\conversion.cpp" />
-    <ClCompile Include="..\..\..\common\utility.cpp" />
-    <ClCompile Include="..\..\..\endpoint\connection.cpp" />
-    <ClCompile Include="..\..\..\endpoint\endpoint.cpp" />
-    <ClCompile Include="..\..\..\endpoint\registration.cpp" />
-    <ClCompile Include="..\..\..\hardware\driver.cpp" />
-    <ClCompile Include="..\..\..\interfaces\endpoint_intf.cpp" />
-    <ClCompile Include="..\..\..\mesh\mesh.cpp" />
-    <ClCompile Include="..\..\..\network\frame\frame.cpp" />
-    <ClCompile Include="..\..\..\network\network.cpp" />
-    <ClCompile Include="..\..\..\network\path\net_path.cpp" />
-    <ClCompile Include="..\..\..\network\queue\net_queue.cpp" />
-    <ClCompile Include="..\..\..\physical\physical.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\pipe.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\shockburst.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\sim_physical.cpp" />
+    <ClCompile Include="..\..\..\src\common\conversion.cpp" />
+    <ClCompile Include="..\..\..\src\common\utility.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\endpoint.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_registration.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
+    <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
+    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp" />
+    <ClCompile Include="..\..\..\src\mesh\mesh.cpp" />
+    <ClCompile Include="..\..\..\src\network\frame\frame.cpp" />
+    <ClCompile Include="..\..\..\src\network\network.cpp" />
+    <ClCompile Include="..\..\..\src\network\path\net_path.cpp" />
+    <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp" />
+    <ClCompile Include="..\..\..\src\physical\physical.cpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\pipe.cpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\shockburst.cpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\sim_physical.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -157,7 +159,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>4250</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -174,7 +176,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>4250</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -193,7 +195,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>4250</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -214,7 +216,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <DisableSpecificWarnings>4250</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
