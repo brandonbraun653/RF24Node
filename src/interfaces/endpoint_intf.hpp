@@ -18,13 +18,14 @@
 /* RF24 Includes */
 #include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/endpoint/types.hpp>
+#include <RF24Node/src/interfaces/network_intf.hpp>
 #include <RF24Node/src/network/types.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
 #include <RF24Node/src/simulator/sim_definitions.hpp>
 
 namespace RF24::Endpoint
 {
-  class Interface
+  class Interface : public Chimera::Threading::Lockable
   {
   public:
     virtual ~Interface() = default;
@@ -38,16 +39,16 @@ namespace RF24::Endpoint
      *  @param[in]  cfg       The configuration details to be set
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t configure( const Config &cfg ) = 0;
+    virtual Chimera::Status_t configure( const SystemInit &cfg ) = 0;
 
     /**
      *	Assigns a human friendly name to the node. This makes it easy to
      *  identify both in the field and in debugging sessions.
-     *	
+     *
      *	@param[in]	name      The name for this device
      *	@return void
      */
-    virtual void setName( const std::string_view &name ) = 0;
+    virtual void setName( const std::string &name ) = 0;
 
     /**
      *  Change how the endpoint makes connections to the network
@@ -134,6 +135,15 @@ namespace RF24::Endpoint
      */
     virtual Chimera::Status_t reconnect() = 0;
 
+    /**
+     *  Pings a given node to see if it's on the network
+     *  
+     *  @param[in]  node      The node to ping
+     *  @param[in]  timeout   How long to wait for the ping to succeed (mS) before erroring out
+     *  @return bool
+     */
+    virtual bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) = 0;
+
 
     /*-------------------------------------------------
     Asynchronous Processing
@@ -148,10 +158,10 @@ namespace RF24::Endpoint
      *  @note   The frequency at which this should be called is dependent upon
      *          system hardware. Generally faster is better, but don't get crazy.
      *          Start at around 10mS and work backwards.
-     *	
+     *
      *	@return Chimera::Status_t
      */
-     virtual Chimera::Status_t doAsyncProcessing() = 0;
+    virtual Chimera::Status_t doAsyncProcessing() = 0;
 
     /**
      *  Attaches a handler to be called whenever some kind of event occurs
@@ -169,7 +179,7 @@ namespace RF24::Endpoint
     /**
      *	Interacts with the network layer to handle any complex messages that
      *  should be dealt with internally.
-     *	
+     *
      *	@return Chimera::Status_t
      */
     virtual Chimera::Status_t processMessageRequests( ::RF24::Network::Frame::FrameType &frame ) = 0;
@@ -179,11 +189,12 @@ namespace RF24::Endpoint
     /**
      *	Polls through the networking layer a single time in order to
      *  keep data flowing in the TX and RX directions.
-     *	
+     *
      *	@return Chimera::Status_t
      */
-     virtual Chimera::Status_t processNetworking() = 0;
+    virtual Chimera::Status_t processNetworking() = 0;
 
+    virtual RF24::Network::Interface_sPtr getNetworkingDriver() = 0;
 
     /*-------------------------------------------------
     Data Transfer IO
@@ -243,7 +254,7 @@ namespace RF24::Endpoint
      *
      *  @return EndpointConfig
      */
-    virtual Config &getConfig() = 0;
+    virtual SystemInit &getConfig() = 0;
 
     /**
      *	Gets the currently assigned logical address of the node
@@ -253,18 +264,20 @@ namespace RF24::Endpoint
     virtual ::RF24::LogicalAddress getLogicalAddress() = 0;
 
     /**
-     *  Checks if the node is still connected to the network with 
+     *  Checks if the node is still connected to the network with
      */
     virtual bool isConnected() = 0;
+
+    virtual SystemState getCurrentState() = 0;
   };
-}    // namespace RF24
+}    // namespace RF24::Endpoint
 
 /*------------------------------------------------
 Exported functions
 ------------------------------------------------*/
 #if defined( RF24DLL )
 
-extern "C" RF24API Chimera::Status_t EP_configure( RF24::Endpoint::Interface *obj, const RF24::Endpoint::Config *const cfg );
+extern "C" RF24API Chimera::Status_t EP_configure( RF24::Endpoint::Interface *obj, const RF24::Endpoint::SystemInit *const cfg );
 extern "C" RF24API Chimera::Status_t EP_setNetworkingMode( RF24::Endpoint::Interface *obj, const ::RF24::Network::Mode mode );
 extern "C" RF24API Chimera::Status_t EP_setEnpointStaticAddress( RF24::Endpoint::Interface *obj,
                                                                  const RF24::LogicalAddress address );

@@ -13,12 +13,12 @@
 
 namespace RF24::Endpoint
 {
-  class Device;
+  class Interface;
 
   namespace Internal
   {
-    class RegistrationManager;
-    class ConnectionManager;
+    class NodeConnections;
+    class Connector;
   }    // namespace Internal
 }
 

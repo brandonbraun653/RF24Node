@@ -87,8 +87,8 @@ namespace RF24::Network::Frame
   {
     CRC16_t crc;                     /**< CRC of the entire frame, minus the crc field */
     PackedHeader header;             /**< Header describing the frame */
-    Length length;                   /**< Length of the message in bytes */
-    uint8_t payload[ PAYLOAD_SIZE ]; /**< User defined message */
+    Length payloadLength;            /**< Length of the payload in bytes */
+    uint8_t payload[ PAYLOAD_SIZE ]; /**< User defined payload message */
   };
 
 #pragma pack( push )
@@ -97,7 +97,7 @@ namespace RF24::Network::Frame
   {
     CRC16_t crc;
     PackedHeader header;
-    Length length;
+    Length payloadLength;
     uint8_t payload[ PAYLOAD_SIZE ];
   };
 #pragma pack( pop )
@@ -105,7 +105,7 @@ namespace RF24::Network::Frame
   static_assert( sizeof( PackedData ) == ::RF24::Network::Frame::size(), "Frame data structure is the wrong size" );
   static_assert( offsetof( PackedData, crc ) == CRC_OFFSET, "CRC offset incorrect" );
   static_assert( offsetof( PackedData, header ) == HEADER_OFFSET, "Header offset incorrect" );
-  static_assert( offsetof( PackedData, length ) == MSG_LEN_OFFSET, "Length offset incorrect" );
+  static_assert( offsetof( PackedData, payloadLength ) == MSG_LEN_OFFSET, "Length offset incorrect" );
   static_assert( offsetof( PackedData, payload ) == PAYLOAD_OFFSET, "Payload offset incorrect" );
 
 }    // namespace RF24::Network::Frame

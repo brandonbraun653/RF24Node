@@ -1,0 +1,20 @@
+/********************************************************************************
+ *  File Name:
+ *    common
+ * 
+ *  Description:
+ *    RF24 Node Common
+ * 
+ *  2020 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
+
+#pragma once
+#ifndef RF24_NODE_COMMON_INCLUDES
+#define RF24_NODE_COMMON_INCLUDES
+
+#include <RF24Node/src/common/conversion.hpp>
+#include <RF24Node/src/common/definitions.hpp>
+#include <RF24Node/src/common/types.hpp>
+#include <RF24Node/src/common/utility.hpp>
+
+#endif /* !RF24_NODE_COMMON_INCLUDES */

@@ -44,7 +44,7 @@ namespace RF24::Physical::Conversion
   /**
    *  Pulls the IP address from raw Shockburst data
    *  
-   *  @param[in]  pkt     The data to be decoded
+   *  @param[in]  pkt       The data to be decoded
    *  @return string
    */
   std::string decodeIP( const Shockburst::PacketBuffer &pkt );
@@ -60,7 +60,7 @@ namespace RF24::Physical::Conversion
   /**
    *  Pulls the port number from raw Shockburst data
    *  
-   *  @param[in]  pkt     The data to be decoded
+   *  @param[in]  pkt       The data to be decoded
    *  @return string
    */
   uint16_t decodePort( const Shockburst::PacketBuffer &pkt );
@@ -76,12 +76,13 @@ namespace RF24::Physical::Conversion
   PhysicalAddress getPhysicalAddress( const LogicalAddress address, const Hardware::PipeNumber pipeNum );
 
   /**
+   *	Gets the pipe this node *could* be bound to on the network. This does not mean that the node is
+   *	actually connected, just that if it were connected, this is the pipe it would be connected to.
    *	
-   *	
-   *	@param[in]	address
+   *	@param[in]	address       Octal address to get the pipe for
    *	@return RF24::Hardware::PipeNumber
    */
-   RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address );
+   RF24::Hardware::PipeNumber getExpectedPipe( const ::RF24::LogicalAddress address );
 }
 
 #endif	/* !RF24_NODE_PHYSICAL_SIMULATOR_CONVERSION_HPP */

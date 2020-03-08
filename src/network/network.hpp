@@ -29,6 +29,7 @@
 #include <RF24Node/src/hardware/types.hpp>
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/interfaces/network_intf.hpp>
+#include <RF24Node/src/network/connections/rf24_network_route_table.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
 #include <RF24Node/src/network/frame/types.hpp>
@@ -38,7 +39,7 @@
 
 namespace RF24::Network
 {
-  class Driver : public Interface
+  class Driver : virtual public Interface
   {
   public:
     Driver( ::RF24::Endpoint::Interface *const node );
@@ -55,6 +56,12 @@ namespace RF24::Network
     bool peek( Frame::FrameType &frame ) final override;
     bool read( Frame::FrameType &frame ) final override;
     bool write( Frame::FrameType &frame, const RoutingStyle route ) final override;
+    void removeRXFrame() final override;
+
+    LogicalAddress nextHop( const LogicalAddress dst ) final override;
+
+    bool updateRouteTable( const LogicalAddress address ) final override;
+    void setNodeAddress(  const LogicalAddress address ) final override;
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -94,6 +101,8 @@ namespace RF24::Network
     RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
     RF24::Network::Queue::ManagedFIFO txQueue;
     RF24::Network::Queue::ManagedFIFO rxQueue;
+
+    Internal::NodeConnections routeTable;
 
     uLog::SinkHandle logger;
 

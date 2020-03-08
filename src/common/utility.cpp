@@ -173,11 +173,10 @@ namespace RF24
     else if ( level == NODE_LEVEL_1 )
     {
       /*------------------------------------------------
-      If we are at level 1, we have no clue which is the correct parent 
-      as there could be multiple root nodes in the network. The user
-      will have to ask that child specifically who is their parent node.
+      Eventually multiple roots will be supported, but for now,
+      all level 1 nodes have root node 0 as their parent.
       ------------------------------------------------*/
-      return Network::RSVD_ADDR_LOOKUP;
+      return RF24::RootNode0;
     }
     else
     {

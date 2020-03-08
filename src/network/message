@@ -1,0 +1,18 @@
+/********************************************************************************
+ *  File Name:
+ *    message
+ * 
+ *  Description:
+ *    RF24 Node Network Messaging Includes 
+ * 
+ *  2020 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
+
+#pragma once
+#ifndef RF24_NODE_MESSAGE_INCLUDES
+#define RF24_NODE_MESSAGE_INCLUDES
+
+#include <RF24Node/src/network/messaging/rf24_net_msg.hpp>
+#include <RF24Node/src/network/messaging/rf24_net_msg_ping.hpp>
+
+#endif /* !RF24_NODE_MESSAGE_INCLUDES */

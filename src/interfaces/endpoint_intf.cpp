@@ -16,12 +16,12 @@
 
 #if defined( RF24DLL )
 
-Chimera::Status_t EP_configure( ::RF24::Endpoint::Interface *obj, const ::RF24::Endpoint::Config *const cfg )
+Chimera::Status_t EP_configure( ::RF24::Endpoint::Interface *obj, const ::RF24::Endpoint::SystemInit *const cfg )
 {
-  ::RF24::Endpoint::Config localCfg;
+  ::RF24::Endpoint::SystemInit localCfg;
 
-  memset( &localCfg, 0, sizeof( ::RF24::Endpoint::Config ) );
-  memcpy( &localCfg, cfg, sizeof( ::RF24::Endpoint::Config ) );
+  memset( &localCfg, 0, sizeof( ::RF24::Endpoint::SystemInit ) );
+  memcpy( &localCfg, cfg, sizeof( ::RF24::Endpoint::SystemInit ) );
 
   return obj->configure( localCfg );
 }

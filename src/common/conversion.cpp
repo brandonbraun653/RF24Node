@@ -30,7 +30,7 @@
 
 namespace RF24::Physical::Conversion
 {
-  RF24::Hardware::PipeNumber getPipeOnParent( const ::RF24::LogicalAddress address )
+  RF24::Hardware::PipeNumber getExpectedPipe( const ::RF24::LogicalAddress address )
   {
     auto level = getLevel( address );
 

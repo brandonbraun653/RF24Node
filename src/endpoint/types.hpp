@@ -14,6 +14,7 @@
 
 /* C++ Includes */
 #include <cstdint>
+#include <string>
 
 /* RF24 Includes */
 #include <RF24Node/src/physical/types.hpp>
@@ -22,11 +23,28 @@
 
 namespace RF24::Endpoint
 {
-  struct Config
+
+  struct SystemInit
   {
-    uint32_t version;          /**< Version ID */
+    uint8_t version;           /**< Version ID */
+    uint32_t linkTimeout;      /**< How long to wait for any network connections to timeout */
     Network::Config network;   /**< Network layer configuration */
     Physical::Config physical; /**< Physical layer configuration */
+  };
+
+  struct ConnectionStatus
+  {
+    bool connected;     /**< The endpoint is connected to the network */
+    size_t expiredTick; /**< Tick when the connection state is due to expire */
+  };
+
+  struct SystemState
+  {
+    LogicalAddress parentAddress;
+    LogicalAddress endpointAddress;
+    ConnectionStatus linkStatus;
+
+    std::string name;
   };
 
   struct Status
@@ -34,22 +52,7 @@ namespace RF24::Endpoint
     bool connected;
   };
 
-  class Node
-  {
-  public:
-    Node()
-    {
-      logicalAddress  = RF24::Network::RSVD_ADDR_INVALID;
-      physicalAddress = 0u;
-    }
-
-    ~Node()
-    {
-    }
-
-    LogicalAddress logicalAddress;
-    PhysicalAddress physicalAddress;
-  };
+  
 }
 
 #endif /* !RF24_NODE_ENDPOINT_TYPES_HPP */

@@ -3,9 +3,9 @@
  *    endpoint_connection.cpp
  *
  *  Description:
+ *    Implements the connection management subsystem for an endpoint
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 /* Chimera Includes */
@@ -14,10 +14,10 @@
 
 /* RF24 Includes */
 #include <RF24Node/src/common/utility.hpp>
-#include <RF24Node/src/endpoint/processes/rf24_endpoint_connection.hpp>
 #include <RF24Node/src/endpoint/endpoint.hpp>
+#include <RF24Node/src/endpoint/processes/rf24_endpoint_connection.hpp>
 
-namespace RF24::Endpoint::Internal
+namespace RF24::Endpoint::Internal::Processor
 {
   /*------------------------------------------------
   Static connection state machine possible actions
@@ -43,22 +43,42 @@ namespace RF24::Endpoint::Internal
     CONNECT_EXIT_LOOP
   };
 
-  
-  ConnectionManager::ConnectionManager( ::RF24::Endpoint::Device &endpoint ) : endpoint( endpoint )
+  void bindRequestHandler( ::RF24::Endpoint::Interface& obj, ::RF24::Network::Frame::FrameType& frame )
   {
-    
+    auto thisNode  = obj.getCurrentState();
+    auto netDriver = obj.getNetworkingDriver();
+
+    /*------------------------------------------------
+    Repurpose the existing frame for the response
+    ------------------------------------------------*/
+    auto cachedSrc = frame.getSrc();
+    frame.setSrc( thisNode.endpointAddress );
+    frame.setDst( cachedSrc );
+    frame.setType( Network::MSG_NET_REQUEST_BIND_FULL );
+    frame.setPayload( nullptr, 0 );
+
+    /*------------------------------------------------
+    This will only update if the source address is a direct descendant
+    ------------------------------------------------*/
+    if ( netDriver->updateRouteTable( cachedSrc ) )
+    {
+      frame.setType( Network::MSG_NET_REQUEST_BIND_ACK );
+    }
+
+    /*------------------------------------------------
+    Send the response back using direct routing because only bind requests
+    from immediate children are allowed. Perhaps in the future virtual
+    paths will be allowed, but that's currently not the case.
+    ------------------------------------------------*/
+    netDriver->write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
   }
 
-  ConnectionManager::~ConnectionManager()
-  {
-  }
-
-  Chimera::Status_t ConnectionManager::makeStaticConnection( const size_t timeout )
+  Chimera::Status_t makeStaticConnection( ::RF24::Endpoint::Interface &obj, const ::RF24::LogicalAddress node, const size_t timeout )
   {
     /*------------------------------------------------
     Protect against multi-threaded access
     ------------------------------------------------*/
-    auto lockGuard = Chimera::Threading::TimedLockGuard( endpoint );
+    auto lockGuard = Chimera::Threading::TimedLockGuard( obj );
     if ( !lockGuard.try_lock_for( 100 ) )
     {
       return ::Chimera::CommonStatusCodes::LOCKED;
@@ -70,16 +90,18 @@ namespace RF24::Endpoint::Internal
     size_t startTime      = Chimera::millis();
     auto connectionResult = Chimera::CommonStatusCodes::OK;
     Static currentState   = Static::CONNECT_BEGIN;
-    Static lastState      = currentState;
     bool packetValidity   = false;
     Network::Frame::FrameType frame;
+
+    auto netCfg = obj.getCurrentState();
+    auto network = obj.getNetworkingDriver();
 
     while ( currentState != Static::CONNECT_EXIT_LOOP )
     {
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      endpoint.network->updateRX();
+      network->updateRX();
 
       /*------------------------------------------------
       Handle the current state
@@ -95,8 +117,8 @@ namespace RF24::Endpoint::Internal
           No point in continuing if parent/child addresses
           are invalid. Parent is allowed to be any valid address.
           ------------------------------------------------*/
-          if ( !( isAddressValid( endpoint.mConfig.network.parentStaticAddress ) &&
-                  isAddressChild( endpoint.mConfig.network.nodeStaticAddress ) ) )
+          if ( !( isAddressValid( node ) &&
+                  isAddressChild( netCfg.endpointAddress ) ) )
           {
             currentState = Static::CONNECT_TERMINATE;
           }
@@ -108,12 +130,12 @@ namespace RF24::Endpoint::Internal
         Make the request to the configured nodes 
         ------------------------------------------------*/
         case Static::CONNECT_REQUEST:
-          frame.setDst( endpoint.mConfig.network.parentStaticAddress );
-          frame.setSrc( endpoint.mConfig.network.nodeStaticAddress );
+          frame.setDst( netCfg.parentAddress );
+          frame.setSrc( netCfg.endpointAddress );
           frame.setType( Network::MSG_NET_REQUEST_BIND );
-          frame.setLength( RF24::Network::Frame::EMPTY_PAYLOAD_SIZE );
+          frame.setPayload( nullptr, 0 );
 
-          endpoint.network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
+          network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
           currentState = Static::CONNECT_WAIT_FOR_RESPONSE;
           break;
 
@@ -121,11 +143,11 @@ namespace RF24::Endpoint::Internal
         Wait for the potential parent node to respond
         ------------------------------------------------*/
         case Static::CONNECT_WAIT_FOR_RESPONSE:
-          if ( endpoint.network->available() )
+          if ( network->available() )
           {
-            endpoint.network->peek( frame );
+            network->peek( frame );
 
-            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) && ( frame.getSrc() == endpoint.mParentAddress ) )
+            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) && ( frame.getSrc() == netCfg.parentAddress ) )
             {
               currentState = Static::CONNECT_RESPONSE;
             }
@@ -136,7 +158,7 @@ namespace RF24::Endpoint::Internal
         Check the response from the parent node to see if we connected
         ------------------------------------------------*/
         case Static::CONNECT_RESPONSE:
-          packetValidity = endpoint.network->read( frame );
+          packetValidity = network->read( frame );
 
           if ( packetValidity && ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
           {
@@ -189,8 +211,10 @@ namespace RF24::Endpoint::Internal
     return connectionResult;
   }
 
-  Chimera::Status_t ConnectionManager::makeMeshConnection( const size_t timeout )
+  Chimera::Status_t makeMeshConnection( const size_t timeout )
   {
     return Chimera::CommonStatusCodes::TIMEOUT;
   }
+
+
 }    // namespace RF24::Endpoint

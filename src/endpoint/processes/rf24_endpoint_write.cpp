@@ -1,4 +1,3 @@
-
 /********************************************************************************
  *  File Name:
  *    rf24_endpoint_write.cpp
@@ -26,7 +25,7 @@ namespace RF24::Endpoint
       return Chimera::CommonStatusCodes::NOT_AVAILABLE;
     }
 
-    need to implement the is connected function as well as connect timeout, reconnect, refresh connect.
+    //need to implement the is connected function as well as connect timeout, reconnect, refresh connect.
 
     return Chimera::Status_t();
   }

@@ -1,11 +1,11 @@
 /********************************************************************************
- *   File Name:
+ *  File Name:
  *     types.hpp
  *
- *   Description:
+ *  Description:
  *     Common types used across the RF24Node project
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -13,6 +13,7 @@
 #define RF24_NODE_COMMON_TYPES_HPP
 
 /* C++ Includes */
+#include <array>
 #include <cstdint>
 
 /* RF24 Includes */
@@ -24,6 +25,10 @@ namespace RF24
   using LogicalAddress  = uint16_t; /**< A node's fully qualified address in the network (octal) */
   using LogicalLevel    = uint16_t; /**< A level in the network tree structure */
   using LogicalID       = uint16_t; /**< Which logical channel the node is registered to */
+
+
+  static constexpr size_t DEVICE_NAME_LEN = 16;
+  using DeviceName = std::array<char, DEVICE_NAME_LEN + 1u>;
 
   /**
    *  Function pointer callback to be invoked on an event occurrence

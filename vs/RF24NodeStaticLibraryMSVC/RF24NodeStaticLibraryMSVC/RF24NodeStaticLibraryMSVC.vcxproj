@@ -26,8 +26,9 @@
     <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\fwd.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\node.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
-    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_registration.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\types.hpp" />
     <ClInclude Include="..\..\..\src\hardware\definitions.hpp" />
@@ -39,10 +40,13 @@
     <ClInclude Include="..\..\..\src\interfaces\physical_intf.hpp" />
     <ClInclude Include="..\..\..\src\mesh\definitions.hpp" />
     <ClInclude Include="..\..\..\src\mesh\mesh.hpp" />
+    <ClInclude Include="..\..\..\src\network\connections\rf24_network_route_table.hpp" />
     <ClInclude Include="..\..\..\src\network\definitions.hpp" />
     <ClInclude Include="..\..\..\src\network\frame\definitions.hpp" />
     <ClInclude Include="..\..\..\src\network\frame\frame.hpp" />
     <ClInclude Include="..\..\..\src\network\frame\types.hpp" />
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg.hpp" />
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg_ping.hpp" />
     <ClInclude Include="..\..\..\src\network\network.hpp" />
     <ClInclude Include="..\..\..\src\network\path\path.hpp" />
     <ClInclude Include="..\..\..\src\network\queue\queue.hpp" />
@@ -57,22 +61,29 @@
     <ClInclude Include="..\..\..\src\simulator\sim_definitions.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\..\common" />
+    <None Include="..\..\..\endpoint" />
     <None Include="..\..\..\src\hardware\about.md" />
     <None Include="..\..\..\src\mesh\about.md" />
     <None Include="..\..\..\src\network\about.md" />
+    <None Include="..\..\..\src\network\message" />
     <None Include="..\..\..\src\physical\about.md" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\conversion.cpp" />
     <ClCompile Include="..\..\..\src\common\utility.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\endpoint.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\node.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
-    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_registration.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
     <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
     <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp" />
     <ClCompile Include="..\..\..\src\mesh\mesh.cpp" />
+    <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp" />
     <ClCompile Include="..\..\..\src\network\frame\frame.cpp" />
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg.cpp" />
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg_ping.cpp" />
     <ClCompile Include="..\..\..\src\network\network.cpp" />
     <ClCompile Include="..\..\..\src\network\path\net_path.cpp" />
     <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp" />

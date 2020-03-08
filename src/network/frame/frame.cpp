@@ -22,22 +22,22 @@
 
 namespace RF24::Network::Frame
 {
-  FrameType::FrameType() : mStaleData( true )
+  FrameType::FrameType() : mStaleCRC( true )
   {
     memset( &mData, 0, sizeof( PackedData ) );
   }
 
-  FrameType::FrameType( const FrameType &frame ) : mStaleData( true )
+  FrameType::FrameType( const FrameType &frame ) : mStaleCRC( true )
   {
     memcpy( &mData, &frame.mData, sizeof( PackedData ) );
   }
 
-  FrameType::FrameType( const Buffer &buffer ) : mStaleData( true )
+  FrameType::FrameType( const Buffer &buffer ) : mStaleCRC( true )
   {
     memcpy( &mData, buffer.data(), sizeof( PackedData ) );
   }
 
-  FrameType::FrameType( const PackedData &rawFrame ) : mStaleData( true )
+  FrameType::FrameType( const PackedData &rawFrame ) : mStaleCRC( true )
   {
     memcpy( &mData, &rawFrame, sizeof( PackedData ) );
   }
@@ -46,19 +46,19 @@ namespace RF24::Network::Frame
 
   void FrameType::operator=( const Buffer &buffer )
   {
-    mStaleData = true;
+    mStaleCRC = true;
     memcpy( &mData, buffer.data(), sizeof( PackedData ) );
   }
 
   void FrameType::operator=( const FrameType &frame )
   {
-    mStaleData = true;
+    mStaleCRC = true;
     memcpy( &mData, &frame.mData, sizeof( PackedData ) );
   }
 
   void FrameType::operator=( const PackedData &rawFrame )
   {
-    mStaleData = true;
+    mStaleCRC = true;
     memcpy( &mData, &rawFrame, sizeof( PackedData ) );
   }
 
@@ -69,7 +69,7 @@ namespace RF24::Network::Frame
 
   void FrameType::clear()
   {
-    mStaleData = true;
+    mStaleCRC = true;
     memset( &mData, 0, sizeof( mData ) );
   }
 
@@ -95,17 +95,12 @@ namespace RF24::Network::Frame
     return temp;
   }
 
-  Length FrameType::getLength() const
-  {
-    static_assert( sizeof( PackedData::length ) == sizeof( Length ), "Invalid length size" );
-    Length temp;
-    memcpy( &temp, &mData.length, sizeof( Length ) );
-    return temp;
-  }
-
   Length FrameType::getPayloadLength() const
   {
-    return getLength() - static_cast<Length>( EMPTY_PAYLOAD_SIZE );
+    static_assert( sizeof( PackedData::payloadLength ) == sizeof( Length ), "Invalid length size" );
+    Length temp;
+    memcpy( &temp, &mData.payloadLength, sizeof( Length ) );
+    return temp;
   }
 
   Payload FrameType::getPayload() const
@@ -113,6 +108,11 @@ namespace RF24::Network::Frame
     Payload temp;
     memcpy( &temp, &mData + PAYLOAD_OFFSET, sizeof( PackedData::payload ) );
     return temp;
+  }
+
+  const uint8_t *const FrameType::peekPayload()
+  {
+    return mData.payload;
   }
 
   RF24::LogicalAddress FrameType::getDst() const
@@ -141,10 +141,10 @@ namespace RF24::Network::Frame
   ------------------------------------------------*/
   void FrameType::updateCRC()
   {
-    if ( mStaleData )
+    if ( mStaleCRC )
     {
       mData.crc  = calculateCRC();
-      mStaleData = false;
+      mStaleCRC = false;
     }
   }
 
@@ -163,9 +163,19 @@ namespace RF24::Network::Frame
     memcpy( &mData.header.type, &type, sizeof( RF24::Network::HeaderMessage ) );
   }
 
-  void FrameType::setLength( const Length len )
+  void FrameType::setPayload( const void *const data, const Length length )
   {
-    memcpy( &mData.length, &len, sizeof( Length ) );
+    if ( data && length )
+    {
+      const Length copyLen = ( length > PAYLOAD_SIZE ) ? PAYLOAD_SIZE : length;
+      memcpy( &mData.payloadLength, &copyLen, sizeof( Length ) );
+      memcpy( &mData.payload, data, copyLen );
+    }
+    else
+    {
+      memset( &mData.payloadLength, 0, sizeof( Length ) );
+      memset( &mData.payload, 0, PAYLOAD_SIZE );
+    }
   }
 
   /*------------------------------------------------
@@ -204,12 +214,15 @@ namespace RF24::Network::Frame
 
   Length getFrameLengthFromBuffer( const Buffer &buffer )
   {
-    Length len               = 0;
-    constexpr auto lenOffset = offsetof( PackedData, length );
+    Length payloadLength     = 0;
+    Length frameLength       = 0;
+    constexpr auto lenOffset = offsetof( PackedData, payloadLength );
     auto readPtr             = buffer.data() + lenOffset;
 
-    memcpy( &len, readPtr, sizeof( len ) );
-    return len;
+    /* Read out the length of the payload */
+    memcpy( &payloadLength, readPtr, sizeof( payloadLength ) );
+
+    return EMPTY_PAYLOAD_SIZE + payloadLength;
   }
 
   CRC16_t getCRCFromBuffer( const Buffer &buffer )

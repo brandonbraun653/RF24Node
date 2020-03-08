@@ -141,6 +141,21 @@ namespace RF24::Network::Queue
     return Chimera::CommonStatusCodes::OK;
   }
 
+  Chimera::Status_t ManagedFIFO::removeFront()
+  {
+    if ( !ringBuffer.empty() )
+    {
+      auto element = peek();
+      if ( element.payload && element.size )
+      {
+        heap.free( element.payload );
+        ringBuffer.pop_front();
+      }
+    }
+
+    return Chimera::CommonStatusCodes::OK;
+  }
+
   bool ManagedFIFO::empty()
   {
     return ringBuffer.empty();

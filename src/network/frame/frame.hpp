@@ -117,18 +117,8 @@ namespace RF24::Network::Frame
     ------------------------------------------------*/
     CRC16_t getCRC() const;
     Header getHeader() const;
-    /**
-     *  Gets the length of the entire frame, including the payload
-     *
-     *  @return Length
-     */
-    Length getLength() const;
     Payload getPayload() const;
-
-    /**
-     *  Gets the length of only the payload
-     *  @return Length
-     */
+    const uint8_t * const peekPayload();
     Length getPayloadLength() const;
     RF24::LogicalAddress getDst() const;
     RF24::LogicalAddress getSrc() const;
@@ -144,12 +134,12 @@ namespace RF24::Network::Frame
     void setDst( const RF24::LogicalAddress dst );
     void setSrc( const RF24::LogicalAddress src );
     void setType( const RF24::Network::HeaderMessage type );
-    void setLength( const Length len );
+    void setPayload( const void *const data, const Length length );
 
   private:
     uint16_t calculateCRC();
 
-    bool mStaleData;
+    bool mStaleCRC;
     PackedData mData;
   };
 }    // namespace RF24::Network::Frame

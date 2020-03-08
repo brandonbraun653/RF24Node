@@ -203,6 +203,28 @@ namespace RF24::Network
     return writeSuccess;
   }
 
+  void Driver::removeRXFrame()
+  {
+    rxQueue.removeFront();
+  }
+
+  LogicalAddress Driver::nextHop( const LogicalAddress dst )
+  {
+    // Need to search the route table for the best path
+    return RSVD_ADDR_INVALID;
+  }
+
+  bool Driver::updateRouteTable( const LogicalAddress address )
+  {
+    return routeTable.attach( address );
+  }
+
+  void Driver::setNodeAddress(  const LogicalAddress address )
+  {
+    routeTable.updateCentralNode( address );
+  }
+
+
   bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
   {
     Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
@@ -285,11 +307,14 @@ namespace RF24::Network
     IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX packet of type [%d] from [%04o] to [%04o]\n",
                                    Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst() ); );
 
-    return transferToPipe( directAddress, frame.toBuffer(), frame.getLength(), false );
+    return transferToPipe( directAddress, frame.toBuffer(), frame.getPayloadLength(), false );
   }
 
   bool Driver::writeRouted( Frame::FrameType &frame )
   {
+    // 1. Look at the destination address and decide the next hop
+
+
     radio->startListening();
     return false;
   }

@@ -21,6 +21,7 @@
 
 /* RF24 Includes */
 #include <RF24Node/src/hardware/types.hpp>
+#include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/types.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
@@ -73,10 +74,10 @@ namespace RF24::Network
 
     /**
      *	Performs the initialization sequence for the network layer
-     *	
+     *
      *	@return Chimera::Status_t
      */
-     virtual Chimera::Status_t initialize() = 0;
+    virtual Chimera::Status_t initialize() = 0;
 
     /**
      *  Runs the RX half of the network processing stack
@@ -92,7 +93,7 @@ namespace RF24::Network
      *  @warning  Must be called regularly to handle data in a timely manner
      *	@return void
      */
-     virtual void updateTX() = 0;
+    virtual void updateTX() = 0;
 
     /**
      *  Check whether a frame is available for this node.
@@ -125,6 +126,41 @@ namespace RF24::Network
      *	@return bool
      */
     virtual bool write( Frame::FrameType &frame, const RoutingStyle route ) = 0;
+
+    /**
+     *	Removes the last received frame off the RX queue
+     *
+     *	@return void
+     */
+    virtual void removeRXFrame() = 0;
+
+    /**
+     *	Uses the internal routing table to decide which node in the tree hierarchy
+     *	is the next hop for a packet.
+     *
+     *	@param[in]	dst         The desired end destination node
+     *	@return RF24::LogicalAddress
+     */
+    virtual LogicalAddress nextHop( const LogicalAddress dst ) = 0;
+
+    /**
+     *	Instructs the network driver to update it's table of devices that are immediately
+     *	connected to this node with the given address. It will automatically deduce where
+     *	it should be placed (parent/child).
+     *	
+     *	@param[in]	address     The address to update the route table with
+     *	@return bool
+     */
+    virtual bool updateRouteTable( const LogicalAddress address ) = 0;
+
+    /**
+     *	Let's the network driver know which node it is in the network.
+     *	
+     *	@param[in]	address     The address the network layer will operate as
+     *	@return void
+     */
+    virtual void setNodeAddress( const LogicalAddress address ) = 0;
+
   };
 
   using Interface_sPtr = std::shared_ptr<Interface>;

@@ -1,11 +1,11 @@
 /********************************************************************************
- *   File Name:
+ *  File Name:
  *    types.hpp
  *
- *   Description:
+ *  Description:
  *    Types used in implementing the network driver for the NRF24 radios.
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -18,9 +18,11 @@
 #include <string>
 
 /* Chimera Includes */
+#include <Chimera/gpio>
 #include <Chimera/spi>
 
 /* RF24 Includes */
+#include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/hardware/types.hpp>
 
 namespace RF24::Physical
@@ -34,12 +36,9 @@ namespace RF24::Physical
     Hardware::PowerAmplitude powerAmplitude;
     Hardware::DataRate dataRate;
 
-#if !defined( RF24_SIMULATOR )
     Chimera::SPI::DriverConfig spiConfig;
     Chimera::GPIO::PinInit chipEnableConfig;
-#else
     std::string deviceName;
-#endif
   };
 
 }    // namespace RF24::Physical

@@ -30,7 +30,6 @@
 /* RF24 Includes */
 #include <RF24Node/src/endpoint/config.hpp>
 #include <RF24Node/src/endpoint/processes/rf24_endpoint_connection.hpp>
-#include <RF24Node/src/endpoint/processes/rf24_endpoint_registration.hpp>
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/interfaces/network_intf.hpp>
 #include <RF24Node/src/interfaces/physical_intf.hpp>
@@ -39,17 +38,18 @@
 
 namespace RF24::Endpoint
 {
+  
   /**
    *  Primary interface that describes interaction with an RF24L01 device node.
    */
-  class Device : public Interface, public Chimera::Threading::Lockable
+  class Device : public Interface
   {
   public:
     Device();
     ~Device();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink );
-    Chimera::Status_t configure( const Config &cfg ) override;
+    Chimera::Status_t configure( const SystemInit &cfg ) override;
     Chimera::Status_t setNetworkingMode( const Network::Mode mode ) final override;
     Chimera::Status_t setEnpointStaticAddress( const LogicalAddress address ) final override;
     Chimera::Status_t setParentStaticAddress( const LogicalAddress address ) final override;
@@ -70,35 +70,35 @@ namespace RF24::Endpoint
     bool packetAvailable() final override;
     size_t nextPacketLength() final override;
     Status getStatus() final override;
-    Config &getConfig() final override;
+    SystemInit &getConfig() final override;
     LogicalAddress getLogicalAddress() final override;
     bool isConnected() override;
+    bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) final override;
 
-    void setName( const std::string_view &name ) final override;
+    void setName( const std::string &name ) final override;
+    
+
+
+    RF24::Network::Interface_sPtr getNetworkingDriver() final override;
+
+    SystemState getCurrentState() final override;
 
   protected:
-    friend Internal::RegistrationManager;
-    friend Internal::ConnectionManager;
+    RF24::Physical::Interface_sPtr mPhysicalDriver; /**< Physical layer object */
+    RF24::Network::Interface_sPtr mNetworkDriver;   /**< Network layer object */
+    uLog::SinkHandle mLogger;                       /**< Logger object */
 
-    Config mConfig;                    /**< User endpoint configuration for this node */
-    Physical::Interface_sPtr physical; /**< Physical layer object */
-    Network::Interface_uPtr network;   /**< Network layer object */
-    uLog::SinkHandle logger;           /**< Logger object */
-
-    LogicalAddress mDeviceAddress;
-    LogicalAddress mParentAddress;
+    
+    SystemInit mEndpointInit;   /**< User endpoint initial configuration for this node */
+    SystemState mState; /**< Current state of this node */
 
   private:
-    char mDeviceName[ MAX_CHARS_IN_DEVICE_NAME + 1u ];
-
-    Internal::RegistrationManager mRegistrationManager;
-    Internal::ConnectionManager mConectionManager;
-
     Chimera::Status_t initHardwareLayer();
     Chimera::Status_t initPhysicalLayer();
     Chimera::Status_t initNetworkLayer();
     Chimera::Status_t initMeshLayer();
   };
+
 }    // namespace RF24::Endpoint
 
 /*------------------------------------------------
