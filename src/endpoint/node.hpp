@@ -38,13 +38,15 @@ namespace RF24::Endpoint
     /*------------------------------------------------
     Data Getters
     ------------------------------------------------*/
-    bool isValid();
-    LogicalAddress getLogicalAddress();
-    PhysicalAddress getPhysicalAddress();
-    Hardware::PipeNumber getPipe();
+    bool isValid() const ;
+    LogicalAddress getLogicalAddress() const;
+    PhysicalAddress getPhysicalAddress() const;
+    Hardware::PipeNumber getPipe() const;
+    LogicalLevel getLevel() const;
 
   private:
     bool mValidity;
+    LogicalLevel mNetworkLevel;
     LogicalAddress mLogicalAddress;
     PhysicalAddress mPhysicalAddress;
     Hardware::PipeNumber mPipe;

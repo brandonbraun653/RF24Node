@@ -174,6 +174,8 @@ namespace RF24::Endpoint::Internal::Processor
         Connected and registered with the parent device
         ------------------------------------------------*/
         case Static::CONNECT_SUCCESS:
+          network->updateRouteTable( node );
+
           connectionResult = true;
           currentState     = Static::CONNECT_EXIT_LOOP;
           startTime        = Chimera::millis();    // Prevent the timeout check from firing

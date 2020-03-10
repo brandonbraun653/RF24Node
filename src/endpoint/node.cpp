@@ -21,23 +21,25 @@ namespace RF24::Endpoint
 
     if ( isAddressValid( address ) )
     {
-      mValidity = true;
-      mLogicalAddress = address;
-      mPipe = Conversion::getExpectedPipe( address );
+      mValidity        = true;
+      mLogicalAddress  = address;
+      mPipe            = Conversion::getExpectedPipe( address );
       mPhysicalAddress = Conversion::getPhysicalAddress( address, mPipe );
+      mNetworkLevel    = ::RF24::getLevel( address );
     }
     else
     {
-      mValidity = false;
-      mLogicalAddress = RF24::Network::RSVD_ADDR_INVALID;
+      mValidity        = false;
+      mLogicalAddress  = RF24::Network::RSVD_ADDR_INVALID;
       mPhysicalAddress = 0;
-      mPipe = Hardware::PipeNumber::PIPE_INVALID;
+      mPipe            = Hardware::PipeNumber::PIPE_INVALID;
+      mNetworkLevel    = NODE_LEVEL_INVALID;
     }
   }
 
   Node::Node() :
       mValidity( false ), mLogicalAddress( RF24::Network::RSVD_ADDR_INVALID ), mPhysicalAddress( 0 ),
-      mPipe( Hardware::PipeNumber::PIPE_INVALID )
+      mPipe( Hardware::PipeNumber::PIPE_INVALID ), mNetworkLevel( NODE_LEVEL_INVALID )
   {
   }
 
@@ -45,24 +47,29 @@ namespace RF24::Endpoint
   {
   }
 
-  bool Node::isValid()
+  bool Node::isValid() const
   {
     return mValidity;
   }
 
-  LogicalAddress Node::getLogicalAddress()
+  LogicalAddress Node::getLogicalAddress() const
   {
     return mLogicalAddress;
   }
 
-  PhysicalAddress Node::getPhysicalAddress()
+  PhysicalAddress Node::getPhysicalAddress() const
   {
     return mPhysicalAddress;
   }
 
-  Hardware::PipeNumber Node::getPipe()
+  Hardware::PipeNumber Node::getPipe() const
   {
     return mPipe;
+  }
+
+  LogicalLevel Node::getLevel() const
+  {
+    return mNetworkLevel;
   }
 
 }    // namespace RF24::Endpoint

@@ -21,6 +21,8 @@
 
 namespace RF24::Network::Internal
 {
+  using PipeRegistrationList = std::array<::RF24::Endpoint::Node, RF24::Hardware::MAX_NUM_PIPES>;
+
   /**
    *  Models the connection structure for a single node in the network, which encompasses
    *  the direct parent node and all possible direct children. Graphically this looks like:
@@ -118,6 +120,14 @@ namespace RF24::Network::Internal
     Data Getters
     ------------------------------------------------*/
     /**
+     *	Gets a reference to the currently registered list of children
+     *  for each pipe in the node.
+     *	
+     *	@return const RF24::Network::Internal::PipeRegistrationList &
+     */
+    const PipeRegistrationList &getRegistrationList();
+
+    /**
      *	Gets the Child Node that is bound to the given pipe
      *
      *	@param[in]	pipe          The pipe to return the bound node for
@@ -168,7 +178,7 @@ namespace RF24::Network::Internal
   private:
     ::RF24::Endpoint::Node mParentNode;
     ::RF24::Endpoint::Node mCentralNode;
-    std::array<::RF24::Endpoint::Node, RF24::Hardware::MAX_NUM_PIPES> mChildrenNodes;
+    PipeRegistrationList mChildrenNodes;
   };
 
 }    // namespace RF24::Endpoint::Internal::Processor

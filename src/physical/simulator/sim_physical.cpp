@@ -134,7 +134,6 @@ namespace RF24::Physical
     In hardware, this is done by toggling a physical pin
     and setting a few register bits.
     ------------------------------------------------*/
-    logger->flog( uLog::Level::LVL_INFO, "Starting all pipes for listening\n" );
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->startListening();
@@ -150,7 +149,6 @@ namespace RF24::Physical
     places the chip in a standby mode. We don't have that in
     software, so simply tell the pipes to plug their ears.
     ------------------------------------------------*/
-    logger->flog( uLog::Level::LVL_INFO, "Stopping all pipes from listening\n" );
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->stopListening();

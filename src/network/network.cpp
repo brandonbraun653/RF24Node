@@ -210,8 +210,73 @@ namespace RF24::Network
 
   LogicalAddress Driver::nextHop( const LogicalAddress dst )
   {
-    // Need to search the route table for the best path
-    return RSVD_ADDR_INVALID;
+    /* Network Forwarding Rules:
+
+    Ok so when forwarding a packet through the network, I will have two options: Forward to a parent or forward to a Child
+
+    What determines when I should pass to a parent vs child?
+      1. Check first if the destination node is any of the registered nodes
+      2. If it's a descendant, will pass to one of the children, otherwise it goes to the parent
+          a. Question for later: Is a descendant guaranteed to exist? Do we need to load the network with data only for the message to hit a dead end?
+          b. Thought: I guess that would mean each node needs to have the whole tree structure in a table so they know what does and does not exist...yikes.
+              - I think that might be an "advanced" feature for mesh.
+              - Automatic networking structure update packets sound cool
+
+    When you pass to the parent:
+      1. Not much to do here. There is only one parent so pass it and move on.
+          a. Do I need to wait for an ACK?
+
+    When you pass to a child:
+      1. Need to figure out which of the registered children act as a parent (either directly or farther up the tree) to the destination node.
+      2. I suppose that can be answered by the "is_descendent" functions
+
+
+    Pseudo Code:
+
+    LogicalAddress returnAddress = invalid;
+
+    if(destination is registered with node) // Create a function here with signature bool isRegisteredDirectly(const LogicalAddress a, LogicalAddress *const b );
+    {
+      return output from function;
+    }
+    else if( destination has an equal or  higher level than current level )
+    {
+      return parentAddress;
+    }
+    else if( destination is descendant of node) // Also function: bool isRegisteredDescendant( const LogicalAddress a, LogicalAddress *const b );
+    {
+      return output from function;
+    }
+    else  // Destination is somewhere in the descendant tree
+    {
+      return invalid;
+    } 
+    
+    return returnAddress;
+    */
+
+    LogicalAddress ancestor;
+
+    if ( isRegisteredDirectly( dst ) )
+    {
+      // Next hop IS the destination node
+      return dst;
+    }
+    else if ( getLevel( dst ) >= routeTable.getCentralNode().getLevel() )
+    {
+      // The data must be routed through the parent node to get data to a node 
+      // at the same level or higher.
+      return routeTable.getParentNode().getLogicalAddress();
+    }
+    else if ( isDescendantOfRegisteredChild( dst, ancestor ) )
+    {
+      // This address is an ancestor of the destination node
+      return ancestor;
+    }
+    else
+    {
+      return Network::RSVD_ADDR_INVALID;
+    }
   }
 
   bool Driver::updateRouteTable( const LogicalAddress address )
@@ -224,6 +289,43 @@ namespace RF24::Network
     routeTable.updateCentralNode( address );
   }
 
+  bool Driver::isRegisteredDirectly( const LogicalAddress toCheck )
+  {
+    /*------------------------------------------------
+    Check the simplest option first: Is the parent?
+    ------------------------------------------------*/
+    if ( toCheck == routeTable.getParentNode().getLogicalAddress() )
+    {
+      return true;
+    }
+
+    /*------------------------------------------------
+    Iterate over the registration list to see if maybe it's there
+    ------------------------------------------------*/
+    for ( auto const &child : routeTable.getRegistrationList() )
+    {
+      if ( child.getLogicalAddress() == toCheck )
+      {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  bool Driver::isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which )
+  {
+    for ( auto const &child : routeTable.getRegistrationList() )
+    {
+      if ( RF24::isDescendent( child.getLogicalAddress(), toCheck ) )
+      {
+        which = child.getLogicalAddress();
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
   {
@@ -300,23 +402,39 @@ namespace RF24::Network
     using namespace ::RF24::Physical::Conversion;
 
     auto pipeOnParent  = getIdAtLevel( frame.getSrc(), getLevel( frame.getSrc() ) );
-    auto directAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber>( pipeOnParent ) );
+    auto physicalAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber>( pipeOnParent ) );
 
     frame.updateCRC();
 
-    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX packet of type [%d] from [%04o] to [%04o]\n",
+    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n",
                                    Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst() ); );
 
-    return transferToPipe( directAddress, frame.toBuffer(), frame.getPayloadLength(), false );
+    return transferToPipe( physicalAddress, frame.toBuffer(), frame.getPayloadLength(), false );
   }
 
   bool Driver::writeRouted( Frame::FrameType &frame )
   {
-    // 1. Look at the destination address and decide the next hop
+    using namespace ::RF24::Physical::Conversion;
 
+    auto hopAddress = nextHop( frame.getDst() );
+    if ( hopAddress != RSVD_ADDR_INVALID )
+    {
+      // The level ID is directly convertible to the pipe number
+      auto pipeOnHop = getIdAtLevel( hopAddress, getLevel( hopAddress ) );
+      auto physicalAddress = getPhysicalAddress( hopAddress, static_cast<Hardware::PipeNumber>( pipeOnHop ) );
 
-    radio->startListening();
-    return false;
+      frame.updateCRC();
+
+      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
+                                     Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress ); );
+      
+      return transferToPipe( hopAddress, frame.toBuffer(), frame.getPayloadLength(), false );
+    }
+    else
+    {
+      logger->flog( uLog::Level::LVL_INFO, "Drop routed packet. Unable to deduce next destination.\n" );
+      return false;
+    }
   }
 
   bool Driver::writeMulticast( Frame::FrameType &frame )
@@ -366,5 +484,7 @@ namespace RF24::Network
 
     return false;
   }
+
+
 
 }    // namespace RF24::Network

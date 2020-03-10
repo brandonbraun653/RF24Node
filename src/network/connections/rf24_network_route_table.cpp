@@ -112,6 +112,11 @@ namespace RF24::Network::Internal
     return false;
   }
 
+  const PipeRegistrationList &NodeConnections::getRegistrationList()
+  {
+    return mChildrenNodes;
+  }
+
   RF24::Endpoint::Node NodeConnections::getChildNode( const RF24::Hardware::PipeNumber pipe )
   {
     const size_t lookupIndex = static_cast<size_t>( pipe );

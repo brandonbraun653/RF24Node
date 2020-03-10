@@ -61,7 +61,7 @@ namespace RF24::Network
     LogicalAddress nextHop( const LogicalAddress dst ) final override;
 
     bool updateRouteTable( const LogicalAddress address ) final override;
-    void setNodeAddress(  const LogicalAddress address ) final override;
+    void setNodeAddress( const LogicalAddress address ) final override;
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -90,6 +90,26 @@ namespace RF24::Network
      */
     void toggleMulticastRelay( const bool state );
 
+  protected:
+    /**
+     *	Checks if the given address is registered directly with this network. This could be as
+     *  either a parent or a child
+     *
+     *	@param[in]	toCheck   The address to check
+     *	@return bool
+     */
+    bool isRegisteredDirectly( const LogicalAddress toCheck );
+
+    /**
+     *  Checks if the given node is a descendant of any children registered with the current
+     *  node at any point in the tree branches.
+     *
+     *	@param[in]	toCheck   The destination node address to check
+     *	@param[in]	which     Which child address is the ancestor (populated on return true)
+     *	@return bool
+     */
+    bool isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which );
+
   private:
     bool mInitialized;
     bool mReturnSystemMessages;
@@ -109,7 +129,7 @@ namespace RF24::Network
     void enqueueRXPacket( Frame::Buffer &buffer );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );
 
-    HeaderMessage handleDestination( Frame::Buffer &buffer ); 
+    HeaderMessage handleDestination( Frame::Buffer &buffer );
     HeaderMessage handlePassthrough( Frame::Buffer &frame );
 
     bool writeDirect( Frame::FrameType &frame );
