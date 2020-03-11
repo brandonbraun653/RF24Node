@@ -217,7 +217,7 @@ namespace RF24::Hardware
       /*------------------------------------------------
       Optionally validate whatever was just written
       ------------------------------------------------*/
-#if defined( DEBUG )
+#if defined( DEBUG ) && defined( _EMBEDDED )
       if ( check )
       {
         sValidationBuffer.fill( 0 );

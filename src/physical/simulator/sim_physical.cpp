@@ -137,6 +137,7 @@ namespace RF24::Physical
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->startListening();
+      logger->flog( uLog::Level::LVL_INFO, "Start listening pipe %d\n", x );
     }
 
     return Chimera::CommonStatusCodes::OK;
@@ -152,6 +153,7 @@ namespace RF24::Physical
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->stopListening();
+      logger->flog( uLog::Level::LVL_INFO, "Stop listening pipe %d\n", x );
     }
 
     Chimera::delayMilliseconds( 10 );

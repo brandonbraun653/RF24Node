@@ -327,6 +327,38 @@ namespace RF24::Network
     return false;
   }
 
+  Hardware::PipeNumber Driver::getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source )
+  {
+    /*------------------------------------------------
+    Figure out what coarse Level these nodes are at in the network
+    ------------------------------------------------*/
+    const auto dstNetLevel = getLevel( destination );
+    const auto srcNetLevel = getLevel( source );
+
+
+    /*------------------------------------------------
+    A lower level means higher up in the tree
+    ------------------------------------------------*/
+    if ( dstNetLevel <= srcNetLevel )
+    {
+      /*------------------------------------------------
+      When the destination is higher in the tree (parent node) or another node on the same
+      level, the data has to at a minimum pass through the parent first.
+      The pipe number on the parent node is exactly equal to the source node's
+      registration ID at it's network level.
+      ------------------------------------------------*/
+      return static_cast<Hardware::PipeNumber>( getIdAtLevel( source, srcNetLevel ) );
+    }
+    else
+    {
+      /*------------------------------------------------
+      When the destination is lower in the network tree (child node), the 
+      appropriate pipe number is 0 because pipes 1-5 are reserved for children.
+      ------------------------------------------------*/
+      return Hardware::PipeNumber::PIPE_NUM_0;
+    }
+  }
+
   bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
   {
     Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
@@ -419,9 +451,8 @@ namespace RF24::Network
     auto hopAddress = nextHop( frame.getDst() );
     if ( hopAddress != RSVD_ADDR_INVALID )
     {
-      // The level ID is directly convertible to the pipe number
-      auto pipeOnHop = getIdAtLevel( hopAddress, getLevel( hopAddress ) );
-      auto physicalAddress = getPhysicalAddress( hopAddress, static_cast<Hardware::PipeNumber>( pipeOnHop ) );
+      auto destinationPipe = getDestinationRXPipe( hopAddress, routeTable.getCentralNode().getLogicalAddress() );
+      auto physicalAddress = getPhysicalAddress( hopAddress, destinationPipe );
 
       frame.updateCRC();
 

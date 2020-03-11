@@ -165,7 +165,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>RF24DLL;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);$(ChimeraCompilerDefines);_WIN32_WINNT=0x0A00;RF24_SIMULATOR;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;RF24DLL;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);$(ChimeraCompilerDefines);_WIN32_WINNT=0x0A00;RF24_SIMULATOR;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
@@ -182,7 +182,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>RF24DLL;_DEBUG;_LIB;%(PreprocessorDefinitions);$(ChimeraCompilerDefines);_WIN32_WINNT=0x0A00;RF24_SIMULATOR;</PreprocessorDefinitions>
+      <PreprocessorDefinitions>DEBUG;RF24DLL;_DEBUG;_LIB;%(PreprocessorDefinitions);$(ChimeraCompilerDefines);_WIN32_WINNT=0x0A00;RF24_SIMULATOR;</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>

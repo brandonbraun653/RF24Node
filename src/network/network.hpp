@@ -110,6 +110,15 @@ namespace RF24::Network
      */
     bool isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which );
 
+    /**
+     *	Computes the destination pipe for a given transfer
+     *	
+     *	@param[in]	destination     The node receiving the data
+     *	@param[in]	source          The node sending the data
+     *	@return RF24::Hardware::PipeNumber
+     */
+    Hardware::PipeNumber getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source );
+
   private:
     bool mInitialized;
     bool mReturnSystemMessages;

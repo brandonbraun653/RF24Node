@@ -354,6 +354,8 @@ namespace RF24::Physical::Pipe
     {
       mLogger->flog( Level::LVL_DEBUG, "DBG: RX thread interrupted...Exiting\n" );
     }
+
+    mLogger->flog( Level::LVL_INFO, "Pipe exiting RX thread handler\n" );
   }
 
   void RX::onAsyncReceive( const boost::system::error_code &error, size_t bytes_transferred )
