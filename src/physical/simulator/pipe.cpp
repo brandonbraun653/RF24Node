@@ -113,8 +113,8 @@ namespace RF24::Physical::Pipe
     auto ip   = address_v4::from_string( Conversion::decodeIP( data ) );
     auto port = Conversion::decodePort( data );
 
-    mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: TX to IP[%s] on Port[%d]\n", Chimera::millis(), 
-      mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
+    //mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: TX to IP[%s] on Port[%d]\n", Chimera::millis(), 
+    //  mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
 
     memcpy( mBuffer.data(), data.data(), mBuffer.size() );
     mTXSocket.async_send_to( boost::asio::buffer( mBuffer ), udp::endpoint( ip, port ),
@@ -149,7 +149,7 @@ namespace RF24::Physical::Pipe
       ------------------------------------------------*/
       while ( true )
       {
-        mIOService.run();
+        mIOService.poll_one();
         boost::this_thread::sleep_for( boost::chrono::milliseconds( 10 ) );
       }
     }
@@ -317,6 +317,8 @@ namespace RF24::Physical::Pipe
 
     auto rxBuffer = boost::asio::buffer( mBuffer );
 
+    auto updateTime = Chimera::millis();
+
     try
     {
       /*------------------------------------------------
@@ -335,7 +337,7 @@ namespace RF24::Physical::Pipe
           /*------------------------------------------------
           Process async work if their events occurred
           ------------------------------------------------*/
-          mIOService.run();
+          mIOService.poll_one();
 
           /*------------------------------------------------
           Only add new work to the queue if we processed the last one
@@ -374,8 +376,8 @@ namespace RF24::Physical::Pipe
 
     auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
     auto port = Conversion::decodePort( mBuffer );
-    mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: RX from IP[%s] on Port[%d]\n", Chimera::millis(),
-      mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
+    //mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: RX from IP[%s] on Port[%d]\n", Chimera::millis(),
+    //  mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
 
     /*------------------------------------------------
     Handle the user's callback

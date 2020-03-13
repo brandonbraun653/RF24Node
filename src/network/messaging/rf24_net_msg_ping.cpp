@@ -13,6 +13,20 @@
 
 namespace RF24::Network::Messages::Ping
 {
+  bool isPingRequest( ::RF24::Network::Frame::FrameType &frame )
+  {
+    uint8_t tmp = 0;
+    memcpy( &tmp, frame.peekPayload() + offsetof( RawRequest, sub_id ), sizeof( RawRequest::sub_id ) );
+    return tmp == static_cast<uint8_t>( SubId::SUB_ID_PING_REQUEST );
+  }
+
+  bool isPingResponse(::RF24::Network::Frame::FrameType &frame )
+  {
+    uint8_t tmp = 0;
+    memcpy( &tmp, frame.peekPayload() + offsetof( RawRequest, sub_id ), sizeof( RawRequest::sub_id ) );
+    return tmp == static_cast<uint8_t>( SubId::SUB_ID_PING_RESPONSE );
+  }
+
   void requestFactory( ::RF24::Network::Frame::FrameType &frame, const LogicalAddress dst, const LogicalAddress src )
   {
     RawRequest tempPayload;
@@ -34,7 +48,7 @@ namespace RF24::Network::Messages::Ping
 
     tempResponse.ack       = ack;
     tempResponse.responder = src;
-    tempResponse.sub_id    = static_cast<uint8_t>( SubId::SUB_ID_PING_ACK );
+    tempResponse.sub_id    = static_cast<uint8_t>( SubId::SUB_ID_PING_RESPONSE );
 
     frame.setDst( dst );
     frame.setSrc( src );
@@ -51,7 +65,7 @@ namespace RF24::Network::Messages::Ping
     memcpy( &tempResponse, response, sizeof( RawResponse ) );
 
     /* clang-format off */
-    if ( ( tempResponse.sub_id == static_cast<uint8_t>( SubId::SUB_ID_PING_ACK ) ) && 
+    if ( ( tempResponse.sub_id == static_cast<uint8_t>( SubId::SUB_ID_PING_RESPONSE ) ) && 
          ( tempResponse.responder == expected ) &&
          ( tempResponse.ack )
        ) /* clang-format on */

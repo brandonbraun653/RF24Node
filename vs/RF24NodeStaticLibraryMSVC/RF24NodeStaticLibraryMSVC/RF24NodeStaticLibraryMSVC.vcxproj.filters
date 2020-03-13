@@ -49,6 +49,9 @@
     <Filter Include="src\network\connections">
       <UniqueIdentifier>{74d18301-66f0-4ec3-8dd3-4e47ab24f332}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\network\processes">
+      <UniqueIdentifier>{628a72ff-8de0-4689-9965-72c70989314f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\common\conversion.hpp">
@@ -171,6 +174,9 @@
     <ClInclude Include="..\..\..\src\network\connections\rf24_network_route_table.hpp">
       <Filter>src\network\connections</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp">
+      <Filter>src\network\processes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hardware\about.md">
@@ -254,6 +260,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp">
       <Filter>src\network\connections</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp">
+      <Filter>src\network\processes</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

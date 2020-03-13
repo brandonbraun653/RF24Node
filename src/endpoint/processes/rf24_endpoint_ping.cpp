@@ -96,7 +96,7 @@ namespace RF24::Endpoint::Internal::Processor
           {
             netDriver->peek( frame );
 
-            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) &&
+            if ( ( frame.getType() == Network::MSG_NETWORK_PING ) &&
                  ::RF24::Network::Messages::Ping::responseValidator( frame.peekPayload(), node ) )
             {
               pingResult = true;

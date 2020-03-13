@@ -3,9 +3,9 @@
  *    sim_physical.cpp
  *
  *  Description:
+ *    Simulates the physical layer behavior of the RF24 module 
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #if defined( RF24_SIMULATOR )
@@ -20,6 +20,7 @@
 #include <uLog/sinks/sink_intf.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/src/common/definitions.hpp>
 #include <RF24Node/src/physical/simulator/sim_physical.hpp>
 #include <RF24Node/src/hardware/register.hpp>
 #include <RF24Node/src/physical/simulator/shockburst.hpp>
@@ -137,7 +138,7 @@ namespace RF24::Physical
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->startListening();
-      logger->flog( uLog::Level::LVL_INFO, "Start listening pipe %d\n", x );
+      // logger->flog( uLog::Level::LVL_DEBUG, "Start listening pipe %d\n", x );
     }
 
     return Chimera::CommonStatusCodes::OK;
@@ -153,7 +154,7 @@ namespace RF24::Physical
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
       mDataPipes[ x ]->stopListening();
-      logger->flog( uLog::Level::LVL_INFO, "Stop listening pipe %d\n", x );
+      // logger->flog( uLog::Level::LVL_DEBUG, "Stop listening pipe %d\n", x );
     }
 
     Chimera::delayMilliseconds( 10 );
@@ -225,7 +226,6 @@ namespace RF24::Physical
     std::lock_guard<std::recursive_mutex> guard( FIFOLock );
     if ( !RxFIFO.empty() )
     {
-      logger->flog( uLog::Level::LVL_INFO, "length of %d\n", length );
       auto elem = RxFIFO.front();
       memcpy( buffer.data(), elem.payload.data(), length );
       RxFIFO.pop();
@@ -252,7 +252,7 @@ namespace RF24::Physical
     }
     else
     {
-      logger->flog( uLog::Level::LVL_INFO, "%d PHY: Failed writing payload due to FIFO queue full\n", Chimera::millis() );
+      logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Failed writing payload due to FIFO queue full\n", Chimera::millis() );
       return Chimera::CommonStatusCodes::FULL;
     }
   }
@@ -372,12 +372,16 @@ namespace RF24::Physical
             if ( RxFIFO.size() < RF24::Physical::Shockburst::FIFO_QUEUE_MAX_SIZE )
             {
               std::lock_guard<std::recursive_mutex> guard( FIFOLock );
-              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Enqueue RX payload on pipe %d\n", Chimera::millis(), elem.pipe );
               RxFIFO.push( elem );
+
+              if constexpr ( DBG_LOG_PHY )
+              {
+                logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Enqueue RX payload on pipe %d\n", Chimera::millis(), elem.pipe );
+              }
             }
-            else
+            else if constexpr ( DBG_LOG_PHY )
             {
-              logger->flog( uLog::Level::LVL_INFO, "%d PHY: Lost packet from pipe %d due to FIFO queue full\n",
+              logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Lost packet from pipe %d due to FIFO queue full\n",
                             Chimera::millis(), x );
             }
           }
@@ -393,7 +397,10 @@ namespace RF24::Physical
           ------------------------------------------------*/
           if ( mDataPipes[ 0 ]->isListening() )
           {
-            logger->flog(uLog::Level::LVL_ERROR, "%d-PHY: Cannot TX while radio is listening\n", Chimera::millis() );
+            if constexpr ( DBG_LOG_PHY )
+            {
+              logger->flog( uLog::Level::LVL_ERROR, "%d-PHY: Cannot TX while radio is listening\n", Chimera::millis() );
+            }
             break;
           }
 
@@ -413,6 +420,8 @@ namespace RF24::Physical
     {
       // Exiting
     }
+
+    logger->flog( uLog::Level::LVL_ERROR, "%d-PHY: Queue Handler exiting. This should not be happening.\n", Chimera::millis() );
   }
 
   Chimera::Status_t SimulatorDriver::attachLogger( uLog::SinkHandle sink )

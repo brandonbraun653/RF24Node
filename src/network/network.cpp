@@ -24,9 +24,11 @@
 #include <RF24Node/src/common/conversion.hpp>
 #include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/common/utility.hpp>
-#include <RF24Node/src/network/network.hpp>
-#include <RF24Node/src/network/types.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
+#include <RF24Node/src/network/messaging/rf24_net_msg_ping.hpp>
+#include <RF24Node/src/network/network.hpp>
+#include <RF24Node/src/network/processes/rf24_network_ping.hpp>
+#include <RF24Node/src/network/types.hpp>
 
 /* uLog Includes */
 #include <uLog/ulog.hpp>
@@ -96,7 +98,10 @@ namespace RF24::Network
   {
     if ( !mInitialized )
     {
-      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_DEBUG, "%d: NET Not initialized\n", Chimera::millis() ); );
+      if constexpr ( DBG_LOG_NET )
+      {
+        logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Not initialized\n", Chimera::millis() );
+      }
       return MSG_NETWORK_ERR;
     }
 
@@ -123,22 +128,29 @@ namespace RF24::Network
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
       if ( reportedCRC != calculatedCRC )
       {
-        IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() ); );
+        if constexpr ( DBG_LOG_NET )
+        {
+          logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() );
+        }
         continue;
       }
 
       /*------------------------------------------------
       Assuming the frame is valid, handle the message appropriately
       ------------------------------------------------*/
-      if ( Frame::getDestinationFromBuffer( buffer ) == mNode->getLogicalAddress() )
+      auto frame = Frame::FrameType( buffer );
+      if ( frame.getDst() == mNode->getLogicalAddress() )
       {
-        sysMsg = handleDestination( buffer );
+        sysMsg = handleDestination( frame );
       }
       else
       {
-        sysMsg = handlePassthrough( buffer );
+        sysMsg = handlePassthrough( frame );
       }
 
+      /*------------------------------------------------
+      Check to see if a new message is available
+      ------------------------------------------------*/
       pipe = radio->payloadAvailable();
     }
 
@@ -210,51 +222,6 @@ namespace RF24::Network
 
   LogicalAddress Driver::nextHop( const LogicalAddress dst )
   {
-    /* Network Forwarding Rules:
-
-    Ok so when forwarding a packet through the network, I will have two options: Forward to a parent or forward to a Child
-
-    What determines when I should pass to a parent vs child?
-      1. Check first if the destination node is any of the registered nodes
-      2. If it's a descendant, will pass to one of the children, otherwise it goes to the parent
-          a. Question for later: Is a descendant guaranteed to exist? Do we need to load the network with data only for the message to hit a dead end?
-          b. Thought: I guess that would mean each node needs to have the whole tree structure in a table so they know what does and does not exist...yikes.
-              - I think that might be an "advanced" feature for mesh.
-              - Automatic networking structure update packets sound cool
-
-    When you pass to the parent:
-      1. Not much to do here. There is only one parent so pass it and move on.
-          a. Do I need to wait for an ACK?
-
-    When you pass to a child:
-      1. Need to figure out which of the registered children act as a parent (either directly or farther up the tree) to the destination node.
-      2. I suppose that can be answered by the "is_descendent" functions
-
-
-    Pseudo Code:
-
-    LogicalAddress returnAddress = invalid;
-
-    if(destination is registered with node) // Create a function here with signature bool isRegisteredDirectly(const LogicalAddress a, LogicalAddress *const b );
-    {
-      return output from function;
-    }
-    else if( destination has an equal or  higher level than current level )
-    {
-      return parentAddress;
-    }
-    else if( destination is descendant of node) // Also function: bool isRegisteredDescendant( const LogicalAddress a, LogicalAddress *const b );
-    {
-      return output from function;
-    }
-    else  // Destination is somewhere in the descendant tree
-    {
-      return invalid;
-    } 
-    
-    return returnAddress;
-    */
-
     LogicalAddress ancestor;
 
     if ( isRegisteredDirectly( dst ) )
@@ -287,6 +254,11 @@ namespace RF24::Network
   void Driver::setNodeAddress(  const LogicalAddress address )
   {
     routeTable.updateCentralNode( address );
+  }
+
+  LogicalAddress Driver::thisNode()
+  {
+    return routeTable.getCentralNode().getLogicalAddress();
   }
 
   bool Driver::isRegisteredDirectly( const LogicalAddress toCheck )
@@ -335,7 +307,6 @@ namespace RF24::Network
     const auto dstNetLevel = getLevel( destination );
     const auto srcNetLevel = getLevel( source );
 
-
     /*------------------------------------------------
     A lower level means higher up in the tree
     ------------------------------------------------*/
@@ -377,16 +348,16 @@ namespace RF24::Network
     return ( result == Chimera::CommonStatusCodes::OK );
   }
 
-  void Driver::enqueueRXPacket( Frame::Buffer &buffer )
+  void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
     if ( !rxQueue.full())
     {
-      auto size = Frame::getFrameLengthFromBuffer( buffer );
-      rxQueue.push( buffer.data(), size );
+      auto buffer = frame.toBuffer();
+      rxQueue.push( buffer.data(), buffer.size() );
     }
-    else
+    else if constexpr ( DBG_LOG_NET )
     {
-      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() ); );
+      logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() );
     }
   }
 
@@ -400,16 +371,25 @@ namespace RF24::Network
     mMulticastRelay = state;
   }
 
-  HeaderMessage Driver::handleDestination( Frame::Buffer &buffer )
+  HeaderMessage Driver::handleDestination( Frame::FrameType &frame )
   {
-    HeaderMessage message = Frame::getHeaderTypeFromBuffer( buffer );
+    HeaderMessage message = frame.getType();
 
+    /*------------------------------------------------
+    Handle whatever messages can/should be handled at the network layer.
+    Everything else will be propagated up to the application layer.
+    ------------------------------------------------*/
     switch ( message )
     {
       /*------------------------------------------------
-      Simple ping. ACK handled automatically in hardware.
+      Simple ping packet
       ------------------------------------------------*/
       case MSG_NETWORK_PING:
+        if ( Messages::Ping::isPingRequest( frame ) )
+        {
+          Internal::Processes::handlePingRequest( *this, frame );
+          return message;
+        }
         break;
       
       default:
@@ -417,14 +397,14 @@ namespace RF24::Network
     }
 
     /*------------------------------------------------
-    Getting here means the frame is destined for the user
+    Getting here means the frame is destined for the application layer
     ------------------------------------------------*/
-    enqueueRXPacket( buffer );
+    enqueueRXPacket( frame );
 
     return message;
   }
 
-  HeaderMessage Driver::handlePassthrough( Frame::Buffer &buffer )
+  HeaderMessage Driver::handlePassthrough( Frame::FrameType &frame )
   {
     return MSG_NETWORK_ERR;
   }
@@ -433,13 +413,16 @@ namespace RF24::Network
   {
     using namespace ::RF24::Physical::Conversion;
 
-    auto pipeOnParent  = getIdAtLevel( frame.getSrc(), getLevel( frame.getSrc() ) );
+    auto pipeOnParent    = getDestinationRXPipe( frame.getDst(), frame.getSrc() );
     auto physicalAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber>( pipeOnParent ) );
 
     frame.updateCRC();
 
-    IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n",
-                                   Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst() ); );
+    if constexpr ( DBG_LOG_NET )
+    {
+      logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", Chimera::millis(),
+                    frame.getType(), frame.getSrc(), frame.getDst() );
+    }
 
     return transferToPipe( physicalAddress, frame.toBuffer(), frame.getPayloadLength(), false );
   }
@@ -448,22 +431,35 @@ namespace RF24::Network
   {
     using namespace ::RF24::Physical::Conversion;
 
+    /*------------------------------------------------
+    Figure out where to send the packet along the tree
+    ------------------------------------------------*/
     auto hopAddress = nextHop( frame.getDst() );
     if ( hopAddress != RSVD_ADDR_INVALID )
     {
+      /*------------------------------------------------
+      Grab the physical address of the pipe on the destination node 
+      assuming we are sending from this (central) node.
+      ------------------------------------------------*/
       auto destinationPipe = getDestinationRXPipe( hopAddress, routeTable.getCentralNode().getLogicalAddress() );
       auto physicalAddress = getPhysicalAddress( hopAddress, destinationPipe );
 
       frame.updateCRC();
 
-      IF_SERIAL_DEBUG( logger->flog( uLog::Level::LVL_INFO, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
-                                     Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress ); );
+      if constexpr ( DBG_LOG_NET )
+      {
+        logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
+                      Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress );
+      }
       
       return transferToPipe( hopAddress, frame.toBuffer(), frame.getPayloadLength(), false );
     }
     else
     {
-      logger->flog( uLog::Level::LVL_INFO, "Drop routed packet. Unable to deduce next destination.\n" );
+      if constexpr ( DBG_LOG_NET )
+      {
+        logger->flog( uLog::Level::LVL_DEBUG, "Drop routed packet. Unable to deduce next destination.\n" );
+      }
       return false;
     }
   }

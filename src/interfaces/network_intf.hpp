@@ -1,12 +1,11 @@
 /********************************************************************************
- *   File Name:
- *    network_sim.hpp
+ *  File Name:
+ *    network_intf.hpp
  *
- *   Description:
- *    Describes the interface used for exporting the networking layer into a DLL
- *    for hooking into simulators based on C# and Python.
+ *  Description:
+ *    Describes the interface used for the networking layer
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -21,7 +20,6 @@
 
 /* RF24 Includes */
 #include <RF24Node/src/hardware/types.hpp>
-#include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/types.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
@@ -160,6 +158,13 @@ namespace RF24::Network
      *	@return void
      */
     virtual void setNodeAddress( const LogicalAddress address ) = 0;
+
+    /**
+     *	Gets the address of the central node represented by this network driver
+     *	
+     *	@return RF24::LogicalAddress
+     */
+    virtual LogicalAddress thisNode() = 0;
 
   };
 

@@ -22,8 +22,8 @@ namespace RF24::Network::Messages::Ping
   /* Sub ids for message group type MSG_NETWORK_PING */
   enum class SubId : uint8_t
   {
-    SUB_ID_PING_REQUEST = 0x3A,
-    SUB_ID_PING_ACK     = 0xA3
+    SUB_ID_PING_REQUEST  = 0x3A,
+    SUB_ID_PING_RESPONSE = 0xA3
   };
 
   struct RawResponse
@@ -61,6 +61,10 @@ namespace RF24::Network::Messages::Ping
       dispatcher = ::RF24::Network::RSVD_ADDR_INVALID;
     }
   };
+
+  bool isPingRequest( ::RF24::Network::Frame::FrameType &frame );
+
+  bool isPingResponse( ::RF24::Network::Frame::FrameType &frame );
 
   /**
    *	Builds a Ping Request frame for the user

@@ -62,6 +62,7 @@ namespace RF24::Network
 
     bool updateRouteTable( const LogicalAddress address ) final override;
     void setNodeAddress( const LogicalAddress address ) final override;
+    LogicalAddress thisNode() final override;
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -130,16 +131,14 @@ namespace RF24::Network
     RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
     RF24::Network::Queue::ManagedFIFO txQueue;
     RF24::Network::Queue::ManagedFIFO rxQueue;
-
     Internal::NodeConnections routeTable;
-
     uLog::SinkHandle logger;
 
-    void enqueueRXPacket( Frame::Buffer &buffer );
+    void enqueueRXPacket( Frame::FrameType &frame );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );
 
-    HeaderMessage handleDestination( Frame::Buffer &buffer );
-    HeaderMessage handlePassthrough( Frame::Buffer &frame );
+    HeaderMessage handleDestination( Frame::FrameType &frame );
+    HeaderMessage handlePassthrough( Frame::FrameType &frame );
 
     bool writeDirect( Frame::FrameType &frame );
     bool writeRouted( Frame::FrameType &frame );

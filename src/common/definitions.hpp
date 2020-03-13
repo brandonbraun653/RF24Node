@@ -39,13 +39,13 @@ namespace RF24
   static constexpr LogicalLevel MIN_OCTAL_NUMBER = 0u;
   static constexpr LogicalLevel MAX_OCTAL_NUMBER = 7u;
 
-  static constexpr LogicalLevel NODE_LEVEL_0 = 0u; /**< Reserved for root nodes only */
-  static constexpr LogicalLevel NODE_LEVEL_1 = 1u;
-  static constexpr LogicalLevel NODE_LEVEL_2 = 2u;
-  static constexpr LogicalLevel NODE_LEVEL_3 = 3u;
-  static constexpr LogicalLevel NODE_LEVEL_4 = 4u;
-  static constexpr LogicalLevel NODE_LEVEL_5 = 5u;
-  static constexpr LogicalLevel NODE_LEVEL_MAX = NODE_LEVEL_5;
+  static constexpr LogicalLevel NODE_LEVEL_0       = 0u; /**< Reserved for root nodes only */
+  static constexpr LogicalLevel NODE_LEVEL_1       = 1u;
+  static constexpr LogicalLevel NODE_LEVEL_2       = 2u;
+  static constexpr LogicalLevel NODE_LEVEL_3       = 3u;
+  static constexpr LogicalLevel NODE_LEVEL_4       = 4u;
+  static constexpr LogicalLevel NODE_LEVEL_5       = 5u;
+  static constexpr LogicalLevel NODE_LEVEL_MAX     = NODE_LEVEL_5;
   static constexpr LogicalLevel NODE_LEVEL_INVALID = NODE_LEVEL_MAX + 1u;
 
   static constexpr LogicalID NODE_ID_ROOT    = 0u;
@@ -58,7 +58,36 @@ namespace RF24
   static constexpr LogicalID NODE_ID_7       = 7u;
   static constexpr LogicalID NODE_ID_MAX     = NODE_ID_7;
   static constexpr LogicalID NODE_ID_INVALID = NODE_ID_MAX + 1u;
-  
+
+
+  /*------------------------------------------------
+Debug Options
+------------------------------------------------*/
+#if defined( DEBUG )
+
+  /*------------------------------------------------
+  Master logging On/Off switch
+  ------------------------------------------------*/
+  static constexpr bool ENABLE_DBG_LOG = false;
+
+  /*------------------------------------------------
+  Individual layer logging switches
+  ------------------------------------------------*/
+  static constexpr bool DBG_LOG_NET = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_PHY = true && ENABLE_DBG_LOG;
+#endif /* !NDEBUG */
+
+
+#if defined( SERIAL_DEBUG )
+#pragma message( "Serial debug macro is deprecated!" )
+#define IF_SERIAL_DEBUG( x ) \
+  {                          \
+    x                        \
+  }
+#else
+#define IF_SERIAL_DEBUG( x )
+#endif
+
 
 }    // namespace RF24
 

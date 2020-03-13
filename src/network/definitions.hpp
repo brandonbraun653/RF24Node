@@ -98,46 +98,6 @@ Config Options
  */
 #define RF24Network_DISABLE_FRAGMENTATION ( true )
 
-/*------------------------------------------------
-Debug Options
-------------------------------------------------*/
-#if DEBUG
-#define SERIAL_DEBUG
-#define SERIAL_DEBUG_MINIMAL
-#define SERIAL_DEBUG_ROUTING
-#define SERIAL_DEBUG_FRAGMENTATION
-#define SERIAL_DEBUG_FRAGMENTATION_L2
-#endif /* !NDEBUG */
-
-#if defined( SERIAL_DEBUG )
-#define IF_SERIAL_DEBUG( x ) { x }
-#else
-#define IF_SERIAL_DEBUG( x )
-#endif
-
-#if defined( SERIAL_DEBUG_MINIMAL )
-#define IF_SERIAL_DEBUG_MINIMAL( x ) { x }
-#else
-#define IF_SERIAL_DEBUG_MINIMAL( x )
-#endif
-
-#if defined( SERIAL_DEBUG_FRAGMENTATION )
-#define IF_SERIAL_DEBUG_FRAGMENTATION( x ) { x }
-#else
-#define IF_SERIAL_DEBUG_FRAGMENTATION( x )
-#endif
-
-#if defined( SERIAL_DEBUG_FRAGMENTATION_L2 )
-#define IF_SERIAL_DEBUG_FRAGMENTATION_L2( x ) { x }
-#else
-#define IF_SERIAL_DEBUG_FRAGMENTATION_L2( x )
-#endif
-
-#if defined( SERIAL_DEBUG_ROUTING )
-#define IF_SERIAL_DEBUG_ROUTING( x ) { x }
-#else
-#define IF_SERIAL_DEBUG_ROUTING( x )
-#endif
 
   static constexpr LogicalAddress RSVD_ADDR_MULTICAST = 000100;
   static constexpr LogicalAddress RSVD_ADDR_ROUTED    = 000070;

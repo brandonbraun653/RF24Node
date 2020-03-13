@@ -27,7 +27,6 @@ namespace RF24::Endpoint::Internal::Processor
    */
   bool dispatchPing( ::RF24::Endpoint::Interface &obj, const ::RF24::LogicalAddress node, const size_t timeout );
 
-  bool handlePing( ::RF24::Endpoint::Interface &obj );
 }    // namespace RF24::Endpoint::Internal::Processor
 
 #endif /* !RF24_NODE_PING_HPP */
