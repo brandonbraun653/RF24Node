@@ -99,6 +99,10 @@ namespace RF24::Endpoint
     Chimera::Status_t initMeshLayer();
   };
 
+
+  using Device_sPtr = std::shared_ptr<Device>;
+  using Device_uPtr = std::unique_ptr<Device>;
+
 }    // namespace RF24::Endpoint
 
 /*------------------------------------------------
