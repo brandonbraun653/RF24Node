@@ -177,6 +177,9 @@
     <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp">
       <Filter>src\network\processes</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hardware\about.md">
@@ -263,6 +266,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp">
       <Filter>src\network\processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\endpoint\endpoint_factory.cpp">
+      <Filter>src\endpoint</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

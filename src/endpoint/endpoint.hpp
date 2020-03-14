@@ -38,18 +38,21 @@
 
 namespace RF24::Endpoint
 {
+  class Device;
+  using Device_sPtr = std::shared_ptr<Device>;
+  using Device_uPtr = std::unique_ptr<Device>;
+
+  Interface_sPtr createShared( const SystemInit &cfg );
+  Interface_uPtr createUnique( const SystemInit &cfg );
   
-  /**
-   *  Primary interface that describes interaction with an RF24L01 device node.
-   */
   class Device : public Interface
   {
   public:
     Device();
     ~Device();
 
-    Chimera::Status_t attachLogger( uLog::SinkHandle sink );
-    Chimera::Status_t configure( const SystemInit &cfg ) override;
+    Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
+    Chimera::Status_t configure( const SystemInit &cfg ) final override;
     Chimera::Status_t setNetworkingMode( const Network::Mode mode ) final override;
     Chimera::Status_t setEnpointStaticAddress( const LogicalAddress address ) final override;
     Chimera::Status_t setParentStaticAddress( const LogicalAddress address ) final override;
@@ -84,6 +87,9 @@ namespace RF24::Endpoint
     SystemState getCurrentState() final override;
 
   protected:
+    friend Interface_sPtr createShared( const SystemInit &cfg );
+    friend Interface_uPtr createUnique( const SystemInit &cfg );
+
     RF24::Physical::Interface_sPtr mPhysicalDriver; /**< Physical layer object */
     RF24::Network::Interface_sPtr mNetworkDriver;   /**< Network layer object */
     uLog::SinkHandle mLogger;                       /**< Logger object */
@@ -92,25 +98,15 @@ namespace RF24::Endpoint
     SystemInit mEndpointInit;   /**< User endpoint initial configuration for this node */
     SystemState mState; /**< Current state of this node */
 
+
+    void initNetworkingStack( ::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy );
+
   private:
     Chimera::Status_t initHardwareLayer();
     Chimera::Status_t initPhysicalLayer();
     Chimera::Status_t initNetworkLayer();
     Chimera::Status_t initMeshLayer();
   };
-
-
-  using Device_sPtr = std::shared_ptr<Device>;
-  using Device_uPtr = std::unique_ptr<Device>;
-
 }    // namespace RF24::Endpoint
-
-/*------------------------------------------------
-Exported functions for construction/destruction of Endpoints
-------------------------------------------------*/
-#if defined( RF24_SIMULATOR )
-extern "C" RF24API RF24::Endpoint::Device *new__Endpoint();
-extern "C" RF24API void delete__Endpoint( RF24::Endpoint::Device *obj );
-#endif 
 
 #endif /* !RF24_NODE_ENDPOINT_HPP*/

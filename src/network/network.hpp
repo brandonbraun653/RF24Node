@@ -1,11 +1,11 @@
 /********************************************************************************
- *   File Name:
+ *  File Name:
  *    network.hpp
  *
- *   Description:
+ *  Description:
  *    Implements the RF24 Network layer
  *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -39,17 +39,24 @@
 
 namespace RF24::Network
 {
+  Interface_sPtr createShared( const RF24::Network::Config &cfg );
+  Interface_uPtr createUnique( const RF24::Network::Config &cfg );
+
+
+  class Driver;
+  using Driver_sPtr = std::shared_ptr<Driver>;
+  using Driver_uPtr = std::unique_ptr<Driver>;
+
   class Driver : virtual public Interface
   {
   public:
-    Driver( ::RF24::Endpoint::Interface *const node );
+    Driver();
     ~Driver();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
-    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer ) final override;
+    Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) override;
     Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
     Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
-    Chimera::Status_t initialize() final override;
     HeaderMessage updateRX() final override;
     void updateTX() final override;
     bool available() final override;
@@ -92,6 +99,11 @@ namespace RF24::Network
     void toggleMulticastRelay( const bool state );
 
   protected:
+    friend Interface_sPtr createShared( const RF24::Network::Config &cfg );
+    friend Interface_uPtr createUnique( const RF24::Network::Config &cfg );
+
+    Chimera::Status_t initialize( const RF24::Network::Config &cfg ) final override;
+
     /**
      *	Checks if the given address is registered directly with this network. This could be as
      *  either a parent or a child
@@ -125,14 +137,11 @@ namespace RF24::Network
     bool mReturnSystemMessages;
     bool mMulticastRelay;
     size_t mLastTxTime;
-    ::RF24::Endpoint::Interface *const mNode;
-
-
-    RF24::Physical::Interface_sPtr radio; /**< Underlying radio driver, provides link/physical layers */
-    RF24::Network::Queue::ManagedFIFO txQueue;
-    RF24::Network::Queue::ManagedFIFO rxQueue;
-    Internal::NodeConnections routeTable;
-    uLog::SinkHandle logger;
+    RF24::Physical::Interface_sPtr mPhysicalDriver; 
+    RF24::Network::Queue::ManagedFIFO mTXQueue;
+    RF24::Network::Queue::ManagedFIFO mRXQueue;
+    Internal::NodeConnections mRouteTable;
+    uLog::SinkHandle mLogger;
 
     void enqueueRXPacket( Frame::FrameType &frame );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );

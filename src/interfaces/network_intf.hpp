@@ -28,6 +28,10 @@
 
 namespace RF24::Network
 {
+  class Interface;
+  using Interface_sPtr = std::shared_ptr<Interface>;
+  using Interface_uPtr = std::unique_ptr<Interface>;
+
   class Interface
   {
   public:
@@ -50,7 +54,7 @@ namespace RF24::Network
      *  @param[in]  physicalLayer     The driver to attach
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer ) = 0;
+    virtual Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) = 0;
 
     /**
      *  Assigns the memory pool used for dynamic RX allocation
@@ -69,13 +73,6 @@ namespace RF24::Network
      *	@return Chimera::Status_t
      */
     virtual Chimera::Status_t initTXQueue( void *buffer, const size_t size ) = 0;
-
-    /**
-     *	Performs the initialization sequence for the network layer
-     *
-     *	@return Chimera::Status_t
-     */
-    virtual Chimera::Status_t initialize() = 0;
 
     /**
      *  Runs the RX half of the network processing stack
@@ -166,10 +163,15 @@ namespace RF24::Network
      */
     virtual LogicalAddress thisNode() = 0;
 
-  };
+  protected:
+    /**
+     *	Performs the initialization sequence for the network layer
+     *
+     *	@return Chimera::Status_t
+     */
+    virtual Chimera::Status_t initialize( const RF24::Network::Config &cfg ) = 0;
 
-  using Interface_sPtr = std::shared_ptr<Interface>;
-  using Interface_uPtr = std::unique_ptr<Interface>;
+  };
 }    // namespace RF24::Network
 
 #endif /* !NRF24_NETWORK_INTERFACE_HPP */

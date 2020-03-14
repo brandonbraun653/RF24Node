@@ -10,6 +10,7 @@
 
 /* C++ Includes */
 #include <cmath>
+#include <memory>
 
 /* Boost Includes */
 #include <boost/circular_buffer.hpp>
@@ -37,16 +38,28 @@
 
 namespace RF24::Network
 {
+  Interface_sPtr createShared( const RF24::Network::Config &cfg )
+  {
+    auto temp = std::make_shared<Driver>();
+    temp->initialize( cfg );
+    return temp;
+  }
 
-  Driver::Driver( ::RF24::Endpoint::Interface *const node ) : mNode( node )
+  Interface_uPtr createUnique( const RF24::Network::Config &cfg )
+  {
+    Driver_uPtr temp = std::make_unique<Driver>();
+    temp->initialize( cfg );
+
+    return std::move( temp );
+  }
+
+
+  Driver::Driver() : mPhysicalDriver( nullptr ), mLogger( nullptr )
   {
     mInitialized          = false;
     mReturnSystemMessages = false;
     mMulticastRelay       = false;
-
-    mLastTxTime = 0;
-
-    logger = nullptr;
+    mLastTxTime           = 0;
   }
 
   Driver::~Driver()
@@ -55,43 +68,48 @@ namespace RF24::Network
 
   Chimera::Status_t Driver::attachLogger( uLog::SinkHandle sink )
   {
-    logger = sink;
+    mLogger = sink;
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::attachPhysicalDriver( RF24::Physical::Interface_sPtr &physicalLayer )
+  Chimera::Status_t Driver::attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer )
   {
     if ( !physicalLayer )
     {
       return Chimera::CommonStatusCodes::INVAL_FUNC_PARAM;
     }
 
-    radio = physicalLayer;
+    mPhysicalDriver = physicalLayer;
     return Chimera::CommonStatusCodes::OK;
   }
 
   Chimera::Status_t Driver::initRXQueue( void *buffer, const size_t size )
   {
-    return rxQueue.attachHeap( buffer, size );
+    return mRXQueue.attachHeap( buffer, size );
   }
 
   Chimera::Status_t Driver::initTXQueue( void *buffer, const size_t size )
   {
-    return txQueue.attachHeap( buffer, size );
+    return mTXQueue.attachHeap( buffer, size );
   }
 
-  Chimera::Status_t Driver::initialize()
+  Chimera::Status_t Driver::initialize( const RF24::Network::Config &cfg )
   {
-    if ( radio ) // TODO: Add queue checks 
+    Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
+
+    /*------------------------------------------------
+    Queues must be attached before startup
+    ------------------------------------------------*/
+    configResult |= initRXQueue( cfg.rxQueueBuffer, cfg.rxQueueSize );
+    configResult |= initTXQueue( cfg.txQueueBuffer, cfg.txQueueSize );
+
+
+    if ( configResult == Chimera::CommonStatusCodes::OK )
     {
       mInitialized = true;
-      return Chimera::CommonStatusCodes::OK;
     }
-    else
-    {
-      mInitialized = false;
-      return Chimera::CommonStatusCodes::FAIL;
-    }
+
+    return configResult;
   }
 
   HeaderMessage Driver::updateRX()
@@ -100,7 +118,7 @@ namespace RF24::Network
     {
       if constexpr ( DBG_LOG_NET )
       {
-        logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Not initialized\n", Chimera::millis() );
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Not initialized\n", Chimera::millis() );
       }
       return MSG_NETWORK_ERR;
     }
@@ -108,7 +126,7 @@ namespace RF24::Network
     uint8_t pipeNum                 = 0u;
     size_t payloadSize              = 0u;
     HeaderMessage sysMsg            = MSG_TX_NORMAL;
-    RF24::Hardware::PipeNumber pipe = radio->payloadAvailable();
+    RF24::Hardware::PipeNumber pipe = mPhysicalDriver->payloadAvailable();
 
     /*------------------------------------------------
     Process the incoming data
@@ -121,8 +139,8 @@ namespace RF24::Network
       Frame::Buffer buffer;
       buffer.fill( 0 );
 
-      payloadSize = radio->getPayloadSize( pipe );
-      radio->readPayload( buffer, payloadSize );
+      payloadSize = mPhysicalDriver->getPayloadSize( pipe );
+      mPhysicalDriver->readPayload( buffer, payloadSize );
 
       auto reportedCRC   = Frame::getCRCFromBuffer( buffer );
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
@@ -130,7 +148,7 @@ namespace RF24::Network
       {
         if constexpr ( DBG_LOG_NET )
         {
-          logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() );
+          mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() );
         }
         continue;
       }
@@ -139,7 +157,7 @@ namespace RF24::Network
       Assuming the frame is valid, handle the message appropriately
       ------------------------------------------------*/
       auto frame = Frame::FrameType( buffer );
-      if ( frame.getDst() == mNode->getLogicalAddress() )
+      if ( frame.getDst() == mRouteTable.getCentralNode().getLogicalAddress() )
       {
         sysMsg = handleDestination( frame );
       }
@@ -151,7 +169,7 @@ namespace RF24::Network
       /*------------------------------------------------
       Check to see if a new message is available
       ------------------------------------------------*/
-      pipe = radio->payloadAvailable();
+      pipe = mPhysicalDriver->payloadAvailable();
     }
 
     return sysMsg;
@@ -164,7 +182,7 @@ namespace RF24::Network
 
   bool Driver::available()
   {
-    return !rxQueue.empty();
+    return !mRXQueue.empty();
   }
 
   bool Driver::peek( Frame::FrameType &frame )
@@ -217,7 +235,7 @@ namespace RF24::Network
 
   void Driver::removeRXFrame()
   {
-    rxQueue.removeFront();
+    mRXQueue.removeFront();
   }
 
   LogicalAddress Driver::nextHop( const LogicalAddress dst )
@@ -229,11 +247,11 @@ namespace RF24::Network
       // Next hop IS the destination node
       return dst;
     }
-    else if ( getLevel( dst ) >= routeTable.getCentralNode().getLevel() )
+    else if ( getLevel( dst ) >= mRouteTable.getCentralNode().getLevel() )
     {
       // The data must be routed through the parent node to get data to a node 
       // at the same level or higher.
-      return routeTable.getParentNode().getLogicalAddress();
+      return mRouteTable.getParentNode().getLogicalAddress();
     }
     else if ( isDescendantOfRegisteredChild( dst, ancestor ) )
     {
@@ -248,17 +266,17 @@ namespace RF24::Network
 
   bool Driver::updateRouteTable( const LogicalAddress address )
   {
-    return routeTable.attach( address );
+    return mRouteTable.attach( address );
   }
 
   void Driver::setNodeAddress(  const LogicalAddress address )
   {
-    routeTable.updateCentralNode( address );
+    mRouteTable.updateCentralNode( address );
   }
 
   LogicalAddress Driver::thisNode()
   {
-    return routeTable.getCentralNode().getLogicalAddress();
+    return mRouteTable.getCentralNode().getLogicalAddress();
   }
 
   bool Driver::isRegisteredDirectly( const LogicalAddress toCheck )
@@ -266,7 +284,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Check the simplest option first: Is the parent?
     ------------------------------------------------*/
-    if ( toCheck == routeTable.getParentNode().getLogicalAddress() )
+    if ( toCheck == mRouteTable.getParentNode().getLogicalAddress() )
     {
       return true;
     }
@@ -274,7 +292,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Iterate over the registration list to see if maybe it's there
     ------------------------------------------------*/
-    for ( auto const &child : routeTable.getRegistrationList() )
+    for ( auto const &child : mRouteTable.getRegistrationList() )
     {
       if ( child.getLogicalAddress() == toCheck )
       {
@@ -287,7 +305,7 @@ namespace RF24::Network
 
   bool Driver::isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which )
   {
-    for ( auto const &child : routeTable.getRegistrationList() )
+    for ( auto const &child : mRouteTable.getRegistrationList() )
     {
       if ( RF24::isDescendent( child.getLogicalAddress(), toCheck ) )
       {
@@ -338,26 +356,26 @@ namespace RF24::Network
     If we are multi casting, turn off auto acknowledgment. 
     We don't care how the message gets out as long as it does.
     ------------------------------------------------*/
-    result |= radio->stopListening();
-    result |= radio->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
-    result |= radio->openWritePipe( address );
-    result |= radio->immediateWrite( buffer, length );
-    result |= radio->txStandBy( 10, true );
-    result |= radio->startListening();
+    result |= mPhysicalDriver->stopListening();
+    result |= mPhysicalDriver->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
+    result |= mPhysicalDriver->openWritePipe( address );
+    result |= mPhysicalDriver->immediateWrite( buffer, length );
+    result |= mPhysicalDriver->txStandBy( 10, true );
+    result |= mPhysicalDriver->startListening();
 
     return ( result == Chimera::CommonStatusCodes::OK );
   }
 
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
-    if ( !rxQueue.full())
+    if ( !mRXQueue.full())
     {
       auto buffer = frame.toBuffer();
-      rxQueue.push( buffer.data(), buffer.size() );
+      mRXQueue.push( buffer.data(), buffer.size() );
     }
     else if constexpr ( DBG_LOG_NET )
     {
-      logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() );
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() );
     }
   }
 
@@ -420,7 +438,7 @@ namespace RF24::Network
 
     if constexpr ( DBG_LOG_NET )
     {
-      logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", Chimera::millis(),
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", Chimera::millis(),
                     frame.getType(), frame.getSrc(), frame.getDst() );
     }
 
@@ -441,14 +459,14 @@ namespace RF24::Network
       Grab the physical address of the pipe on the destination node 
       assuming we are sending from this (central) node.
       ------------------------------------------------*/
-      auto destinationPipe = getDestinationRXPipe( hopAddress, routeTable.getCentralNode().getLogicalAddress() );
+      auto destinationPipe = getDestinationRXPipe( hopAddress, mRouteTable.getCentralNode().getLogicalAddress() );
       auto physicalAddress = getPhysicalAddress( hopAddress, destinationPipe );
 
       frame.updateCRC();
 
       if constexpr ( DBG_LOG_NET )
       {
-        logger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
                       Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress );
       }
       
@@ -458,7 +476,7 @@ namespace RF24::Network
     {
       if constexpr ( DBG_LOG_NET )
       {
-        logger->flog( uLog::Level::LVL_DEBUG, "Drop routed packet. Unable to deduce next destination.\n" );
+        mLogger->flog( uLog::Level::LVL_DEBUG, "Drop routed packet. Unable to deduce next destination.\n" );
       }
       return false;
     }
@@ -466,19 +484,19 @@ namespace RF24::Network
 
   bool Driver::writeMulticast( Frame::FrameType &frame )
   {
-    radio->startListening();
+    mPhysicalDriver->startListening();
     return false;
   }
 
   bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
   {
-    if ( !rxQueue.empty() )
+    if ( !mRXQueue.empty() )
     {
       /*------------------------------------------------
       Peek the next element and verify it contains data
       ------------------------------------------------*/
       Frame::Buffer tempBuffer;
-      auto element = rxQueue.peek();
+      auto element = mRXQueue.peek();
       bool validity = false;
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
@@ -503,7 +521,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       if ( pop )
       {
-        rxQueue.pop( element.payload, element.size );
+        mRXQueue.pop( element.payload, element.size );
       }
 
       return validity;

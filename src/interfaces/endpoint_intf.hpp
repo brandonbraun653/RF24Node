@@ -12,8 +12,14 @@
 #ifndef RF24_NODE_ENDPOINT_INTERFACE_HPP
 #define RF24_NODE_ENDPOINT_INTERFACE_HPP
 
+/* STL Includes */
+#include <memory>
+
 /* Chimera Includes */
 #include <Chimera/common>
+
+/* uLog Includes */
+#include <uLog/types.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/src/common/types.hpp>
@@ -25,10 +31,16 @@
 
 namespace RF24::Endpoint
 {
+  class Interface;
+  using Interface_sPtr = std::shared_ptr<Interface>;
+  using Interface_uPtr = std::unique_ptr<Interface>;
+
   class Interface : public Chimera::Threading::Lockable
   {
   public:
     virtual ~Interface() = default;
+
+    virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
 
     /*-------------------------------------------------
     Initialization and Configuration
@@ -271,33 +283,5 @@ namespace RF24::Endpoint
     virtual SystemState getCurrentState() = 0;
   };
 }    // namespace RF24::Endpoint
-
-/*------------------------------------------------
-Exported functions
-------------------------------------------------*/
-#if defined( RF24DLL )
-
-extern "C" RF24API Chimera::Status_t EP_configure( RF24::Endpoint::Interface *obj, const RF24::Endpoint::SystemInit *const cfg );
-extern "C" RF24API Chimera::Status_t EP_setNetworkingMode( RF24::Endpoint::Interface *obj, const ::RF24::Network::Mode mode );
-extern "C" RF24API Chimera::Status_t EP_setEnpointStaticAddress( RF24::Endpoint::Interface *obj,
-                                                                 const RF24::LogicalAddress address );
-extern "C" RF24API Chimera::Status_t EP_setParentStaticAddress( RF24::Endpoint::Interface *obj,
-                                                                const RF24::LogicalAddress address );
-extern "C" RF24API Chimera::Status_t EP_requestAddress( RF24::Endpoint::Interface *obj );
-extern "C" RF24API Chimera::Status_t EP_renewAddressReservation( RF24::Endpoint::Interface *obj );
-extern "C" RF24API Chimera::Status_t EP_connect( RF24::Endpoint::Interface *obj, const size_t timeout );
-extern "C" RF24API Chimera::Status_t EP_disconnect( RF24::Endpoint::Interface *obj );
-extern "C" RF24API Chimera::Status_t EP_reconnect( RF24::Endpoint::Interface *obj );
-extern "C" RF24API Chimera::Status_t EP_onEvent( RF24::Endpoint::Interface *obj, const RF24::Event event,
-                                                 const RF24::EventFuncPtr_t function );
-extern "C" RF24API Chimera::Status_t EP_write( RF24::Endpoint::Interface *obj, const RF24::LogicalAddress dst,
-                                               const void *const data, const size_t length );
-extern "C" RF24API Chimera::Status_t EP_read( RF24::Endpoint::Interface *obj, void *const data, const size_t length );
-extern "C" RF24API bool EP_packetAvailable( RF24::Endpoint::Interface *obj );
-extern "C" RF24API size_t EP_nextPacketLength( RF24::Endpoint::Interface *obj );
-extern "C" RF24API RF24::Endpoint::Status EP_getEndpointStatus( RF24::Endpoint::Interface *obj );
-extern "C" RF24API Chimera::Status_t EP_isConnected( RF24::Endpoint::Interface *obj );
-
-#endif /* RF24DLL */
 
 #endif /* !RF24_NODE_ENDPOINT_INTERFACE_HPP*/

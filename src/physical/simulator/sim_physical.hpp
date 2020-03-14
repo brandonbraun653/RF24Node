@@ -32,13 +32,20 @@
 
 namespace RF24::Physical
 {
-  class SimulatorDriver : public Interface
+  Interface_sPtr createShared( const RF24::Physical::Config &cfg );
+  Interface_uPtr createUnique( const RF24::Physical::Config &cfg );
+
+
+  class SimulatorDriver;
+  using SimulatorDriver_sPtr = std::shared_ptr<SimulatorDriver>;
+  using SimulatorDriver_uPtr = std::unique_ptr<SimulatorDriver>;
+
+  class SimulatorDriver : virtual public Interface
   {
   public:
     SimulatorDriver();
     ~SimulatorDriver();
 
-    Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) final override;
     Chimera::Status_t isInitialized() final override;
     Chimera::Status_t isConnected() final override;
     Chimera::Status_t setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
@@ -75,6 +82,13 @@ namespace RF24::Physical
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
 
+  protected:
+    friend Interface_sPtr createShared( const RF24::Physical::Config &cfg );
+    friend Interface_uPtr createUnique( const RF24::Physical::Config &cfg ); 
+
+
+    Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) final override;
+
   private:
     bool flagInitialized;
 
@@ -85,7 +99,7 @@ namespace RF24::Physical
     RF24::Hardware::DataRate mDataRate;
 
     boost::asio::io_service ioService;
-    std::array<RF24::Physical::Shockburst::DataPipe_uPtr, 6> mDataPipes;
+    std::array<RF24::Physical::Shockburst::Socket *, 6> mDataPipes;
 
     uLog::SinkHandle logger;
 

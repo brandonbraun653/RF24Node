@@ -28,6 +28,24 @@
 
 namespace RF24::Physical
 {
+  Interface_sPtr createShared(  const RF24::Physical::Config &cfg )
+  {
+    SimulatorDriver_sPtr temp = std::make_shared<SimulatorDriver>();
+    temp->initialize( cfg );
+
+    return temp;
+  }
+
+  Interface_uPtr createUnique(  const RF24::Physical::Config &cfg )
+  {
+    SimulatorDriver_uPtr temp = std::make_unique<SimulatorDriver>();
+    temp->initialize( cfg );
+
+    return std::move( temp );
+  }
+
+
+
   SimulatorDriver::SimulatorDriver()
   {
     flagInitialized    = false;
@@ -46,14 +64,18 @@ namespace RF24::Physical
 
   Chimera::Status_t SimulatorDriver::initialize( const RF24::Physical::Config &cfg )
   {
+    if ( flagInitialized )
+    {
+      return Chimera::CommonStatusCodes::OK;
+    }
+
     /*------------------------------------------------
     Create the low level IO transceivers
     ------------------------------------------------*/
     ioService.reset();
     for ( size_t x = 0; x < mDataPipes.size(); x++ )
     {
-      mDataPipes[ x ] =
-          std::make_unique<Shockburst::Socket>( static_cast<RF24::Hardware::PipeNumber>( x ), ioService, cfg.deviceName );
+      mDataPipes[ x ] = new Shockburst::Socket( static_cast<RF24::Hardware::PipeNumber>( x ), ioService, cfg.deviceName );
 
       if ( logger )
       {

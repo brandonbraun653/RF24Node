@@ -29,47 +29,30 @@
 #include <RF24Node/src/network/network.hpp>
 #include <RF24Node/src/network/queue/queue.hpp>
 #include <RF24Node/src/physical/physical.hpp>
-#include <RF24Node/src/physical/simulator/sim_physical.hpp>
-
-
-#if defined( RF24_SIMULATOR )
-RF24::Endpoint::Device *new__Endpoint()
-{
-  return new RF24::Endpoint::Device();
-}
-
-void delete__Endpoint( RF24::Endpoint::Device *obj )
-{
-  delete obj;
-}
-#endif
 
 namespace RF24::Endpoint
 {
-  Device::Device()
+  Device::Device() : mNetworkDriver( nullptr ), mPhysicalDriver( nullptr ), mLogger( nullptr )
   {
     /*------------------------------------------------
     Initialize class vars
     ------------------------------------------------*/
-    memset( &mEndpointInit, 0, sizeof( SystemInit ) );
-    memset( &mState, 0, sizeof( SystemInit ) );
-
-    /*------------------------------------------------
-    Initialize class composite objects
-    ------------------------------------------------*/
-    mLogger        = nullptr;
-    mNetworkDriver = std::make_shared<Network::Driver>( this );
-
-#if defined( RF24_SIMULATOR )
-    mPhysicalDriver = std::make_shared<Physical::SimulatorDriver>();
-#else
-    mPhysicalDriver = std::make_shared<Physical::HardwareDriver>();
-#endif
+    mEndpointInit = {};
+    mState = {};
   }
 
   Device::~Device()
   {
   }
+
+  void Device::initNetworkingStack( ::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy )
+  {
+    mNetworkDriver = net;
+    mPhysicalDriver = phy;
+
+    net->attachPhysicalDriver( phy );
+  }
+
 
   Chimera::Status_t Device::attachLogger( uLog::SinkHandle sink )
   {
@@ -354,15 +337,6 @@ namespace RF24::Endpoint
     auto nodeAddress               = mEndpointInit.network.nodeStaticAddress;
 
     /*------------------------------------------------
-    Turn on the radio. By default, this wipes all pre-existing settings.
-    ------------------------------------------------*/
-    if ( mPhysicalDriver->initialize( mEndpointInit.physical ) != Chimera::CommonStatusCodes::OK )
-    {
-      IF_SERIAL_DEBUG( mLogger->flog( uLog::Level::LVL_ERROR, "ERR: Phy failed init\n" ); );
-      return Chimera::CommonStatusCodes::FAIL;
-    }
-
-    /*------------------------------------------------
     Reconfigure the radio's base settings
     ------------------------------------------------*/
     configResult |= mPhysicalDriver->setChannel( mEndpointInit.physical.rfChannel );
@@ -375,8 +349,10 @@ namespace RF24::Endpoint
     /*------------------------------------------------
     Open all pipes in listening mode
     ------------------------------------------------*/
-    IF_SERIAL_DEBUG(
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\n", Chimera::millis() ); );
+    if constexpr ( DBG_LOG_APP )
+    {
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\n", Chimera::millis() );
+    }
 
     for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
     {
@@ -386,11 +362,17 @@ namespace RF24::Endpoint
       configResult |= mPhysicalDriver->openReadPipe( pipe, addr, true );
 
 #if defined( RF24_SIMULATOR )
-      IF_SERIAL_DEBUG( mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has IP[%s] and Port[%d]\n",
-                                      Chimera::millis(), pipe, nodeAddress, decodeIP( addr ).c_str(), decodePort( addr ) ); );
+      if constexpr ( DBG_LOG_APP )
+      {
+        mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has IP[%s] and Port[%d]\n", Chimera::millis(), pipe,
+                       nodeAddress, decodeIP( addr ).c_str(), decodePort( addr ) );
+      }
 #else
-      IF_SERIAL_DEBUG( mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n",
-                                      Chimera::millis(), pipe, nodeAddress, addr ); );
+      if constexpr ( DBG_LOG_APP )
+      {
+        mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n",
+                                      Chimera::millis(), pipe, nodeAddress, addr );
+      }
 #endif
     }
 
@@ -404,19 +386,6 @@ namespace RF24::Endpoint
   Chimera::Status_t Device::initNetworkLayer()
   {
     Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
-
-    /*------------------------------------------------
-    Queues must be attached before startup
-    ------------------------------------------------*/
-    configResult |= mNetworkDriver->initRXQueue( mEndpointInit.network.rxQueueBuffer, mEndpointInit.network.rxQueueSize );
-    configResult |= mNetworkDriver->initTXQueue( mEndpointInit.network.txQueueBuffer, mEndpointInit.network.txQueueSize );
-
-    /*------------------------------------------------
-    Bring up the network layer
-    ------------------------------------------------*/
-    configResult |= setNetworkingMode( mEndpointInit.network.mode );
-    configResult |= mNetworkDriver->attachPhysicalDriver( mPhysicalDriver );
-    configResult |= mNetworkDriver->initialize();
 
     /*------------------------------------------------
     Track our current network address
@@ -443,7 +412,7 @@ namespace RF24::Endpoint
   }
 
   RF24::Network::Interface_sPtr Device::getNetworkingDriver()
-  {
+{
     return mNetworkDriver;
   }
 

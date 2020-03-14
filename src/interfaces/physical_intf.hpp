@@ -30,6 +30,10 @@
 
 namespace RF24::Physical
 {
+  class Interface;
+  using Interface_sPtr = std::shared_ptr<Interface>;
+  using Interface_uPtr = std::unique_ptr<Interface>;
+
   class Interface
   {
   public:
@@ -43,13 +47,6 @@ namespace RF24::Physical
      *	@return Chimera::Status_t
      */
     virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
-
-    /**
-     *   Initialize the chip and verify correct setup
-     *
-     *   @return Chimera::Status_t
-     */
-    virtual Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) = 0;
 
     /**
      *   Checks if the driver has been initialized properly
@@ -341,10 +338,15 @@ namespace RF24::Physical
     virtual RF24::Hardware::DataRate getDataRate() = 0;
 
     virtual Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) = 0;
-  };
 
-  using Interface_sPtr = std::shared_ptr<Interface>;
-  using Interface_uPtr = std::unique_ptr<Interface>;
+  protected:
+    /**
+     *   Initialize the chip and verify correct setup
+     *
+     *   @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t initialize( const RF24::Physical::Config &cfg ) = 0;
+  };
 }    // namespace RF24::Physical
 
 #endif /* !RF24_NODE_PHYSICAL_INTERFACE_HPP */

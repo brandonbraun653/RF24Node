@@ -25,6 +25,7 @@
     <ClInclude Include="..\..\..\src\common\utility.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\fwd.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\node.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
@@ -74,6 +75,7 @@
     <ClCompile Include="..\..\..\src\common\conversion.cpp" />
     <ClCompile Include="..\..\..\src\common\utility.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\endpoint.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\endpoint_factory.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\node.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
@@ -107,6 +109,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -114,6 +117,7 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>

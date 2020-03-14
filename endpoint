@@ -13,6 +13,7 @@
 #define RF24_NODE_ENDPOINT_INCLUDES
 
 #include <RF24Node/src/endpoint/endpoint.hpp>
+#include <RF24Node/src/endpoint/endpoint_factory.hpp>
 #include <RF24Node/src/endpoint/node.hpp>
 #include <RF24Node/src/endpoint/types.hpp>
 

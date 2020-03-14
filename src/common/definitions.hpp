@@ -61,33 +61,16 @@ namespace RF24
 
 
   /*------------------------------------------------
-Debug Options
-------------------------------------------------*/
-#if defined( DEBUG )
-
-  /*------------------------------------------------
   Master logging On/Off switch
   ------------------------------------------------*/
-  static constexpr bool ENABLE_DBG_LOG = false;
+  static constexpr bool ENABLE_DBG_LOG = true;
 
   /*------------------------------------------------
   Individual layer logging switches
   ------------------------------------------------*/
+  static constexpr bool DBG_LOG_APP = true && ENABLE_DBG_LOG;
   static constexpr bool DBG_LOG_NET = true && ENABLE_DBG_LOG;
   static constexpr bool DBG_LOG_PHY = true && ENABLE_DBG_LOG;
-#endif /* !NDEBUG */
-
-
-#if defined( SERIAL_DEBUG )
-#pragma message( "Serial debug macro is deprecated!" )
-#define IF_SERIAL_DEBUG( x ) \
-  {                          \
-    x                        \
-  }
-#else
-#define IF_SERIAL_DEBUG( x )
-#endif
-
 
 }    // namespace RF24
 
