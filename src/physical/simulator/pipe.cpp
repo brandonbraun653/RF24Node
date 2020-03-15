@@ -26,7 +26,7 @@
 #include <uLog/sinks/sink_intf.hpp>
 
 /* RF24 Includes */
-#include <RF24Node/src/common/conversion.hpp>
+#include <RF24Node/common>
 #include <RF24Node/src/physical/simulator/pipe.hpp>
 #include <RF24Node/src/physical/simulator/shockburst_types.hpp>
 
@@ -54,7 +54,6 @@ namespace RF24::Physical::Pipe
     closePipe();
   }
 
-  
   Chimera::Status_t TX::attachLogger( uLog::SinkHandle sink )
   {
     mLogger = sink;
@@ -113,8 +112,11 @@ namespace RF24::Physical::Pipe
     auto ip   = address_v4::from_string( Conversion::decodeIP( data ) );
     auto port = Conversion::decodePort( data );
 
-    //mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: TX to IP[%s] on Port[%d]\n", Chimera::millis(), 
-    //  mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
+    if constexpr ( DBG_LOG_PHY_TRACE )
+    {
+      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d TX %d bytes to port [%d] at address [%s]\n", Chimera::millis(),
+                     mPipeNumber, mBuffer.size(), port, ip.to_string().c_str() );
+    }
 
     memcpy( mBuffer.data(), data.data(), mBuffer.size() );
     mTXSocket.async_send_to( boost::asio::buffer( mBuffer ), udp::endpoint( ip, port ),
@@ -163,8 +165,8 @@ namespace RF24::Physical::Pipe
   {
     if ( error )
     {
-      mLogger->flog( Level::LVL_ERROR, "ERR: TX failed on pipe\n" );
-      mLogger->flog( Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
+      mLogger->flog( Level::LVL_ERROR, "%d-PHY: ERROR TX failed on pipe %d\n", Chimera::millis(), mPipeNumber );
+      mLogger->flog( Level::LVL_ERROR, "%d-PHY:\t%s\n", error.message() );
       return;
     }
 
@@ -174,6 +176,11 @@ namespace RF24::Physical::Pipe
     if ( mUserCallback )
     {
       mUserCallback( this );
+    }
+
+    if constexpr ( DBG_LOG_PHY_TRACE )
+    {
+      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d TX event complete\n", Chimera::millis(), mPipeNumber );
     }
   }
 
@@ -286,6 +293,11 @@ namespace RF24::Physical::Pipe
     {
       memcpy( temp.data(), mBuffer.data(), temp.size() );
       mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+
+      if constexpr ( DBG_LOG_PHY_TRACE )
+      {
+        mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX data to user\n", Chimera::millis(), mPipeNumber );
+      }
     }
 
     return temp;
@@ -364,8 +376,8 @@ namespace RF24::Physical::Pipe
   {
     if ( error )
     {
-      mLogger->flog( Level::LVL_ERROR, "ERR: RX failed on pipe\n" );
-      mLogger->flog( Level::LVL_ERROR, "ERR:\t%s\n", error.message() );
+      mLogger->flog( Level::LVL_ERROR, "%d-PHY: ERROR RX failed on pipe %d\n", Chimera::millis(), mPipeNumber );
+      mLogger->flog( Level::LVL_ERROR, "%d-PHY:\t%s\n", error.message() );
       return;
     }
 
@@ -374,10 +386,13 @@ namespace RF24::Physical::Pipe
     ------------------------------------------------*/
     std::lock_guard<std::recursive_mutex> guard( mBufferLock );
 
-    auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
-    auto port = Conversion::decodePort( mBuffer );
-    //mLogger->flog( Level::LVL_DEBUG, "%d: %s PIPE %d: RX from IP[%s] on Port[%d]\n", Chimera::millis(),
-    //  mName.c_str(), mPipeNumber, ip.to_string().c_str(), port );
+    if constexpr ( DBG_LOG_PHY_TRACE )
+    {
+      auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
+      auto port = Conversion::decodePort( mBuffer );
+      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX %d bytes from port [%d] on IP [%s]\n", Chimera::millis(),
+                     mPipeNumber, bytes_transferred, port, ip.to_string().c_str() );
+    }
 
     /*------------------------------------------------
     Handle the user's callback

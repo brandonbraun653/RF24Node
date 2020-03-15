@@ -23,6 +23,7 @@
 
 namespace RF24::Physical::Conversion
 {
+#if defined( RF24_SIMULATOR )
   /**
    *  Encodes an IP string and port number into the 64-bit address transmitted
    *  over the RF24 network.
@@ -31,7 +32,7 @@ namespace RF24::Physical::Conversion
    *  @param[in]  port    The port to be encoded 
    *  @return uint64_t
    */
-  uint64_t encodeAddress( const std::string &ip, const uint16_t port );
+  PhysicalAddress encodeAddress( const std::string &ip, const Port port );
 
   /**
    *  Decodes a 64-bit node address into an IP string
@@ -53,9 +54,9 @@ namespace RF24::Physical::Conversion
    *  Decodes a 64-bit node address into a port number
    *  
    *  @param[in]  address   The address to be decoded
-   *  @return uint16_t
+   *  @return Port
    */
-  uint16_t decodePort( const uint64_t &address );
+  Port decodePort( const uint64_t &address );
 
   /**
    *  Pulls the port number from raw Shockburst data
@@ -63,7 +64,9 @@ namespace RF24::Physical::Conversion
    *  @param[in]  pkt       The data to be decoded
    *  @return string
    */
-  uint16_t decodePort( const Shockburst::PacketBuffer &pkt );
+  Port decodePort( const Shockburst::PacketBuffer &pkt );
+
+#endif  /* RF24_SIMULATOR */
 
   /**
    *   Calculates the the pipe address of a logical node in the tree network. For information on exactly

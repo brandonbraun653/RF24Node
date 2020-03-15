@@ -426,9 +426,17 @@ namespace RF24::Physical
             break;
           }
 
+          /*------------------------------------------------
+          Transmit the data
+          ------------------------------------------------*/
           auto elem = TxFIFO.front();
           mDataPipes[ 0 ]->write( elem.payload );
           TxFIFO.pop();
+
+          if constexpr ( DBG_LOG_PHY )
+          {
+            logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Write TX packet to pipe 0\n", Chimera::millis() );
+          }
         }
 
         /*------------------------------------------------

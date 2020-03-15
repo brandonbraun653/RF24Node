@@ -59,7 +59,6 @@ namespace RF24
   static constexpr LogicalID NODE_ID_MAX     = NODE_ID_7;
   static constexpr LogicalID NODE_ID_INVALID = NODE_ID_MAX + 1u;
 
-
   /*------------------------------------------------
   Master logging On/Off switch
   ------------------------------------------------*/
@@ -72,6 +71,7 @@ namespace RF24
   static constexpr bool DBG_LOG_NET       = true && ENABLE_DBG_LOG;
   static constexpr bool DBG_LOG_NET_TRACE = true && ENABLE_DBG_LOG;
   static constexpr bool DBG_LOG_PHY       = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_PHY_TRACE = true && ENABLE_DBG_LOG;
 
 }    // namespace RF24
 

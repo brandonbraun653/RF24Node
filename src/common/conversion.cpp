@@ -23,8 +23,7 @@
 #include <Chimera/common>
 
 /* RF24 Includes */
-#include <RF24Node/src/common/conversion.hpp>
-#include <RF24Node/src/common/utility.hpp>
+#include <RF24Node/common>
 #include <RF24Node/src/physical/simulator/shockburst_types.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 
@@ -65,10 +64,10 @@ namespace RF24::Physical::Conversion
   static constexpr uint64_t PORT_POS          = 32;
   static constexpr uint64_t ENCODED_PORT_MASK = PORT_MASK << PORT_POS;
 
-  static constexpr uint16_t BASE_PORT = 13000;
+  static constexpr Port BASE_PORT = 13000;
 
 
-  uint64_t encodeAddress( const std::string &ip, const uint16_t port )
+  PhysicalAddress encodeAddress( const std::string &ip, const Port port )
   {
     uint32_t ip_as_uint = boost::asio::ip::address_v4::from_string( ip ).to_uint();
 
@@ -95,13 +94,13 @@ namespace RF24::Physical::Conversion
     return decodeIP( packet.data.address );
   }
 
-  uint16_t decodePort( const uint64_t &address )
+  Port decodePort( const uint64_t &address )
   {
-    auto port = static_cast<uint16_t>( ( address >> PORT_POS ) & PORT_MASK );
+    auto port = static_cast<Port>( ( address >> PORT_POS ) & PORT_MASK );
     return port;
   }
 
-  uint16_t decodePort( const RF24::Physical::Shockburst::PacketBuffer &pkt )
+  Port decodePort( const RF24::Physical::Shockburst::PacketBuffer &pkt )
   {
     /*------------------------------------------------
     Convert the raw packet buffer into the struct form
@@ -115,11 +114,22 @@ namespace RF24::Physical::Conversion
   PhysicalAddress getPhysicalAddress( const LogicalAddress nodeID, const Hardware::PipeNumber pipeNum )
   {
     /*------------------------------------------------
+    Make sure the inputs are valid
+    ------------------------------------------------*/
+    auto constexpr minPipe = static_cast<size_t>( Hardware::PipeNumber::PIPE_NUM_0 );
+    auto constexpr maxPipe = static_cast<size_t>( Hardware::PipeNumber::PIPE_NUM_5 );
+
+    if ( !isAddressValid( nodeID ) || ( static_cast<size_t>( pipeNum ) < minPipe ) || ( static_cast<size_t>( pipeNum ) > maxPipe ) )
+    {
+      return std::numeric_limits<PhysicalAddress>::max();
+    }
+
+    /*------------------------------------------------
     The ports have to be unique across all nodeIDs, so
     map each nodeID into a range of values that are mutually
     exclusive from one another.
     ------------------------------------------------*/
-    uint16_t actualPort  = BASE_PORT + ( nodeID * ( RF24::Hardware::MAX_NUM_PIPES + 1 ) ) + static_cast<uint16_t>( pipeNum );
+    Port actualPort  = BASE_PORT + ( static_cast<uint64_t>( nodeID ) * ( RF24::Hardware::MAX_NUM_PIPES + 1 ) ) + static_cast<Port>( pipeNum );
     std::string actualIP = "127.0.0.1";
 
     return encodeAddress( actualIP, actualPort );
