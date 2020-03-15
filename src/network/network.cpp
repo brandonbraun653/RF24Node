@@ -60,11 +60,35 @@ namespace RF24::Network
     mReturnSystemMessages = false;
     mMulticastRelay       = false;
     mLastTxTime           = 0;
+    mAccessKey            = 0;
   }
 
   Driver::~Driver()
   {
   }
+
+  bool Driver::requestAccessKey( size_t &key )
+  {
+    if ( mAccessKey == 0 )
+    {
+      mAccessKey = 32;
+      key = 32;
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  void Driver::releaseAccessKey( const size_t key )
+  {
+    if ( key == mAccessKey )
+    {
+      mAccessKey = 0;
+    }
+  }
+
 
   Chimera::Status_t Driver::attachLogger( uLog::SinkHandle sink )
   {
@@ -112,7 +136,7 @@ namespace RF24::Network
     return configResult;
   }
 
-  HeaderMessage Driver::updateRX()
+  RF24::Network::HeaderMessage Driver::updateRX( const size_t key )
   {
     if ( !mInitialized )
     {
@@ -122,6 +146,14 @@ namespace RF24::Network
       }
       return MSG_NETWORK_ERR;
     }
+    //else if ( key != mAccessKey )
+    //{
+    //  if constexpr ( DBG_LOG_NET )
+    //  {
+    //    mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Process doesn't have access to RX updater\n", Chimera::millis() );
+    //  }
+    //  return MSG_NETWORK_ERR;
+    //}
 
     uint8_t pipeNum                 = 0u;
     size_t payloadSize              = 0u;
@@ -133,6 +165,11 @@ namespace RF24::Network
     ------------------------------------------------*/
     while ( pipe < RF24::Hardware::PIPE_NUM_MAX )
     {
+      if constexpr ( DBG_LOG_NET_TRACE )
+      {
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet from pipe %d\n", Chimera::millis(), pipe );
+      }
+
       /*------------------------------------------------
       Get the raw data and validate that CRC
       ------------------------------------------------*/
@@ -175,9 +212,76 @@ namespace RF24::Network
     return sysMsg;
   }
 
-  void Driver::updateTX()
+  void Driver::updateTX(const size_t key)
   {
-  
+    bool writeSuccess = false;
+
+    //if ( key != mAccessKey )
+    //{
+    //  if constexpr ( DBG_LOG_NET )
+    //  {
+    //    mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Process doesn't have access to TX updater\n", Chimera::millis() );
+    //  }
+    //  return;
+    //}
+
+    while ( !mTXQueue.empty() )
+    {
+      updateRX( key );
+
+
+      /*------------------------------------------------
+      Peek the next element and verify it contains data
+      ------------------------------------------------*/
+      Frame::FrameType frame;
+      Frame::Buffer tempBuffer;
+      auto element = mTXQueue.peek();
+      bool validity = false;
+
+      if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
+      {
+        break;
+      }
+
+      /*------------------------------------------------
+      Fill the buffer with zeros since it's likely not a full packet
+      ------------------------------------------------*/
+      tempBuffer.fill( 0 );
+      memcpy( tempBuffer.data(), element.payload, element.size );
+
+      /*------------------------------------------------
+      Refresh the user's frame with the buffer data and check the CRC
+      ------------------------------------------------*/
+      frame = tempBuffer;
+
+      /*------------------------------------------------
+      Figure out how the data needs to be sent
+      ------------------------------------------------*/
+      auto route = ROUTE_DIRECT;
+      switch ( route )
+      {
+        case ROUTE_DIRECT:
+          writeSuccess = writeDirect( frame );
+          break;
+
+        case ROUTE_NORMALLY:
+          writeSuccess = writeRouted( frame );
+          break;
+
+        case ROUTE_MULTICAST:
+          writeSuccess = writeMulticast( frame );
+          break;
+      }
+
+      /*------------------------------------------------
+      Optionally pop the data off the queue
+      ------------------------------------------------*/
+      if ( writeSuccess )
+      {
+        mTXQueue.pop( element.payload, element.size );
+      }
+    }
+
   }
 
   bool Driver::available()
@@ -197,6 +301,9 @@ namespace RF24::Network
 
   bool Driver::write( Frame::FrameType &frame, const RoutingStyle route )
   {
+    enqueueTXPacket( frame );
+    return true;
+
     /*------------------------------------------------
     Allows time for requests (RF24Mesh) to get through between failed writes on busy nodes
     ------------------------------------------------*/
@@ -207,30 +314,6 @@ namespace RF24::Network
     //    break;
     //  }
     //}
-
-    /*------------------------------------------------
-    Invoke the appropriate transfer method
-    ------------------------------------------------*/
-    bool writeSuccess = false;
-
-    // TODO: I need to push these through the TX queuing system
-
-    switch ( route )
-    {
-      case ROUTE_DIRECT:
-        writeSuccess = writeDirect( frame );
-        break;
-
-      case ROUTE_NORMALLY:
-        writeSuccess = writeRouted( frame );
-        break;
-
-      case ROUTE_MULTICAST:
-        writeSuccess = writeMulticast( frame );
-        break;
-    }
-
-    return writeSuccess;
   }
 
   void Driver::removeRXFrame()
@@ -348,24 +431,6 @@ namespace RF24::Network
     }
   }
 
-  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
-  {
-    Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
-
-    /*------------------------------------------------
-    If we are multi casting, turn off auto acknowledgment. 
-    We don't care how the message gets out as long as it does.
-    ------------------------------------------------*/
-    result |= mPhysicalDriver->stopListening();
-    result |= mPhysicalDriver->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
-    result |= mPhysicalDriver->openWritePipe( address );
-    result |= mPhysicalDriver->immediateWrite( buffer, length );
-    result |= mPhysicalDriver->txStandBy( 10, true );
-    result |= mPhysicalDriver->startListening();
-
-    return ( result == Chimera::CommonStatusCodes::OK );
-  }
-
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
     if ( !mRXQueue.full())
@@ -375,7 +440,20 @@ namespace RF24::Network
     }
     else if constexpr ( DBG_LOG_NET )
     {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop Payload** Buffer Full\n", Chimera::millis() );
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop RX Payload** Buffer Full\n", Chimera::millis() );
+    }
+  }
+
+  void Driver::enqueueTXPacket( Frame::FrameType &frame )
+  {
+    if ( !mTXQueue.full() )
+    {
+      auto buffer = frame.toBuffer();
+      mTXQueue.push( buffer.data(), buffer.size() );
+    }
+    else if constexpr ( DBG_LOG_NET )
+    {
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop TX Payload** Buffer Full\n", Chimera::millis() );
     }
   }
 
@@ -394,8 +472,8 @@ namespace RF24::Network
     HeaderMessage message = frame.getType();
 
     /*------------------------------------------------
-    Handle whatever messages can/should be handled at the network layer.
-    Everything else will be propagated up to the application layer.
+    Handle whatever messages can/should be handled immediately at the network layer.
+    Everything else will be pushed in the network RX queue.
     ------------------------------------------------*/
     switch ( message )
     {
@@ -409,13 +487,17 @@ namespace RF24::Network
           return message;
         }
         break;
+
+      case MSG_NET_REQUEST_BIND:
+        Internal::Processes::bindRequestHandler( *this, frame );
+        break;
       
       default:
         break;
     }
 
     /*------------------------------------------------
-    Getting here means the frame is destined for the application layer
+    Enqueue any unhandled packets
     ------------------------------------------------*/
     enqueueRXPacket( frame );
 
@@ -438,8 +520,12 @@ namespace RF24::Network
 
     if constexpr ( DBG_LOG_NET )
     {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", Chimera::millis(),
-                    frame.getType(), frame.getSrc(), frame.getDst() );
+      auto type = frame.getType();
+      auto src  = frame.getSrc();
+      auto dst  = frame.getDst();
+      auto tick = Chimera::millis();
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", tick, type, src,
+                     dst );
     }
 
     return transferToPipe( physicalAddress, frame.toBuffer(), frame.getPayloadLength(), false );
@@ -488,6 +574,24 @@ namespace RF24::Network
     return false;
   }
 
+  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
+  {
+    Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
+
+    /*------------------------------------------------
+    If we are multi casting, turn off auto acknowledgment. 
+    We don't care how the message gets out as long as it does.
+    ------------------------------------------------*/
+    result |= mPhysicalDriver->stopListening();
+    result |= mPhysicalDriver->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
+    result |= mPhysicalDriver->openWritePipe( address );
+    result |= mPhysicalDriver->immediateWrite( buffer, length );
+    result |= mPhysicalDriver->txStandBy( 10, true );
+    result |= mPhysicalDriver->startListening();
+
+    return ( result == Chimera::CommonStatusCodes::OK );
+  }
+
   bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
   {
     if ( !mRXQueue.empty() )
@@ -529,7 +633,5 @@ namespace RF24::Network
 
     return false;
   }
-
-
 
 }    // namespace RF24::Network

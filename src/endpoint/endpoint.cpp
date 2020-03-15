@@ -3,9 +3,9 @@
  *    endpoint.cpp
  *
  *  Description:
+ *    Implements the endpoint driver
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 /* C++ Includes */
@@ -243,10 +243,6 @@ namespace RF24::Endpoint
 
     switch ( frame.getType() )
     {
-      case Network::MSG_NET_REQUEST_BIND:
-        Internal::Processor::bindRequestHandler( *this, frame );
-        break;
-
       default:
         break;
     }
@@ -263,8 +259,8 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::processNetworking()
   {
-    mNetworkDriver->updateRX();
-    mNetworkDriver->updateTX();
+    mNetworkDriver->updateRX(0);
+    mNetworkDriver->updateTX(0);
     return Chimera::CommonStatusCodes::OK;
   }
 

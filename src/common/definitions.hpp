@@ -68,9 +68,10 @@ namespace RF24
   /*------------------------------------------------
   Individual layer logging switches
   ------------------------------------------------*/
-  static constexpr bool DBG_LOG_APP = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_NET = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_PHY = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_APP       = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET       = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET_TRACE = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_PHY       = true && ENABLE_DBG_LOG;
 
 }    // namespace RF24
 

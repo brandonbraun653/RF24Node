@@ -33,4 +33,32 @@ namespace RF24::Network::Internal::Processes
     ::RF24::Network::Messages::Ping::responseFactory( frame, tmp.dispatcher, obj.thisNode(), true );
     return obj.write( frame, ROUTE_NORMALLY );
   }
+
+  void bindRequestHandler( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
+  {
+    /*------------------------------------------------
+    Repurpose the existing frame for the response
+    ------------------------------------------------*/
+    auto cachedSrc = frame.getSrc();
+    frame.setSrc( obj.thisNode() );
+    frame.setDst( cachedSrc );
+    frame.setType( Network::MSG_NET_REQUEST_BIND_FULL );
+    frame.setPayload( nullptr, 0 );
+
+    /*------------------------------------------------
+    This will only update if the source address is a direct descendant
+    ------------------------------------------------*/
+    if ( obj.updateRouteTable( cachedSrc ) )
+    {
+      frame.setType( Network::MSG_NET_REQUEST_BIND_ACK );
+    }
+
+    /*------------------------------------------------
+    Send the response back using direct routing because only bind requests
+    from immediate children are allowed. Perhaps in the future virtual
+    paths will be allowed, but that's currently not the case.
+    ------------------------------------------------*/
+    obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
+  }
+
 }    // namespace RF24::Network::Internal::Processes

@@ -398,7 +398,7 @@ namespace RF24::Physical
 
               if constexpr ( DBG_LOG_PHY )
               {
-                logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Enqueue RX payload on pipe %d\n", Chimera::millis(), elem.pipe );
+                logger->flog( uLog::Level::LVL_DEBUG, "%d-PHY: Enqueued RX packet from pipe %d\n", Chimera::millis(), elem.pipe );
               }
             }
             else if constexpr ( DBG_LOG_PHY )

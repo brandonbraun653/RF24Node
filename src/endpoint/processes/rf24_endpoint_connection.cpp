@@ -43,36 +43,6 @@ namespace RF24::Endpoint::Internal::Processor
     CONNECT_EXIT_LOOP
   };
 
-  void bindRequestHandler( ::RF24::Endpoint::Interface& obj, ::RF24::Network::Frame::FrameType& frame )
-  {
-    auto thisNode  = obj.getCurrentState();
-    auto netDriver = obj.getNetworkingDriver();
-
-    /*------------------------------------------------
-    Repurpose the existing frame for the response
-    ------------------------------------------------*/
-    auto cachedSrc = frame.getSrc();
-    frame.setSrc( thisNode.endpointAddress );
-    frame.setDst( cachedSrc );
-    frame.setType( Network::MSG_NET_REQUEST_BIND_FULL );
-    frame.setPayload( nullptr, 0 );
-
-    /*------------------------------------------------
-    This will only update if the source address is a direct descendant
-    ------------------------------------------------*/
-    if ( netDriver->updateRouteTable( cachedSrc ) )
-    {
-      frame.setType( Network::MSG_NET_REQUEST_BIND_ACK );
-    }
-
-    /*------------------------------------------------
-    Send the response back using direct routing because only bind requests
-    from immediate children are allowed. Perhaps in the future virtual
-    paths will be allowed, but that's currently not the case.
-    ------------------------------------------------*/
-    netDriver->write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
-  }
-
   Chimera::Status_t makeStaticConnection( ::RF24::Endpoint::Interface &obj, const ::RF24::LogicalAddress node, const size_t timeout )
   {
     /*------------------------------------------------
@@ -101,7 +71,7 @@ namespace RF24::Endpoint::Internal::Processor
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      network->updateRX();
+      obj.processNetworking();
 
       /*------------------------------------------------
       Handle the current state
@@ -147,9 +117,32 @@ namespace RF24::Endpoint::Internal::Processor
           {
             network->peek( frame );
 
-            if ( ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) && ( frame.getSrc() == netCfg.parentAddress ) )
+            if ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK )
             {
-              currentState = Static::CONNECT_RESPONSE;
+              if ( frame.getSrc() == netCfg.parentAddress )
+              { 
+                /*------------------------------------------------
+                The expected ACK packet came from the node this state machine 
+                is trying to connect to. Move the state forward.
+                ------------------------------------------------*/
+                currentState = Static::CONNECT_RESPONSE;
+              }
+              else
+              {
+                /*------------------------------------------------
+                Another node tried (and succeeded) connecting to us while
+                this state machine was in progress. Acknowledge this by 
+                removing the ACK frame from the queue.
+                ------------------------------------------------*/
+                network->removeRXFrame();
+
+                //TODO: Actually I think this might be a bug. Setting a break point here reveals that
+                //      the source address is the same as the network->thisNode() address and the
+                //      destination is for a child address. This means we are somehow receiving our
+                //      own packet in a loopback mode??? 
+                //      
+                //      Investigate, why this packet ends up in the RX queue...maybe add more tracing...
+              }
             }
           }
           break;

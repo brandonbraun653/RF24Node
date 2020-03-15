@@ -53,12 +53,15 @@ namespace RF24::Network
     Driver();
     ~Driver();
 
+    bool requestAccessKey( size_t &key ) final override;
+    void releaseAccessKey( const size_t key ) final override;
+
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
     Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) override;
     Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
     Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
-    HeaderMessage updateRX() final override;
-    void updateTX() final override;
+    HeaderMessage updateRX( const size_t key ) override;
+    void updateTX( const size_t key ) final override;
     bool available() final override;
     bool peek( Frame::FrameType &frame ) final override;
     bool read( Frame::FrameType &frame ) final override;
@@ -133,6 +136,8 @@ namespace RF24::Network
     Hardware::PipeNumber getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source );
 
   private:
+    size_t mAccessKey;
+
     bool mInitialized;
     bool mReturnSystemMessages;
     bool mMulticastRelay;
@@ -144,6 +149,7 @@ namespace RF24::Network
     uLog::SinkHandle mLogger;
 
     void enqueueRXPacket( Frame::FrameType &frame );
+    void enqueueTXPacket( Frame::FrameType &frame );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );
 
     HeaderMessage handleDestination( Frame::FrameType &frame );

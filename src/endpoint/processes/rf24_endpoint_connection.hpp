@@ -17,16 +17,6 @@
 
 namespace RF24::Endpoint::Internal::Processor
 {
-  
-  /**
-   *	Handles processing a bind request from another node on the network
-   *	
-   *	@param[in]	obj           The endpoint object that is processing the request
-   *	@param[in]	frame         The request frame
-   *	@return void
-   */
-  void bindRequestHandler( ::RF24::Endpoint::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
-
   /**
    *	Makes a connection to the network using previously configured addressing
    *  information.

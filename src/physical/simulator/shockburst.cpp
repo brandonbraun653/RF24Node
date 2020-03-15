@@ -94,11 +94,15 @@ namespace RF24::Physical::Shockburst
     }
     else if ( txPipe.isOpen() )
     {
+      /* Update the address cache so future calls to write() are correct */
+      cachedTXAddress = address;
       return true;
     }
     else
     {
       txPipe.openPipe();
+
+      /* Update the address cache so future calls to write() are correct */
       cachedTXAddress = address;
       return true;
     }

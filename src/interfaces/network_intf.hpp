@@ -37,6 +37,9 @@ namespace RF24::Network
   public:
     virtual ~Interface() = default;
 
+    virtual bool requestAccessKey( size_t &key ) = 0;
+    virtual void releaseAccessKey( const size_t key ) = 0;
+
     /**
      *	Attaches a logging instance to the class so that we can log network
      *  messages as needed for debugging.
@@ -80,7 +83,7 @@ namespace RF24::Network
      *  @warning  Must be called regularly to handle data in a timely manner
      *  @return HeaderMessage
      */
-    virtual HeaderMessage updateRX() = 0;
+    virtual HeaderMessage updateRX( const size_t key ) = 0;
 
     /**
      *	Runs the TX half of the network processing stack
@@ -88,7 +91,7 @@ namespace RF24::Network
      *  @warning  Must be called regularly to handle data in a timely manner
      *	@return void
      */
-    virtual void updateTX() = 0;
+    virtual void updateTX( const size_t key ) = 0;
 
     /**
      *  Check whether a frame is available for this node.

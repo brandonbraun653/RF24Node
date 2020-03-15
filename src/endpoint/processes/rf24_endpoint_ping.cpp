@@ -64,8 +64,7 @@ namespace RF24::Endpoint::Internal::Processor
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      netDriver->updateRX();
-      netDriver->updateTX();
+      obj.doAsyncProcessing();
 
       /*------------------------------------------------
       Handle the current state
