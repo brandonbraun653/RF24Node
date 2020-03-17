@@ -31,6 +31,9 @@
 #include <uLog/ulog.hpp>
 #include <uLog/types.hpp>
 
+/* Chimera Includes */
+#include <Chimera/callback>
+
 /* RF24 Includes */
 #include <RF24Node/src/hardware/definitions.hpp>
 #include <RF24Node/src/physical/simulator/pipe_types.hpp>
@@ -41,7 +44,7 @@ namespace RF24::Physical::Pipe
   class TX
   {
   public:
-    TX(boost::asio::io_service &io_service, const std::string name, const size_t pipe );
+    TX( boost::asio::io_service &io_service, const std::string name, const size_t pipe );
     ~TX();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink );
@@ -87,19 +90,19 @@ namespace RF24::Physical::Pipe
      *  @param[in]  callback    The user's callback
      *  @return void
      */
-    void onTransmit( TXPipeCallback &callback );
+    void onTransmitComplete( std::function<void( void )> callback );
 
   private:
     void updateThread();
     void onAsyncTransmit( const boost::system::error_code &error, size_t bytes_transferred );
 
-    boost::asio::io_service &mIOService;    /**< IoService needed to run event handling */
-    boost::asio::ip::udp::socket mTXSocket; /**< UDP socket that models the TX pipe */
-    boost::thread mTXThread;                /**< Event handler thread */
-    std::recursive_mutex mBufferLock;       /**< Lock for the FIFO message queue */
-    Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for outgoing messages */
-    std::atomic<bool> mTXEventProcessed;    /**< Flag indicating when the RX event was processed */
-    TXPipeCallback mUserCallback;           /**< User callback for RX event */
+    boost::asio::io_service &mIOService;              /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket mTXSocket;           /**< UDP socket that models the TX pipe */
+    boost::thread mTXThread;                          /**< Event handler thread */
+    std::recursive_mutex mBufferLock;                 /**< Lock for the FIFO message queue */
+    Shockburst::PacketBuffer mBuffer;                 /**< Raw buffer for outgoing messages */
+    std::atomic<bool> mTXEventProcessed;              /**< Flag indicating when the RX event was processed */
+    std::function<void( void )> mTXCompleteCallback; /**< User callback for RX event */
 
     uLog::SinkHandle mLogger;
     const std::string mName;
@@ -109,7 +112,7 @@ namespace RF24::Physical::Pipe
   class RX
   {
   public:
-    RX( boost::asio::io_service &io_service, const std::string name, const size_t pipe  );
+    RX( boost::asio::io_service &io_service, const std::string name, const size_t pipe );
     ~RX();
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink );
@@ -178,7 +181,7 @@ namespace RF24::Physical::Pipe
      *  @param[in]  callback    The user's callback
      *  @return void
      */
-    void onReceive( RXPipeCallback &callback );
+    void onReceiveComplete( Chimera::Callback::DefaultFunction callback );
 
   private:
     /**
@@ -198,14 +201,14 @@ namespace RF24::Physical::Pipe
     void onAsyncReceive( const boost::system::error_code &error, size_t bytes_transferred );
 
 
-    boost::asio::io_service &mIOService;    /**< IoService needed to run event handling */
-    boost::asio::ip::udp::socket mRXSocket; /**< UDP socket that models the RX pipe */
-    boost::thread mRXThread;                /**< Event handler thread */
-    RXPipeCallback mUserCallback;           /**< User callback for RX event */
-    Shockburst::PacketBuffer mBuffer;       /**< Raw buffer for incoming messages */
-    std::atomic<bool> mAllowListening;      /**< Flag to enable/disable listening for messages */
-    std::atomic<bool> mRXEventProcessed;    /**< Flag indicating when the RX event was processed */
-    std::recursive_mutex mBufferLock;       /**< Lock for the FIFO message queue */
+    boost::asio::io_service &mIOService;              /**< IoService needed to run event handling */
+    boost::asio::ip::udp::socket mRXSocket;           /**< UDP socket that models the RX pipe */
+    boost::thread mRXThread;                          /**< Event handler thread */
+    Chimera::Callback::DefaultFunction mRXCompleteCallback; /**< User callback for RX event */
+    Shockburst::PacketBuffer mBuffer;                 /**< Raw buffer for incoming messages */
+    std::atomic<bool> mAllowListening;                /**< Flag to enable/disable listening for messages */
+    std::atomic<bool> mRXEventProcessed;              /**< Flag indicating when the RX event was processed */
+    std::recursive_mutex mBufferLock;                 /**< Lock for the FIFO message queue */
 
     uLog::SinkHandle mLogger;
     const std::string mName;

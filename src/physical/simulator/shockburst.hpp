@@ -26,6 +26,9 @@
 /* uLog Includes */
 #include <uLog/ulog.hpp>
 
+/* Chimera Includes */
+#include <Chimera/callback>
+
 /* RF24 Includes */
 #include <RF24Node/src/hardware/definitions.hpp>
 #include <RF24Node/src/hardware/types.hpp>
@@ -72,6 +75,14 @@ namespace RF24::Physical::Shockburst
     void write( const RF24::Network::Frame::Buffer &buffer );
 
     /**
+     *	When the pipe completes a write operation, this callback will be invoked
+     *
+     *	@param[in]	callback  The callback to execute
+     *	@return void
+     */
+    void onWriteComplete( std::function<void( void )> callback );
+
+    /**
      *  Opens the RX pipe to listen to the given address
      *
      *  @param[in]  address   The address containing the IP and port configuration
@@ -93,6 +104,14 @@ namespace RF24::Physical::Shockburst
      *	@return bool
      */
     bool read( RF24::Network::Frame::Buffer &buffer );
+
+    /**
+     *  When a read operation is completed, this callback is invoked
+     *
+     *	@param[in]	callback    The callback to execute
+     *	@return void
+     */
+    void onReadComplete( Chimera::Callback::DefaultFunction callback );
 
     /**
      *  Checks if any data is available to be read out of the RX pipe

@@ -125,6 +125,10 @@ namespace RF24::Physical
      *	@return void
      */
     void QueueHandler();
+
+
+    std::atomic<bool> txComplete;
+    void TxPipeOnCompleteCallback();
   };
 }    // namespace RF24::Physical
 

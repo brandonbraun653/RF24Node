@@ -48,6 +48,7 @@ namespace RF24::Physical
 
   SimulatorDriver::SimulatorDriver()
   {
+    txComplete         = false;
     flagInitialized    = false;
     killFlag           = false;
     IPAddress          = "";
@@ -82,6 +83,12 @@ namespace RF24::Physical
         mDataPipes[ x ]->attachLogger( logger );
       }
     }
+
+    /*------------------------------------------------
+    Pipe 0 is used as the transmit pipe, so attach a callback to let us know
+    when the actual transmission is complete. It could vary temporally.
+    ------------------------------------------------*/
+    mDataPipes[ 0 ]->onWriteComplete( std::bind( &SimulatorDriver::TxPipeOnCompleteCallback, this ) );
 
     /*------------------------------------------------
     Start the thread that mimics hardware processing of
@@ -282,6 +289,11 @@ namespace RF24::Physical
   Chimera::Status_t SimulatorDriver::txStandBy( const size_t timeout, const bool startTx )
   {
     Chimera::delayMilliseconds( timeout );
+    while ( !txComplete )
+    {
+      Chimera::delayMilliseconds( 10 );
+    }
+
     return Chimera::CommonStatusCodes::OK;
   }
 
@@ -465,6 +477,11 @@ namespace RF24::Physical
       }
     }
     return Chimera::CommonStatusCodes::OK;
+  }
+
+  void SimulatorDriver::TxPipeOnCompleteCallback()
+  {
+    txComplete = true;
   }
 
 }    // namespace RF24::Physical

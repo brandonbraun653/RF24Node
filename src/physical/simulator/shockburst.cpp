@@ -213,6 +213,16 @@ namespace RF24::Physical::Shockburst
     return rxPipe.available();
   }
 
+  void Socket::onReadComplete( Chimera::Callback::DefaultFunction callback )
+  {
+    rxPipe.onReceiveComplete( callback );
+  }
+
+  void Socket::onWriteComplete( std::function<void( void )> callback )
+  {
+    txPipe.onTransmitComplete( callback );
+  }
+
 }    // namespace RF24::Physical::Shockburst
 
 #endif /* _WIN32 || _WIN64 */

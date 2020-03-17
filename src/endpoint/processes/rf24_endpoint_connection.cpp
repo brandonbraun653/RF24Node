@@ -57,7 +57,10 @@ namespace RF24::Endpoint::Internal::Processor
     /*------------------------------------------------
     Algorithm vars
     ------------------------------------------------*/
+    static constexpr size_t requestTimeout = 100;
+
     size_t startTime      = Chimera::millis();
+    size_t requestTime    = Chimera::millis();
     auto connectionResult = Chimera::CommonStatusCodes::OK;
     Static currentState   = Static::CONNECT_BEGIN;
     bool packetValidity   = false;
@@ -100,6 +103,8 @@ namespace RF24::Endpoint::Internal::Processor
         Make the request to the configured nodes 
         ------------------------------------------------*/
         case Static::CONNECT_REQUEST:
+          requestTime = Chimera::millis();
+
           frame.setDst( netCfg.parentAddress );
           frame.setSrc( netCfg.endpointAddress );
           frame.setType( Network::MSG_NET_REQUEST_BIND );
@@ -145,6 +150,11 @@ namespace RF24::Endpoint::Internal::Processor
               }
             }
           }
+          else if ( ( Chimera::millis() - requestTime ) > requestTimeout )
+          {
+            requestTime = 0;
+            currentState = Static::CONNECT_REQUEST;
+          }
           break;
 
         /*------------------------------------------------
@@ -155,6 +165,13 @@ namespace RF24::Endpoint::Internal::Processor
 
           if ( packetValidity && ( frame.getType() == Network::MSG_NET_REQUEST_BIND_ACK ) )
           {
+            frame.setDst( netCfg.parentAddress );
+            frame.setSrc( netCfg.endpointAddress );
+            frame.setType( Network::MSG_NETWORK_ACK );
+            frame.setPayload( nullptr, 0 );
+
+            network->write( frame, Network::RoutingStyle::ROUTE_DIRECT );
+
             currentState = Static::CONNECT_SUCCESS;
           }
           else

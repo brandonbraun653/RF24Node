@@ -43,7 +43,7 @@ namespace RF24::Physical::Pipe
       mTXSocket( io_service ), mIOService( io_service ), mName( name ), mPipeNumber( pipe )
   {
     mTXThread     = {};
-    mUserCallback = nullptr;
+    mTXCompleteCallback = nullptr;
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
 
     mLogger = nullptr;
@@ -124,20 +124,20 @@ namespace RF24::Physical::Pipe
                                           boost::asio::placeholders::bytes_transferred ) );
   }
 
-  void TX::onTransmit( TXPipeCallback &callback )
+  void TX::onTransmitComplete( std::function<void( void )> callback )
   {
     /*------------------------------------------------
     Make sure we aren't doing some kind of queue processing
     before assigning the callback.
     ------------------------------------------------*/
     std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    mUserCallback = callback;
+    mTXCompleteCallback = callback;
   }
 
   void TX::flush()
   {
-    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+    //std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+    //mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
   void TX::updateThread()
@@ -173,14 +173,9 @@ namespace RF24::Physical::Pipe
     /*------------------------------------------------
     Handle the user's callback
     ------------------------------------------------*/
-    if ( mUserCallback )
+    if ( mTXCompleteCallback )
     {
-      mUserCallback( this );
-    }
-
-    if constexpr ( DBG_LOG_PHY_TRACE )
-    {
-      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d TX event complete\n", Chimera::millis(), mPipeNumber );
+      mTXCompleteCallback();
     }
   }
 
@@ -195,7 +190,7 @@ namespace RF24::Physical::Pipe
     mRXEventProcessed = false;
 
     mRXThread     = {};
-    mUserCallback = nullptr;
+    mRXCompleteCallback = nullptr;
 
     mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
 
@@ -296,7 +291,7 @@ namespace RF24::Physical::Pipe
 
       if constexpr ( DBG_LOG_PHY_TRACE )
       {
-        mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX data to user\n", Chimera::millis(), mPipeNumber );
+        mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX read data\n", Chimera::millis(), mPipeNumber );
       }
     }
 
@@ -305,18 +300,18 @@ namespace RF24::Physical::Pipe
 
   void RX::flush()
   {
-    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+    //std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+    //mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
-  void RX::onReceive( RXPipeCallback &callback )
+  void RX::onReceiveComplete( Chimera::Callback::DefaultFunction callback )
   {
     /*------------------------------------------------
     Make sure we aren't doing some kind of queue processing
     before assigning the callback.
     ------------------------------------------------*/
     std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    mUserCallback = callback;
+    mRXCompleteCallback = callback;
   }
 
   void RX::updateThread()
@@ -329,14 +324,12 @@ namespace RF24::Physical::Pipe
 
     auto rxBuffer = boost::asio::buffer( mBuffer );
 
-    auto updateTime = Chimera::millis();
-
     try
     {
       /*------------------------------------------------
       Queue up some work for the ioService
       ------------------------------------------------*/
-      mRXSocket.async_receive( boost::asio::buffer( mBuffer ), rxCallback );
+      mRXSocket.async_receive( rxBuffer, rxCallback );
       mIOService.reset();
 
       /*------------------------------------------------
@@ -390,16 +383,16 @@ namespace RF24::Physical::Pipe
     {
       auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
       auto port = Conversion::decodePort( mBuffer );
-      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX %d bytes from port [%d] on IP [%s]\n", Chimera::millis(),
+      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX %d bytes from port [%d] at address [%s]\n", Chimera::millis(),
                      mPipeNumber, bytes_transferred, port, ip.to_string().c_str() );
     }
 
     /*------------------------------------------------
     Handle the user's callback
     ------------------------------------------------*/
-    if ( mUserCallback )
+    if ( mRXCompleteCallback )
     {
-      mUserCallback( this, mBuffer );
+      mRXCompleteCallback();
     }
 
     mRXEventProcessed = true;
