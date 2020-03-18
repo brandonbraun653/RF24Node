@@ -73,6 +73,7 @@ namespace RF24::Network
     bool updateRouteTable( const LogicalAddress address ) final override;
     void setNodeAddress( const LogicalAddress address ) final override;
     LogicalAddress thisNode() final override;
+    bool isConnectedTo( const LogicalAddress address ) final override;
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -101,12 +102,6 @@ namespace RF24::Network
      */
     void toggleMulticastRelay( const bool state );
 
-  protected:
-    friend Interface_sPtr createShared( const RF24::Network::Config &cfg );
-    friend Interface_uPtr createUnique( const RF24::Network::Config &cfg );
-
-    Chimera::Status_t initialize( const RF24::Network::Config &cfg ) final override;
-
     /**
      *	Checks if the given address is registered directly with this network. This could be as
      *  either a parent or a child
@@ -114,7 +109,13 @@ namespace RF24::Network
      *	@param[in]	toCheck   The address to check
      *	@return bool
      */
-    bool isRegisteredDirectly( const LogicalAddress toCheck );
+    bool isConnectedTo( const LogicalAddress toCheck ) final override;
+
+  protected:
+    friend Interface_sPtr createShared( const RF24::Network::Config &cfg );
+    friend Interface_uPtr createUnique( const RF24::Network::Config &cfg );
+
+    Chimera::Status_t initialize( const RF24::Network::Config &cfg ) final override;
 
     /**
      *  Checks if the given node is a descendant of any children registered with the current

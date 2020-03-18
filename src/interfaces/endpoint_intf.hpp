@@ -35,6 +35,26 @@ namespace RF24::Endpoint
   using Interface_sPtr = std::shared_ptr<Interface>;
   using Interface_uPtr = std::unique_ptr<Interface>;
 
+
+  namespace Connection
+  {
+    enum class Result
+    {
+      CONNECTION_UNKNOWN, /**< Something happened but it was not known how to be handled */
+      CONNECTION_SUCCESS, /**< The connection to the node succeeded */
+      CONNECTION_FAILED,  /**< The connection to the node failed for some reason */
+      CONNECTION_TIMEOUT, /**< The connection to the node timed out */
+    };
+
+    /**
+     *	Defines a callback for the user to have invoked
+     *	
+     *	@param[in]  result    Whether or not the connection succeeded
+     *	@return void
+     */
+    using Callback = void(*)(const Result result);
+  }
+
   class Interface : public Chimera::Threading::Lockable
   {
   public:
@@ -126,10 +146,11 @@ namespace RF24::Endpoint
      *            connection to succeed. Otherwise nodes won't know how to talk
      *            with one another.
      *
+     *  @param[in]  callback    The callback to be invoked upon success/fail/timeout
      *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect( const size_t timeout ) = 0;
+    virtual Chimera::Status_t connect( Connection::Callback callback, const size_t timeout ) = 0;
 
     /**
      *  Gracefully detaches from the network

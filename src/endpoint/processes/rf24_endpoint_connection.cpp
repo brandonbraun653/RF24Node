@@ -17,7 +17,7 @@
 #include <RF24Node/src/endpoint/endpoint.hpp>
 #include <RF24Node/src/endpoint/processes/rf24_endpoint_connection.hpp>
 
-namespace RF24::Endpoint::Internal::Processor
+namespace RF24::Endpoint::Internal::Processes::Connection
 {
   /*------------------------------------------------
   Static connection state machine possible actions
@@ -43,16 +43,10 @@ namespace RF24::Endpoint::Internal::Processor
     CONNECT_EXIT_LOOP
   };
 
-  Chimera::Status_t makeStaticConnection( ::RF24::Endpoint::Interface &obj, const ::RF24::LogicalAddress node, const size_t timeout )
+  Chimera::Status_t makeStaticConnection( RF24::Endpoint::Interface &obj, const RF24::LogicalAddress node,
+                                          RF24::Endpoint::Connection::Callback callback, const size_t timeout)
   {
-    /*------------------------------------------------
-    Protect against multi-threaded access
-    ------------------------------------------------*/
-    auto lockGuard = Chimera::Threading::TimedLockGuard( obj );
-    if ( !lockGuard.try_lock_for( 100 ) )
-    {
-      return ::Chimera::CommonStatusCodes::LOCKED;
-    }
+    
 
     /*------------------------------------------------
     Algorithm vars

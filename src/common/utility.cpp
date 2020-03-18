@@ -5,7 +5,7 @@
  *  Description:
  *    Implementation of NRF24L01 networking stack utility functions
  *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 /* RF24 Includes */

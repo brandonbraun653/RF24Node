@@ -16,7 +16,7 @@
 #include <RF24Node/src/endpoint/processes/rf24_endpoint_ping.hpp>
 #include <RF24Node/src/network/message>
 
-namespace RF24::Endpoint::Internal::Processor
+namespace RF24::Endpoint::Internal::Processes
 {
   enum class StateMachine
   {

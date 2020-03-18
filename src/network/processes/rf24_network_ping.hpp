@@ -26,15 +26,6 @@ namespace RF24::Network::Internal::Processes
    *	@return bool
    */
   bool handlePingRequest( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
-
-  /**
-   *	Handles processing a bind request from another node on the network
-   *
-   *	@param[in]	obj           The endpoint object that is processing the request
-   *	@param[in]	frame         The request frame
-   *	@return void
-   */
-  void bindRequestHandler( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
 }    // namespace RF24::Network::Internal::Processes
 
 #endif /* !RF24_NODE_NETWORK_PING_HPP */
