@@ -5,7 +5,7 @@
  *  Description:
  *    Utility functions used across the NRF24L01 networking stack
  *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once

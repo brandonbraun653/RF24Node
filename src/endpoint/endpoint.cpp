@@ -152,7 +152,7 @@ namespace RF24::Endpoint
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Device::connect( const size_t timeout )
+  Chimera::Status_t Device::connect( Connection::Callback callback, const size_t timeout )
   {
     /*------------------------------------------------
     Make sure someone can't interrupt us
@@ -169,32 +169,21 @@ namespace RF24::Endpoint
     if other nodes have to pass messages around before arriving at the DCHP
     server, allocate a new network address, and then send a response back.
     ------------------------------------------------*/
-    auto connectResult = Chimera::CommonStatusCodes::FAIL;
     switch ( mEndpointInit.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
-        connectResult = Internal::Processor::makeStaticConnection( *this, mEndpointInit.network.parentStaticAddress, timeout );
+        return Internal::Processes::Connection::makeStaticConnection( *this, mEndpointInit.network.parentStaticAddress, callback, timeout );
         break;
 
       case Network::Mode::NET_MODE_MESH:
-        connectResult = Internal::Processor::makeMeshConnection( timeout );
+        return Chimera::CommonStatusCodes::FAIL;
         break;
 
       case Network::Mode::NET_MODE_INVALID:
       default:
-        connectResult = Chimera::CommonStatusCodes::FAIL;
+        return Chimera::CommonStatusCodes::FAIL;
         break;
     }
-
-    /*------------------------------------------------
-    Now that the connection has been made, update anyone who needs to know
-    ------------------------------------------------*/
-    if ( connectResult == Chimera::CommonStatusCodes::OK )
-    {
-      //mNetworkDriver->updateCache( *this );
-    }
-
-    return connectResult;
   }
 
   Chimera::Status_t Device::disconnect()
@@ -420,7 +409,7 @@ namespace RF24::Endpoint
 
   bool Device::ping( const ::RF24::LogicalAddress node, const size_t timeout )
   {
-    return Internal::Processor::dispatchPing( *this, node, timeout );
+    return Internal::Processes::dispatchPing( *this, node, timeout );
   }
 
 }    // namespace RF24::Endpoint

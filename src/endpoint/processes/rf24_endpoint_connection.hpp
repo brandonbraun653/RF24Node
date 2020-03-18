@@ -15,7 +15,7 @@
 #include <RF24Node/src/endpoint/fwd.hpp>
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 
-namespace RF24::Endpoint::Internal::Processor
+namespace RF24::Endpoint::Internal::Processes::Connection
 {
   /**
    *	Makes a connection to the network using previously configured addressing
@@ -26,11 +26,12 @@ namespace RF24::Endpoint::Internal::Processor
    *  
    *  @param[in]  obj           The endpoint object to connect with
    *  @param[in]  node          The node to make the connection to
+   *  @param[in]  callback      The callback to be invoked upon success/fail/timeout
    *	@param[in]	timeout       Timeout in milliseconds for connection to succeed
    *	@return Chimera::Status_t
    */
-  Chimera::Status_t makeStaticConnection( ::RF24::Endpoint::Interface &obj, const ::RF24::LogicalAddress node,
-                                          const size_t timeout );
+  Chimera::Status_t makeStaticConnection( RF24::Endpoint::Interface &obj, const RF24::LogicalAddress node,
+                                          RF24::Endpoint::Connection::Callback callback, const size_t timeout );
 
   /**
    *	Makes a connection to the network and requests an address from the DHCP provider.

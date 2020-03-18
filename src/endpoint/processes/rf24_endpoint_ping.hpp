@@ -15,7 +15,7 @@
 /* RF24 Includes */
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 
-namespace RF24::Endpoint::Internal::Processor
+namespace RF24::Endpoint::Internal::Processes
 {
   /**
    *	Kicks off a state machine that handles pinging any node on the network

@@ -166,6 +166,14 @@ namespace RF24::Network
      */
     virtual LogicalAddress thisNode() = 0;
 
+    /**
+     *	Checks if a given address is connected to this node as a parent/child
+     *	
+     *	@param[in]	toCheck     The address to check
+     *	@return bool
+     */
+    virtual bool isConnectedTo( const LogicalAddress toCheck ) = 0;
+
   protected:
     /**
      *	Performs the initialization sequence for the network layer

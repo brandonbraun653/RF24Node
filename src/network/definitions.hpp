@@ -27,17 +27,18 @@ namespace RF24::Network
   /**
    *   The default network address
    */
-  constexpr uint16_t DEFAULT_LOGICAL_ADDRESS = 04444; /**< (OCTAL) Default value for new nodes */
-  constexpr uint16_t EMPTY_LOGICAL_ADDRESS =
+  static constexpr uint16_t DEFAULT_LOGICAL_ADDRESS = 04444; /**< (OCTAL) Default value for new nodes */
+  static constexpr uint16_t EMPTY_LOGICAL_ADDRESS =
       07777; /**< (OCTAL) Value physically impossible for node to own due to child limits */
-  constexpr LogicalLevel OCTAL_TO_BIN_BITSHIFT = 3u;
-  constexpr LogicalLevel MIN_CHILD_NODE_ID     = 1u;
-  constexpr LogicalLevel MAX_CHILD_NODE_ID     = 5u;
-  constexpr LogicalLevel MIN_ROOT_NODE_ID      = 0u;
-  constexpr LogicalLevel MAX_ROOT_NODE_ID      = 7u;
-  constexpr LogicalLevel ROOT_NODE_START_LEVEL = 0u;
-  constexpr uint8_t INVALID_NODE_ID            = MAX_CHILD_NODE_ID + 1;
-  constexpr uint8_t MAX_CHILDREN               = 5;
+  static constexpr LogicalLevel OCTAL_TO_BIN_BITSHIFT = 3u;
+  static constexpr LogicalLevel MIN_CHILD_NODE_ID     = 1u;
+  static constexpr LogicalLevel MAX_CHILD_NODE_ID     = 5u;
+  static constexpr LogicalLevel MIN_ROOT_NODE_ID      = 0u;
+  static constexpr LogicalLevel MAX_ROOT_NODE_ID      = 7u;
+  static constexpr LogicalLevel ROOT_NODE_START_LEVEL = 0u;
+  static constexpr uint8_t INVALID_NODE_ID            = MAX_CHILD_NODE_ID + 1;
+  static constexpr uint8_t MAX_CHILDREN               = 5;
+  static constexpr uint8_t MAX_CONNECTIONS            = 6;
 
 
   static_assert( MAX_CHILD_NODE_ID == NODE_LEVEL_MAX, "Max child ID and max node level ID do not match" );
@@ -45,58 +46,31 @@ namespace RF24::Network
   /*------------------------------------------------
   Logical Address Encoding 
   ------------------------------------------------*/
-  constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
-  constexpr LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
+  static constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
+  static constexpr LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
 
-  constexpr LogicalAddress ADDR_LEVEL1_Pos = 0 * BITS_PER_LEVEL;
-  constexpr LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;
-  constexpr LogicalAddress ADDR_LEVEL1     = ADDR_LEVEL1_Msk;
+  static constexpr LogicalAddress ADDR_LEVEL1_Pos = 0 * BITS_PER_LEVEL;
+  static constexpr LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;
+  static constexpr LogicalAddress ADDR_LEVEL1     = ADDR_LEVEL1_Msk;
 
-  constexpr LogicalAddress ADDR_LEVEL2_Pos = 1 * BITS_PER_LEVEL;
-  constexpr LogicalAddress ADDR_LEVEL2_Msk = BASE_LEVEL_MASK << ADDR_LEVEL2_Pos;
-  constexpr LogicalAddress ADDR_LEVEL2     = ADDR_LEVEL2_Msk;
+  static constexpr LogicalAddress ADDR_LEVEL2_Pos = 1 * BITS_PER_LEVEL;
+  static constexpr LogicalAddress ADDR_LEVEL2_Msk = BASE_LEVEL_MASK << ADDR_LEVEL2_Pos;
+  static constexpr LogicalAddress ADDR_LEVEL2     = ADDR_LEVEL2_Msk;
 
-  constexpr LogicalAddress ADDR_LEVEL3_Pos = 2 * BITS_PER_LEVEL;
-  constexpr LogicalAddress ADDR_LEVEL3_Msk = BASE_LEVEL_MASK << ADDR_LEVEL3_Pos;
-  constexpr LogicalAddress ADDR_LEVEL3     = ADDR_LEVEL3_Msk;
+  static constexpr LogicalAddress ADDR_LEVEL3_Pos = 2 * BITS_PER_LEVEL;
+  static constexpr LogicalAddress ADDR_LEVEL3_Msk = BASE_LEVEL_MASK << ADDR_LEVEL3_Pos;
+  static constexpr LogicalAddress ADDR_LEVEL3     = ADDR_LEVEL3_Msk;
 
-  constexpr LogicalAddress ADDR_LEVEL4_Pos = 3 * BITS_PER_LEVEL;
-  constexpr LogicalAddress ADDR_LEVEL4_Msk = BASE_LEVEL_MASK << ADDR_LEVEL4_Pos;
-  constexpr LogicalAddress ADDR_LEVEL4     = ADDR_LEVEL4_Msk;
+  static constexpr LogicalAddress ADDR_LEVEL4_Pos = 3 * BITS_PER_LEVEL;
+  static constexpr LogicalAddress ADDR_LEVEL4_Msk = BASE_LEVEL_MASK << ADDR_LEVEL4_Pos;
+  static constexpr LogicalAddress ADDR_LEVEL4     = ADDR_LEVEL4_Msk;
 
-  constexpr LogicalAddress ADDR_LEVEL5_Pos = 4 * BITS_PER_LEVEL;
-  constexpr LogicalAddress ADDR_LEVEL5_Msk = BASE_LEVEL_MASK << ADDR_LEVEL5_Pos;
-  constexpr LogicalAddress ADDR_LEVEL5     = ADDR_LEVEL5_Msk;
+  static constexpr LogicalAddress ADDR_LEVEL5_Pos = 4 * BITS_PER_LEVEL;
+  static constexpr LogicalAddress ADDR_LEVEL5_Msk = BASE_LEVEL_MASK << ADDR_LEVEL5_Pos;
+  static constexpr LogicalAddress ADDR_LEVEL5     = ADDR_LEVEL5_Msk;
 
-  constexpr LogicalAddress ADDR_MAX_LEVELS = 5;
+  static constexpr LogicalAddress ADDR_MAX_LEVELS = 5;
 
-/*------------------------------------------------
-Config Options
-------------------------------------------------*/
-/**
- *   Disable user payloads. Saves memory when used with RF24Ethernet or software that uses external data.
- */
-#define RF24Network_DISABLE_USER_PAYLOADS ( true )
-
-/**
- *   Enable tracking of success and failures for all transmissions, routed and user initiated
- */
-#define RF24Network_ENABLE_NETWORK_STATS ( false )
-
-/**
- *   Enable dynamic payloads - If using different types of NRF24L01 modules, some may be incompatible when using this feature
- */
-#define RF24Network_ENABLE_DYNAMIC_PAYLOADS ( false )
-
-/**
- *   TODO
- */
-#define RF24Network_MULTICAST ( true )
-
-/**
- *   TODO
- */
-#define RF24Network_DISABLE_FRAGMENTATION ( true )
 
 
   static constexpr LogicalAddress RSVD_ADDR_MULTICAST = 000100;
@@ -109,7 +83,7 @@ Config Options
 
 
   /*------------------------------------------------
-  Enum Class Definitions
+  Enum Definitions
   ------------------------------------------------*/
   /** System Network Message Types
    *
@@ -246,7 +220,7 @@ Config Options
 
     MSG_NET_REQUEST_BIND = 201,
     MSG_NET_REQUEST_BIND_ACK = 202,
-    MSG_NET_REQUEST_BIND_FULL = 203,
+    MSG_NET_REQUEST_BIND_NACK = 203,
 
 
 
@@ -257,6 +231,20 @@ Config Options
     MSG_USE_CURRENT_CHANNEL = 255
   };
 
+
+  enum ConnectionId : uint8_t
+  {
+    CONNECTION_PARENT = 0,
+    CONNECTION_CHILD_1,
+    CONNECTION_CHILD_2,
+    CONNECTION_CHILD_3,
+    CONNECTION_CHILD_4,
+    CONNECTION_CHILD_5,
+
+    CONNECTION_FIRST = CONNECTION_PARENT,
+    CONNECTION_LAST = CONNECTION_CHILD_5
+  };
+  static_assert( ConnectionId::CONNECTION_LAST == ( MAX_CONNECTIONS - 1 ) );
 
   enum RoutingStyle : uint8_t
   {

@@ -28,6 +28,7 @@
 #include <RF24Node/src/network/frame/frame.hpp>
 #include <RF24Node/src/network/messaging/rf24_net_msg_ping.hpp>
 #include <RF24Node/src/network/network.hpp>
+#include <RF24Node/src/network/processes/rf24_network_connection.hpp>
 #include <RF24Node/src/network/processes/rf24_network_ping.hpp>
 #include <RF24Node/src/network/types.hpp>
 
@@ -146,14 +147,6 @@ namespace RF24::Network
       }
       return MSG_NETWORK_ERR;
     }
-    //else if ( key != mAccessKey )
-    //{
-    //  if constexpr ( DBG_LOG_NET )
-    //  {
-    //    mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Process doesn't have access to RX updater\n", Chimera::millis() );
-    //  }
-    //  return MSG_NETWORK_ERR;
-    //}
 
     uint8_t pipeNum                 = 0u;
     size_t payloadSize              = 0u;
@@ -216,20 +209,8 @@ namespace RF24::Network
   {
     bool writeSuccess = false;
 
-    //if ( key != mAccessKey )
-    //{
-    //  if constexpr ( DBG_LOG_NET )
-    //  {
-    //    mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Process doesn't have access to TX updater\n", Chimera::millis() );
-    //  }
-    //  return;
-    //}
-
     while ( !mTXQueue.empty() )
     {
-      updateRX( key );
-
-
       /*------------------------------------------------
       Peek the next element and verify it contains data
       ------------------------------------------------*/
@@ -303,17 +284,6 @@ namespace RF24::Network
   {
     enqueueTXPacket( frame );
     return true;
-
-    /*------------------------------------------------
-    Allows time for requests (RF24Mesh) to get through between failed writes on busy nodes
-    ------------------------------------------------*/
-    //while ( Chimera::millis() - mLastTxTime < 25 )
-    //{
-    //  if ( updateRX() > MSG_MAX_USER_DEFINED_HEADER_TYPE )
-    //  {
-    //    break;
-    //  }
-    //}
   }
 
   void Driver::removeRXFrame()
@@ -325,7 +295,7 @@ namespace RF24::Network
   {
     LogicalAddress ancestor;
 
-    if ( isRegisteredDirectly( dst ) )
+    if ( isConnectedTo( dst ) )
     {
       // Next hop IS the destination node
       return dst;
@@ -362,7 +332,7 @@ namespace RF24::Network
     return mRouteTable.getCentralNode().getLogicalAddress();
   }
 
-  bool Driver::isRegisteredDirectly( const LogicalAddress toCheck )
+  bool Driver::isConnectedTo( const LogicalAddress toCheck )
   {
     /*------------------------------------------------
     Check the simplest option first: Is the parent?
@@ -480,16 +450,18 @@ namespace RF24::Network
       /*------------------------------------------------
       Simple ping packet
       ------------------------------------------------*/
-      case MSG_NETWORK_PING:
-        if ( Messages::Ping::isPingRequest( frame ) )
-        {
-          Internal::Processes::handlePingRequest( *this, frame );
-          return message;
-        }
-        break;
+      //case MSG_NETWORK_PING:
+      //  if ( Messages::Ping::isPingRequest( frame ) )
+      //  {
+      //    Internal::Processes::handlePingRequest( *this, frame );
+      //    return message;
+      //  }
+      //  break;
 
       case MSG_NET_REQUEST_BIND:
-        Internal::Processes::bindRequestHandler( *this, frame );
+      case MSG_NET_REQUEST_BIND_ACK:
+      case MSG_NET_REQUEST_BIND_NACK:
+        Internal::Processes::runConnection( *this, frame, message );
         break;
       
       default:
@@ -633,5 +605,4 @@ namespace RF24::Network
 
     return false;
   }
-
 }    // namespace RF24::Network

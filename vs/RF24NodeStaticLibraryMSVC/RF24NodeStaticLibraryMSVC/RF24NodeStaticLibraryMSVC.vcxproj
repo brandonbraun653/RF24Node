@@ -50,6 +50,8 @@
     <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg_ping.hpp" />
     <ClInclude Include="..\..\..\src\network\network.hpp" />
     <ClInclude Include="..\..\..\src\network\path\path.hpp" />
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection.hpp" />
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection_internal.hpp" />
     <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp" />
     <ClInclude Include="..\..\..\src\network\queue\queue.hpp" />
     <ClInclude Include="..\..\..\src\network\types.hpp" />
@@ -89,6 +91,7 @@
     <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg_ping.cpp" />
     <ClCompile Include="..\..\..\src\network\network.cpp" />
     <ClCompile Include="..\..\..\src\network\path\net_path.cpp" />
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_connection.cpp" />
     <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp" />
     <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp" />
     <ClCompile Include="..\..\..\src\physical\physical.cpp" />
