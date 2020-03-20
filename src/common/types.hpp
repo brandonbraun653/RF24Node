@@ -48,18 +48,38 @@ namespace RF24
     enum class Result
     {
       CONNECTION_UNKNOWN, /**< Something happened but it was not known how to be handled */
-      CONNECTION_SUCCESS, /**< The connection to the node succeeded */
-      CONNECTION_FAILED,  /**< The connection to the node failed for some reason */
-      CONNECTION_TIMEOUT, /**< The connection to the node timed out */
+      CONNECTION_SUCCESS, /**< The connection to the parent node succeeded */
+      CONNECTION_FAILED,  /**< The connection to the parent node failed for some reason */
+      CONNECTION_TIMEOUT, /**< The connection to the parent node timed out */
+      CONNECTION_BOUND,   /**< A child node was bound */
+    };
+    
+    enum class BindSite : uint8_t
+    {
+      PARENT = 0,
+      CHILD_1,
+      CHILD_2,
+      CHILD_3,
+      CHILD_4,
+      CHILD_5,
+      INVALID,
+
+      FIRST = PARENT,
+      LAST = CHILD_5
     };
 
     /**
-     *	Defines a callback for the user to have invoked
+     *	Defines an event callback for the user to have invoked when a connection
+     *	to a parent node succeeds (child perspective) or a child is bound to the
+     *	parent node (parent perspective).
      *	
      *	@param[in]  result    Whether or not the connection succeeded
+     *	@param[in]  id        The connection id describing which node the result applies to
      *	@return void
      */
-    using Callback = void(*)(const Result result);
+    using OnCompleteCallback = void(*)(const Result result, const BindSite id );
+
+
   }
 
 }    // namespace RF24

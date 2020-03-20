@@ -29,7 +29,7 @@ namespace RF24::Network::Internal::Processes::Connection
    *	@param[in]	timeout     How long to wait for the connection to succeed
    *	@return bool
    */
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::Callback callback, const size_t timeout );
+  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback, const size_t timeout );
 
   /**
    *  Runs the connection handling processing logic to allow connections to form

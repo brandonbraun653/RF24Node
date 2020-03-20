@@ -36,11 +36,12 @@ namespace RF24::Network
       CONNECT_IDLE,
       CONNECT_REQUEST,
       CONNECT_REQUEST_RETRY,
-      CONNECT_WAIT_FOR_BIND_PARENT_RESPONSE,
-      CONNECT_WAIT_FOR_CHILD_NODE_ACK,
+      CONNECT_WAIT_FOR_PARENT_RESPONSE,
+      CONNECT_WAIT_FOR_CHILD_ACK,
       CONNECT_SEND_RESPONSE,
       CONNECT_RESPONSE_ACK,
-      CONNECT_SUCCESS,
+      CONNECT_SUCCESS_DIRECT,
+      CONNECT_SUCCESS_ASYNC,
       CONNECT_TERMINATE,
       CONNECT_TIMEOUT,
       CONNECT_EXIT_LOOP
@@ -48,30 +49,75 @@ namespace RF24::Network
 
     struct ControlBlock
     {
-      ConnectionId connectId;
-      RF24::LogicalAddress connectTo;
-      RF24::LogicalAddress connectFrom;
+      /**
+       *  Identifies which leaf in the connection tree is being handled by
+       *  this control block (parent, child 1, child 2, etc)
+       */
+      RF24::Connection::BindSite bindId;
+
+      /**
+       *  The address of the node that is being connected to. From the parent's
+       *  perspective, this is the child node. From the child's perspective, this
+       *  is the parent node.
+       */
+      RF24::LogicalAddress connectToAddress;
+
+      /**
+       *  The "other" node in the connection process, opposite of the connectToAddress.
+       *
+       *  This simply ends up being the address of the node that is actually processing
+       *  the control block locally.
+       */
+      RF24::LogicalAddress connectFromAddress;
+
+      /**
+       *  Simply keeps track of the current state of the connection process
+       */
       State currentState;
-      State previousState;
-      RF24::Connection::Callback onEventCallback;
+
+      /**
+       *  System time (in milliseconds) on the child node when the
+       *  connection process actually began.
+       */
       size_t startTime;
+
+      /**
+       *  User requested timeout on the connection operation. Typically this
+       *  is from the child node's perspective as the parent's functionality
+       *  tends to be more temporally fluid.
+       */
       size_t timeout;
+
+      /**
+       *  A callback that is invoked on the child node when a direct connection to a
+       *  parent node is attempted and a completion event occurs (ie success/fail/timeout).
+       *
+       *  OR
+       *
+       *  A callback that is invoked on the parent node when a connection from a
+       *  child node has been requested and successfully registered on the expected
+       *  pipe. Used to notify the network (or higher) layer that a node connected.
+       *
+       *  Because pipes can only either connect to a parent (from pipe 0) or be connected to
+       *  from a child (on pipes 1-5), a single connection complete callback is sufficient
+       *  to distinguish between the two modes/perspectives of operation.
+       */
+      RF24::Connection::OnCompleteCallback onConnectComplete;
 
       ControlBlock()
       {
-        connectId       = CONNECTION_FIRST;
-        connectTo       = RF24::Network::RSVD_ADDR_INVALID;
-        connectFrom     = RF24::Network::RSVD_ADDR_INVALID;
-        currentState    = State::CONNECT_IDLE;
-        previousState   = State::CONNECT_IDLE;
-        onEventCallback = nullptr;
-        startTime       = 0;
-        timeout         = 0;
+        bindId             = RF24::Connection::BindSite::FIRST;
+        connectToAddress   = RF24::Network::RSVD_ADDR_INVALID;
+        connectFromAddress = RF24::Network::RSVD_ADDR_INVALID;
+        currentState       = State::CONNECT_IDLE;
+        onConnectComplete  = nullptr;
+        startTime          = 0;
+        timeout            = 0;
       }
     };
 
     using ControlBlockList = std::array<ControlBlock, MAX_CONNECTIONS>;
-  }
+  }    // namespace Internal::Processes::Connection
 
   class Interface;
   using Interface_sPtr = std::shared_ptr<Interface>;
@@ -138,7 +184,7 @@ namespace RF24::Network
     /**
      *	Similar to Boost AsyncIO's pollOnce(), this function will poll the network
      *  stack and do any work immediately available in the queue, then return.
-     *	
+     *
      *	@return void
      */
     virtual void pollNetStack() = 0;
@@ -198,7 +244,7 @@ namespace RF24::Network
      *	Instructs the network driver to update it's table of devices that are immediately
      *	connected to this node with the given address. It will automatically deduce where
      *	it should be placed (parent/child).
-     *	
+     *
      *	@param[in]	address     The address to update the route table with
      *	@return bool
      */
@@ -206,7 +252,7 @@ namespace RF24::Network
 
     /**
      *	Let's the network driver know which node it is in the network.
-     *	
+     *
      *	@param[in]	address     The address the network layer will operate as
      *	@return void
      */
@@ -214,14 +260,14 @@ namespace RF24::Network
 
     /**
      *	Gets the address of the central node represented by this network driver
-     *	
+     *
      *	@return RF24::LogicalAddress
      */
     virtual LogicalAddress thisNode() = 0;
 
     /**
      *	Checks if a given address is connected to this node as a parent/child
-     *	
+     *
      *	@param[in]	toCheck     The address to check
      *	@return bool
      */
@@ -233,7 +279,7 @@ namespace RF24::Network
     ------------------------------------------------*/
     virtual bool connectionsInProgress() = 0;
 
-    virtual Internal::Processes::Connection::ControlBlock &getConnection( const ConnectionId id ) = 0;
+    virtual Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) = 0;
 
     virtual Internal::Processes::Connection::ControlBlockList &getConnectionList() = 0;
 
@@ -241,7 +287,23 @@ namespace RF24::Network
     /*------------------------------------------------
     Data Setters
     ------------------------------------------------*/
-    virtual void setConnectionInProgress( const ConnectionId id, const bool enabled ) = 0;
+    virtual void setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled ) = 0;
+
+
+    /*------------------------------------------------
+    Callbacks
+    ------------------------------------------------*/
+    /**
+     *	Registers a callback to be invoked when an external node successfully
+     *	binds to a particular site.
+     *
+     *	@note Only valid for nodes that can have children (pipes 1-5)
+     *
+     *	@param[in]	id          The bind site identifier to invoke the listener on
+     *	@param[in]	listener    The callback to be invoked
+     *	@return void
+     */
+    virtual void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) = 0;
 
   protected:
     /**
@@ -250,7 +312,6 @@ namespace RF24::Network
      *	@return Chimera::Status_t
      */
     virtual Chimera::Status_t initialize( const RF24::Network::Config &cfg ) = 0;
-
   };
 }    // namespace RF24::Network
 

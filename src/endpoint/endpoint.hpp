@@ -59,7 +59,7 @@ namespace RF24::Endpoint
     Chimera::Status_t requestAddress() final override;
     Chimera::Status_t renewAddressReservation() final override;
     Chimera::Status_t releaseAddress() final override;
-    Chimera::Status_t connect( RF24::Connection::Callback callback,
+    Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback,
                                const size_t timeout ) override;
     Chimera::Status_t disconnect() final override;
     Chimera::Status_t reconnect() final override;

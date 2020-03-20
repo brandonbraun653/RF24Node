@@ -42,6 +42,8 @@ namespace RF24::Network
 
 
   static_assert( MAX_CHILD_NODE_ID == NODE_LEVEL_MAX, "Max child ID and max node level ID do not match" );
+  static_assert( static_cast<size_t>( RF24::Connection::BindSite::LAST ) == ( MAX_CONNECTIONS - 1 ) );
+
 
   /*------------------------------------------------
   Logical Address Encoding 
@@ -232,19 +234,6 @@ namespace RF24::Network
   };
 
 
-  enum ConnectionId : uint8_t
-  {
-    CONNECTION_PARENT = 0,
-    CONNECTION_CHILD_1,
-    CONNECTION_CHILD_2,
-    CONNECTION_CHILD_3,
-    CONNECTION_CHILD_4,
-    CONNECTION_CHILD_5,
-
-    CONNECTION_FIRST = CONNECTION_PARENT,
-    CONNECTION_LAST = CONNECTION_CHILD_5
-  };
-  static_assert( ConnectionId::CONNECTION_LAST == ( MAX_CONNECTIONS - 1 ) );
 
   enum RoutingStyle : uint8_t
   {

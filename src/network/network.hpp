@@ -77,13 +77,19 @@ namespace RF24::Network
     Data Getters
     ------------------------------------------------*/
     bool connectionsInProgress() final override;
-    Internal::Processes::Connection::ControlBlock &getConnection( const ConnectionId id ) final override;
+    Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) final override;
     Internal::Processes::Connection::ControlBlockList &getConnectionList() final override;
 
     /*------------------------------------------------
     Data Setters
     ------------------------------------------------*/
-    void setConnectionInProgress( const ConnectionId id, const bool enabled ) final override;
+    void setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled ) final override;
+
+    /*------------------------------------------------
+    Callbacks
+    ------------------------------------------------*/
+    void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) final override;
+
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -130,7 +136,7 @@ namespace RF24::Network
 
     /**
      *	Computes the destination pipe for a given transfer
-     *	
+     *
      *	@param[in]	destination     The node receiving the data
      *	@param[in]	source          The node sending the data
      *	@return RF24::Hardware::PipeNumber
@@ -144,7 +150,7 @@ namespace RF24::Network
     bool mReturnSystemMessages;
     bool mMulticastRelay;
     size_t mLastTxTime;
-    RF24::Physical::Interface_sPtr mPhysicalDriver; 
+    RF24::Physical::Interface_sPtr mPhysicalDriver;
     RF24::Network::Queue::ManagedFIFO mTXQueue;
     RF24::Network::Queue::ManagedFIFO mRXQueue;
     Internal::NodeConnections mRouteTable;

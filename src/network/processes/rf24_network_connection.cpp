@@ -16,7 +16,7 @@
 
 namespace RF24::Network::Internal::Processes::Connection
 {
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::Callback callback,
+  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback,
               const size_t timeout )
   {
     /*------------------------------------------------
@@ -29,7 +29,7 @@ namespace RF24::Network::Internal::Processes::Connection
     else if ( obj.isConnectedTo( node ) )
     {
       // Already registered, awesome!
-      callback( RF24::Connection::Result::CONNECTION_SUCCESS );
+      callback( RF24::Connection::Result::CONNECTION_SUCCESS, RF24::Connection::BindSite::INVALID );
       return true;
     }
 
@@ -45,14 +45,15 @@ namespace RF24::Network::Internal::Processes::Connection
     if ( connectToParent || connectToChild )
     {
       auto connectID = getDirectConnectionID( node );
+      auto index     = static_cast<size_t>( connectID );
 
-      connectionList[ connectID ].connectId       = connectID;
-      connectionList[ connectID ].connectTo       = ( connectToParent ? node : thisNode );
-      connectionList[ connectID ].connectFrom     = ( connectToParent ? thisNode : node );
-      connectionList[ connectID ].currentState    = State::CONNECT_REQUEST;
-      connectionList[ connectID ].onEventCallback = callback;
-      connectionList[ connectID ].startTime       = Chimera::millis();
-      connectionList[ connectID ].timeout         = timeout;
+      connectionList[ index ].bindId             = connectID;
+      connectionList[ index ].connectToAddress   = ( connectToParent ? node : thisNode );
+      connectionList[ index ].connectFromAddress = ( connectToParent ? thisNode : node );
+      connectionList[ index ].currentState       = State::CONNECT_REQUEST;
+      connectionList[ index ].onConnectComplete  = callback;
+      connectionList[ index ].startTime          = Chimera::millis();
+      connectionList[ index ].timeout            = timeout;
 
       obj.setConnectionInProgress( connectID, true );
 
@@ -76,7 +77,7 @@ namespace RF24::Network::Internal::Processes::Connection
     /*------------------------------------------------
     Handle the message appropriately
     ------------------------------------------------*/
-    ControlBlockList& connectionList = obj.getConnectionList();
+    ControlBlockList &connectionList = obj.getConnectionList();
     for ( ControlBlock &connection : connectionList )
     {
       /*------------------------------------------------
@@ -118,30 +119,52 @@ namespace RF24::Network::Internal::Processes::Connection
         ------------------------------------------------*/
         case State::CONNECT_REQUEST:
         case State::CONNECT_REQUEST_RETRY:
-          tmpFrame.setDst( connection.connectTo );
-          tmpFrame.setSrc( connection.connectFrom );
+          tmpFrame.setDst( connection.connectToAddress );
+          tmpFrame.setSrc( connection.connectFromAddress );
           tmpFrame.setType( Network::MSG_NET_REQUEST_BIND );
           tmpFrame.setPayload( nullptr, 0 );
 
           obj.write( tmpFrame, Network::RoutingStyle::ROUTE_DIRECT );
-          connection.previousState = connection.currentState;
-          connection.currentState = State::CONNECT_WAIT_FOR_BIND_PARENT_RESPONSE;
+          connection.currentState = State::CONNECT_WAIT_FOR_PARENT_RESPONSE;
           break;
 
-        case State::CONNECT_SUCCESS:
-          obj.setConnectionInProgress( connection.connectId, false );
-
-          if ( connection.onEventCallback )
+        /*------------------------------------------------
+        Either the child's connection attempt to the parent was
+        successful or the parent asynchronously bound a child.
+        ------------------------------------------------*/
+        case State::CONNECT_SUCCESS_DIRECT:     // Child's perspective
+        case State::CONNECT_SUCCESS_ASYNC: {    // Parent's perspective
+          /*------------------------------------------------
+          Inform the user that the connection completed
+          ------------------------------------------------*/
+          if ( connection.onConnectComplete )
           {
-            connection.onEventCallback( RF24::Connection::Result::CONNECTION_SUCCESS );
+            if ( connection.currentState == State::CONNECT_SUCCESS_DIRECT )
+            {
+              // Child perspective: The connection to the parent succeeded
+              connection.onConnectComplete( RF24::Connection::Result::CONNECTION_SUCCESS, connection.bindId );
+            }
+            else if ( connection.currentState == State::CONNECT_SUCCESS_ASYNC )
+            {
+              // Parent perspective: A child node just bound to me
+              connection.onConnectComplete( RF24::Connection::Result::CONNECTION_BOUND, connection.bindId );
+            }
           }
+          // else no callback was registered
 
-          //TODO: Need to reset the channel with the right connection ID
-          connection = {};
+          /*------------------------------------------------
+          Reset the tracking block information to defaults
+          ------------------------------------------------*/
+          auto cachedId = connection.bindId;
+
+          obj.setConnectionInProgress( cachedId, false );
+          connection        = {};
+          connection.bindId = cachedId;
           break;
+        }
 
         case State::CONNECT_TIMEOUT:
-          
+
           break;
 
         case State::CONNECT_TERMINATE:
@@ -159,11 +182,8 @@ namespace RF24::Network::Internal::Processes::Connection
     /*------------------------------------------------
     Input & state protection
     ------------------------------------------------*/
-    // You were about to try and properly handle a request to bind that came out of the blue.
-    // The whole connnectTo thing doesn't work cause THIS PROCESS HASN'T STARTED YET.
-
     auto connectTo = getDirectConnectionID( frame.getSrc() );
-    if ( connectTo != connection.connectId )
+    if ( connectTo != connection.bindId )
     {
       /*------------------------------------------------
       The node that's trying to connect doesn't match this
@@ -189,8 +209,10 @@ namespace RF24::Network::Internal::Processes::Connection
     if ( obj.updateRouteTable( childToBind ) )
     {
       buildAckPacket( obj, frame );
-      connection.connectTo = childToBind;
-      connection.connectFrom = obj.thisNode();
+      connection.connectToAddress   = childToBind;
+      connection.connectFromAddress = obj.thisNode();
+
+      obj.setConnectionInProgress( connection.bindId, true );
     }
     else
     {
@@ -198,26 +220,26 @@ namespace RF24::Network::Internal::Processes::Connection
     }
 
     /*------------------------------------------------
-    Send the response back using direct routing because only bind requests
-    from immediate children are allowed. Perhaps in the future virtual
-    paths will be allowed, but that's currently not the case.
+    Inform the binding node of the result and transition
+    to waiting for their acknowledgment
     ------------------------------------------------*/
     obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
-    connection.currentState = State::CONNECT_WAIT_FOR_CHILD_NODE_ACK;
+    connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
   }
 
   void ackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
     /*------------------------------------------------
-    Input & state protection
+    If this particular connection control block isn't
+    the intended handler of the frame, exit early.
     ------------------------------------------------*/
-    if ( frame.getSrc() != connection.connectTo )
+    if ( frame.getSrc() != connection.connectToAddress )
     {
       return;
     }
 
     /*------------------------------------------------
-    An ACK in a connection process can happen for many reasons
+    Otherwise process the ACK according to the node type
     ------------------------------------------------*/
     switch ( connection.currentState )
     {
@@ -225,14 +247,10 @@ namespace RF24::Network::Internal::Processes::Connection
       Child Node Perspective: The parent sent some kind
       of response to us in regards to the bind request.
       ------------------------------------------------*/
-      case State::CONNECT_WAIT_FOR_BIND_PARENT_RESPONSE:
-
-        /*------------------------------------------------
-        Pull out the connection process result
-        ------------------------------------------------*/
+      case State::CONNECT_WAIT_FOR_PARENT_RESPONSE:
         if ( frame.getType() == Network::HeaderMessage::MSG_NET_REQUEST_BIND_ACK )
         {
-          connection.currentState = State::CONNECT_SUCCESS;
+          connection.currentState = State::CONNECT_SUCCESS_DIRECT;
         }
         else
         {
@@ -247,14 +265,16 @@ namespace RF24::Network::Internal::Processes::Connection
         break;
 
       /*------------------------------------------------
-      Parent Node Perspective: The child binding to us has 
-      just acknowledged the bind status we sent them.
+      Parent Node Perspective: The child binding to us has
+      just acknowledged the bind status we sent them. The
+      connection process is complete, so reset the handler.
       ------------------------------------------------*/
-      case State::CONNECT_WAIT_FOR_CHILD_NODE_ACK:
-
-        // TODO: Need to properly reset with the connection ID
-        connection = {};
+      case State::CONNECT_WAIT_FOR_CHILD_ACK: {
+        auto cachedId     = connection.bindId;
+        connection        = {};
+        connection.bindId = cachedId;
         break;
+      }
 
       default:
         return;
@@ -266,14 +286,17 @@ namespace RF24::Network::Internal::Processes::Connection
   {
   }
 
-  ConnectionId getDirectConnectionID( RF24::LogicalAddress address )
+  RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address )
   {
-    auto level = getIdAtLevel( address, getLevel( address ) );
-    auto id    = ConnectionId::CONNECTION_PARENT;
+    using namespace RF24::Connection;
 
-    if ( ConnectionId::CONNECTION_CHILD_1 <= level <= ConnectionId::CONNECTION_CHILD_5 )
+    // Can explicitly convert the pipe identifier (id at level) to a BindSite
+    auto level = static_cast<BindSite>( getIdAtLevel( address, getLevel( address ) ) );
+    auto id    = BindSite::PARENT;
+
+    if ( ( BindSite::CHILD_1 <= level ) && ( level <= BindSite::CHILD_5 ) )
     {
-      id = static_cast<ConnectionId>( level );
+      id =  level;
     }
 
     return id;

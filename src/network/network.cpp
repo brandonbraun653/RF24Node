@@ -57,10 +57,10 @@ namespace RF24::Network
 
   Driver::Driver() : mPhysicalDriver( nullptr ), mLogger( nullptr )
   {
-    mInitialized          = false;
-    mReturnSystemMessages = false;
-    mMulticastRelay       = false;
-    mLastTxTime           = 0;
+    mInitialized           = false;
+    mReturnSystemMessages  = false;
+    mMulticastRelay        = false;
+    mLastTxTime            = 0;
     mConnectionsInProgress = 0;
 
     /*------------------------------------------------
@@ -68,8 +68,8 @@ namespace RF24::Network
     ------------------------------------------------*/
     for ( size_t x = 0; x < mConnectionList.size(); x++ )
     {
-      mConnectionList[ x ] = {};
-      mConnectionList[ x ].connectId = static_cast<ConnectionId>( x );
+      mConnectionList[ x ]        = {};
+      mConnectionList[ x ].bindId = static_cast<RF24::Connection::BindSite>( x );
     }
   }
 
@@ -171,7 +171,8 @@ namespace RF24::Network
 
       if constexpr ( DBG_LOG_NET_TRACE )
       {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet of type [%d] from pipe %d\n", Chimera::millis(), frame.getType(), pipe );
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet of type [%d] from pipe %d\n", Chimera::millis(),
+                       frame.getType(), pipe );
       }
 
       if ( frame.getDst() == mRouteTable.getCentralNode().getLogicalAddress() )
@@ -203,7 +204,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       Frame::FrameType frame;
       Frame::Buffer tempBuffer;
-      auto element = mTXQueue.peek();
+      auto element  = mTXQueue.peek();
       bool validity = false;
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
@@ -249,7 +250,6 @@ namespace RF24::Network
         mTXQueue.pop( element.payload, element.size );
       }
     }
-
   }
 
   void Driver::pollNetStack()
@@ -261,7 +261,7 @@ namespace RF24::Network
     ------------------------------------------------*/
     updateRX();
     updateTX();
-    
+
     /*------------------------------------------------
     Process any ongoing connections if running
     ------------------------------------------------*/
@@ -308,7 +308,7 @@ namespace RF24::Network
     }
     else if ( getLevel( dst ) >= mRouteTable.getCentralNode().getLevel() )
     {
-      // The data must be routed through the parent node to get data to a node 
+      // The data must be routed through the parent node to get data to a node
       // at the same level or higher.
       return mRouteTable.getParentNode().getLogicalAddress();
     }
@@ -328,7 +328,7 @@ namespace RF24::Network
     return mRouteTable.attach( address );
   }
 
-  void Driver::setNodeAddress(  const LogicalAddress address )
+  void Driver::setNodeAddress( const LogicalAddress address )
   {
     mRouteTable.updateCentralNode( address );
   }
@@ -371,9 +371,9 @@ namespace RF24::Network
     return static_cast<bool>( mConnectionsInProgress );
   }
 
-  Internal::Processes::Connection::ControlBlock &Driver::getConnection( const ConnectionId id )
+  Internal::Processes::Connection::ControlBlock &Driver::getConnection( const RF24::Connection::BindSite id )
   {
-    return mConnectionList[ id ];
+    return mConnectionList[ static_cast<size_t>( id ) ];
   }
 
   Internal::Processes::Connection::ControlBlockList &Driver::getConnectionList()
@@ -384,21 +384,29 @@ namespace RF24::Network
   /*------------------------------------------------
   Data Setters
   ------------------------------------------------*/
-  void Driver::setConnectionInProgress( const ConnectionId id, const bool enabled )
+  void Driver::setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled )
   {
     if ( enabled )
     {
-      mConnectionsInProgress |= ( 1u << id );
+      mConnectionsInProgress |= ( 1u << static_cast<size_t>( id ) );
     }
     else
     {
-      mConnectionsInProgress &= ~( 1u << id );
+      mConnectionsInProgress &= ~( 1u << static_cast<size_t>( id ) );
     }
   }
 
 
-
-
+  /*------------------------------------------------
+  Callbacks
+  ------------------------------------------------*/
+  void Driver::onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener )
+  {
+    if ( ( RF24::Connection::BindSite::CHILD_1 <= id ) && ( id <= RF24::Connection::BindSite::CHILD_5 ) )
+    {
+      mConnectionList[ static_cast<size_t>( id ) ].onConnectComplete = listener;
+    }
+  }
 
 
   bool Driver::isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which )
@@ -439,7 +447,7 @@ namespace RF24::Network
     else
     {
       /*------------------------------------------------
-      When the destination is lower in the network tree (child node), the 
+      When the destination is lower in the network tree (child node), the
       appropriate pipe number is 0 because pipes 1-5 are reserved for children.
       ------------------------------------------------*/
       return Hardware::PipeNumber::PIPE_NUM_0;
@@ -448,7 +456,7 @@ namespace RF24::Network
 
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
-    if ( !mRXQueue.full())
+    if ( !mRXQueue.full() )
     {
       auto buffer = frame.toBuffer();
       mRXQueue.push( buffer.data(), buffer.size() );
@@ -492,23 +500,23 @@ namespace RF24::Network
     ------------------------------------------------*/
     switch ( message )
     {
-      /*------------------------------------------------
-      Simple ping packet
-      ------------------------------------------------*/
-      //case MSG_NETWORK_PING:
-      //  if ( Messages::Ping::isPingRequest( frame ) )
-      //  {
-      //    Internal::Processes::handlePingRequest( *this, frame );
-      //    return message;
-      //  }
-      //  break;
+        /*------------------------------------------------
+        Simple ping packet
+        ------------------------------------------------*/
+        // case MSG_NETWORK_PING:
+        //  if ( Messages::Ping::isPingRequest( frame ) )
+        //  {
+        //    Internal::Processes::handlePingRequest( *this, frame );
+        //    return message;
+        //  }
+        //  break;
 
       case MSG_NET_REQUEST_BIND:
       case MSG_NET_REQUEST_BIND_ACK:
       case MSG_NET_REQUEST_BIND_NACK:
         Internal::Processes::Connection::run( *this, &frame );
         break;
-      
+
       default:
         break;
     }
@@ -559,7 +567,7 @@ namespace RF24::Network
     if ( hopAddress != RSVD_ADDR_INVALID )
     {
       /*------------------------------------------------
-      Grab the physical address of the pipe on the destination node 
+      Grab the physical address of the pipe on the destination node
       assuming we are sending from this (central) node.
       ------------------------------------------------*/
       auto destinationPipe = getDestinationRXPipe( hopAddress, mRouteTable.getCentralNode().getLogicalAddress() );
@@ -570,9 +578,9 @@ namespace RF24::Network
       if constexpr ( DBG_LOG_NET )
       {
         mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
-                      Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress );
+                       Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress );
       }
-      
+
       return transferToPipe( hopAddress, frame.toBuffer(), frame.getPayloadLength(), false );
     }
     else
@@ -591,12 +599,13 @@ namespace RF24::Network
     return false;
   }
 
-  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck )
+  bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length,
+                               const bool autoAck )
   {
-    Chimera::Status_t result  = Chimera::CommonStatusCodes::OK;
+    Chimera::Status_t result = Chimera::CommonStatusCodes::OK;
 
     /*------------------------------------------------
-    If we are multi casting, turn off auto acknowledgment. 
+    If we are multi casting, turn off auto acknowledgment.
     We don't care how the message gets out as long as it does.
     ------------------------------------------------*/
     result |= mPhysicalDriver->stopListening();
@@ -617,7 +626,7 @@ namespace RF24::Network
       Peek the next element and verify it contains data
       ------------------------------------------------*/
       Frame::Buffer tempBuffer;
-      auto element = mRXQueue.peek();
+      auto element  = mRXQueue.peek();
       bool validity = false;
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
@@ -634,7 +643,7 @@ namespace RF24::Network
       /*------------------------------------------------
       Refresh the user's frame with the buffer data and check the CRC
       ------------------------------------------------*/
-      frame = tempBuffer;
+      frame    = tempBuffer;
       validity = frame.valid();
 
       /*------------------------------------------------

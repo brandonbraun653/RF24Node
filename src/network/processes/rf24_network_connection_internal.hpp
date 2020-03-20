@@ -58,7 +58,7 @@ namespace RF24::Network::Internal::Processes::Connection
    *	@param[in]	address   The address to get the connection id for
    *	@return RF24::Network::ConnectionId
    */
-  ConnectionId getDirectConnectionID( RF24::LogicalAddress address );
+  RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address );
 
   /**
    *	Modifies a received packet from some node and converts it into a connection

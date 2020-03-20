@@ -130,7 +130,7 @@ namespace RF24::Endpoint
      *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect( RF24::Connection::Callback callback,
+    virtual Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback,
                                        const size_t timeout ) = 0;
 
     /**

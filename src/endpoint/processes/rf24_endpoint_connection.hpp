@@ -32,7 +32,7 @@ namespace RF24::Endpoint::Internal::Processes::Connection
    *	@return Chimera::Status_t
    */
   Chimera::Status_t makeStaticConnection( RF24::Endpoint::Interface &obj, const RF24::LogicalAddress node,
-                                          RF24::Connection::Callback callback,
+                                          RF24::Connection::OnCompleteCallback callback,
                                           const size_t timeout );
 
   /**
