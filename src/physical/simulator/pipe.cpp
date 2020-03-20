@@ -112,12 +112,6 @@ namespace RF24::Physical::Pipe
     auto ip   = address_v4::from_string( Conversion::decodeIP( data ) );
     auto port = Conversion::decodePort( data );
 
-    if constexpr ( DBG_LOG_PHY_TRACE )
-    {
-      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d TX %d bytes to port [%d] at address [%s]\n", Chimera::millis(),
-                     mPipeNumber, mBuffer.size(), port, ip.to_string().c_str() );
-    }
-
     memcpy( mBuffer.data(), data.data(), mBuffer.size() );
     mTXSocket.async_send_to( boost::asio::buffer( mBuffer ), udp::endpoint( ip, port ),
                              boost::bind( &TX::onAsyncTransmit, this, boost::asio::placeholders::error,
@@ -136,8 +130,8 @@ namespace RF24::Physical::Pipe
 
   void TX::flush()
   {
-    //std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    //mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+    mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
   void TX::updateThread()
@@ -288,11 +282,6 @@ namespace RF24::Physical::Pipe
     {
       memcpy( temp.data(), mBuffer.data(), temp.size() );
       mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
-
-      if constexpr ( DBG_LOG_PHY_TRACE )
-      {
-        mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX read data\n", Chimera::millis(), mPipeNumber );
-      }
     }
 
     return temp;
@@ -300,8 +289,8 @@ namespace RF24::Physical::Pipe
 
   void RX::flush()
   {
-    //std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-    //mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
+    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
+    mBuffer.fill( RF24::Physical::Shockburst::INVALID_MEMORY );
   }
 
   void RX::onReceiveComplete( Chimera::Callback::DefaultFunction callback )
@@ -372,19 +361,6 @@ namespace RF24::Physical::Pipe
       mLogger->flog( Level::LVL_ERROR, "%d-PHY: ERROR RX failed on pipe %d\n", Chimera::millis(), mPipeNumber );
       mLogger->flog( Level::LVL_ERROR, "%d-PHY:\t%s\n", error.message() );
       return;
-    }
-
-    /*------------------------------------------------
-    Protect the queue from other threads
-    ------------------------------------------------*/
-    std::lock_guard<std::recursive_mutex> guard( mBufferLock );
-
-    if constexpr ( DBG_LOG_PHY_TRACE )
-    {
-      auto ip   = address_v4::from_string( Conversion::decodeIP( mBuffer ) );
-      auto port = Conversion::decodePort( mBuffer );
-      mLogger->flog( uLog::Level::LVL_TRACE, "%d-PHY: Pipe %d RX %d bytes from port [%d] at address [%s]\n", Chimera::millis(),
-                     mPipeNumber, bytes_transferred, port, ip.to_string().c_str() );
     }
 
     /*------------------------------------------------

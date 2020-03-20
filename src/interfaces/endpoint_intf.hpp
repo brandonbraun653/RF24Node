@@ -35,26 +35,6 @@ namespace RF24::Endpoint
   using Interface_sPtr = std::shared_ptr<Interface>;
   using Interface_uPtr = std::unique_ptr<Interface>;
 
-
-  namespace Connection
-  {
-    enum class Result
-    {
-      CONNECTION_UNKNOWN, /**< Something happened but it was not known how to be handled */
-      CONNECTION_SUCCESS, /**< The connection to the node succeeded */
-      CONNECTION_FAILED,  /**< The connection to the node failed for some reason */
-      CONNECTION_TIMEOUT, /**< The connection to the node timed out */
-    };
-
-    /**
-     *	Defines a callback for the user to have invoked
-     *	
-     *	@param[in]  result    Whether or not the connection succeeded
-     *	@return void
-     */
-    using Callback = void(*)(const Result result);
-  }
-
   class Interface : public Chimera::Threading::Lockable
   {
   public:
@@ -150,7 +130,8 @@ namespace RF24::Endpoint
      *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect( Connection::Callback callback, const size_t timeout ) = 0;
+    virtual Chimera::Status_t connect( RF24::Connection::Callback callback,
+                                       const size_t timeout ) = 0;
 
     /**
      *  Gracefully detaches from the network
@@ -172,7 +153,7 @@ namespace RF24::Endpoint
      *  Pings a given node to see if it's on the network
      *  
      *  @param[in]  node      The node to ping
-     *  @param[in]  timeout   How long to wait for the ping to succeed (mS) before erroring out
+     *  @param[in]  timeout   How long to wait for the ping to succeed (mS) before error-ing out
      *  @return bool
      */
     virtual bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) = 0;

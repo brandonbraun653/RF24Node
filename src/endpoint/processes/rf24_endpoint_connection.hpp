@@ -12,6 +12,7 @@
 #define RF24_NODE_ENDPOINT_CONNECTION_HPP
 
 /* RF24 Includes */
+#include <RF24Node/common>
 #include <RF24Node/src/endpoint/fwd.hpp>
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 
@@ -31,7 +32,8 @@ namespace RF24::Endpoint::Internal::Processes::Connection
    *	@return Chimera::Status_t
    */
   Chimera::Status_t makeStaticConnection( RF24::Endpoint::Interface &obj, const RF24::LogicalAddress node,
-                                          RF24::Endpoint::Connection::Callback callback, const size_t timeout );
+                                          RF24::Connection::Callback callback,
+                                          const size_t timeout );
 
   /**
    *	Makes a connection to the network and requests an address from the DHCP provider.

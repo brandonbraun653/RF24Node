@@ -14,13 +14,12 @@
 
 
 /* RF24 Includes */
-#include <RF24Node/src/interfaces/endpoint_intf.hpp>
+#include <RF24Node/common>
 #include <RF24Node/src/interfaces/network_intf.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
 
 namespace RF24::Network::Internal::Processes::Connection
 {
-  
   /**
    *	Starts the process of creating a new connection to a node 
    *	
@@ -30,18 +29,17 @@ namespace RF24::Network::Internal::Processes::Connection
    *	@param[in]	timeout     How long to wait for the connection to succeed
    *	@return bool
    */
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Endpoint::Connection::Callback callback, const size_t timeout );
+  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::Callback callback, const size_t timeout );
 
   /**
    *  Runs the connection handling processing logic to allow connections to form
    *  between this node and parents/children.
    *
    *	@param[in]	obj         The network driver instance to utilize
-   *	@param[in]	frame       The frame that was received
-   *	@param[in]	type        The frame type, which drives processing flow
+   *	@param[in]	frame       The frame that was received (optional)
    *	@return void
    */
-  void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, const HeaderMessage type );
+  void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame );
 
 }    // namespace RF24::Network::Internal::Processes
 

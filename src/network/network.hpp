@@ -53,15 +53,13 @@ namespace RF24::Network
     Driver();
     ~Driver();
 
-    bool requestAccessKey( size_t &key ) final override;
-    void releaseAccessKey( const size_t key ) final override;
-
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
     Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) override;
     Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
     Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
-    HeaderMessage updateRX( const size_t key ) override;
-    void updateTX( const size_t key ) final override;
+    HeaderMessage updateRX() override;
+    void updateTX() final override;
+    void pollNetStack() final override;
     bool available() final override;
     bool peek( Frame::FrameType &frame ) final override;
     bool read( Frame::FrameType &frame ) final override;
@@ -74,6 +72,18 @@ namespace RF24::Network
     void setNodeAddress( const LogicalAddress address ) final override;
     LogicalAddress thisNode() final override;
     bool isConnectedTo( const LogicalAddress address ) final override;
+
+    /*------------------------------------------------
+    Data Getters
+    ------------------------------------------------*/
+    bool connectionsInProgress() final override;
+    Internal::Processes::Connection::ControlBlock &getConnection( const ConnectionId id ) final override;
+    Internal::Processes::Connection::ControlBlockList &getConnectionList() final override;
+
+    /*------------------------------------------------
+    Data Setters
+    ------------------------------------------------*/
+    void setConnectionInProgress( const ConnectionId id, const bool enabled ) final override;
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -102,15 +112,6 @@ namespace RF24::Network
      */
     void toggleMulticastRelay( const bool state );
 
-    /**
-     *	Checks if the given address is registered directly with this network. This could be as
-     *  either a parent or a child
-     *
-     *	@param[in]	toCheck   The address to check
-     *	@return bool
-     */
-    bool isConnectedTo( const LogicalAddress toCheck ) final override;
-
   protected:
     friend Interface_sPtr createShared( const RF24::Network::Config &cfg );
     friend Interface_uPtr createUnique( const RF24::Network::Config &cfg );
@@ -137,7 +138,7 @@ namespace RF24::Network
     Hardware::PipeNumber getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source );
 
   private:
-    size_t mAccessKey;
+    size_t mConnectionsInProgress;
 
     bool mInitialized;
     bool mReturnSystemMessages;
@@ -148,6 +149,8 @@ namespace RF24::Network
     RF24::Network::Queue::ManagedFIFO mRXQueue;
     Internal::NodeConnections mRouteTable;
     uLog::SinkHandle mLogger;
+
+    Internal::Processes::Connection::ControlBlockList mConnectionList;
 
     void enqueueRXPacket( Frame::FrameType &frame );
     void enqueueTXPacket( Frame::FrameType &frame );

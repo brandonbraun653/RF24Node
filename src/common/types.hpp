@@ -43,6 +43,24 @@ namespace RF24
     MSG_RX
   };
 
+  namespace Connection
+  {
+    enum class Result
+    {
+      CONNECTION_UNKNOWN, /**< Something happened but it was not known how to be handled */
+      CONNECTION_SUCCESS, /**< The connection to the node succeeded */
+      CONNECTION_FAILED,  /**< The connection to the node failed for some reason */
+      CONNECTION_TIMEOUT, /**< The connection to the node timed out */
+    };
+
+    /**
+     *	Defines a callback for the user to have invoked
+     *	
+     *	@param[in]  result    Whether or not the connection succeeded
+     *	@return void
+     */
+    using Callback = void(*)(const Result result);
+  }
 
 }    // namespace RF24
 

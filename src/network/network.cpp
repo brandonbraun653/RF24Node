@@ -61,35 +61,21 @@ namespace RF24::Network
     mReturnSystemMessages = false;
     mMulticastRelay       = false;
     mLastTxTime           = 0;
-    mAccessKey            = 0;
+    mConnectionsInProgress = 0;
+
+    /*------------------------------------------------
+    Initialize the connection tracker with the proper data
+    ------------------------------------------------*/
+    for ( size_t x = 0; x < mConnectionList.size(); x++ )
+    {
+      mConnectionList[ x ] = {};
+      mConnectionList[ x ].connectId = static_cast<ConnectionId>( x );
+    }
   }
 
   Driver::~Driver()
   {
   }
-
-  bool Driver::requestAccessKey( size_t &key )
-  {
-    if ( mAccessKey == 0 )
-    {
-      mAccessKey = 32;
-      key = 32;
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-
-  void Driver::releaseAccessKey( const size_t key )
-  {
-    if ( key == mAccessKey )
-    {
-      mAccessKey = 0;
-    }
-  }
-
 
   Chimera::Status_t Driver::attachLogger( uLog::SinkHandle sink )
   {
@@ -137,7 +123,7 @@ namespace RF24::Network
     return configResult;
   }
 
-  RF24::Network::HeaderMessage Driver::updateRX( const size_t key )
+  RF24::Network::HeaderMessage Driver::updateRX()
   {
     if ( !mInitialized )
     {
@@ -158,11 +144,6 @@ namespace RF24::Network
     ------------------------------------------------*/
     while ( pipe < RF24::Hardware::PIPE_NUM_MAX )
     {
-      if constexpr ( DBG_LOG_NET_TRACE )
-      {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet from pipe %d\n", Chimera::millis(), pipe );
-      }
-
       /*------------------------------------------------
       Get the raw data and validate that CRC
       ------------------------------------------------*/
@@ -187,6 +168,12 @@ namespace RF24::Network
       Assuming the frame is valid, handle the message appropriately
       ------------------------------------------------*/
       auto frame = Frame::FrameType( buffer );
+
+      if constexpr ( DBG_LOG_NET_TRACE )
+      {
+        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet of type [%d] from pipe %d\n", Chimera::millis(), frame.getType(), pipe );
+      }
+
       if ( frame.getDst() == mRouteTable.getCentralNode().getLogicalAddress() )
       {
         sysMsg = handleDestination( frame );
@@ -205,7 +192,7 @@ namespace RF24::Network
     return sysMsg;
   }
 
-  void Driver::updateTX(const size_t key)
+  void Driver::updateTX()
   {
     bool writeSuccess = false;
 
@@ -263,6 +250,25 @@ namespace RF24::Network
       }
     }
 
+  }
+
+  void Driver::pollNetStack()
+  {
+    using namespace Internal::Processes;
+
+    /*------------------------------------------------
+    Receive/Transmit any queued data first
+    ------------------------------------------------*/
+    updateRX();
+    updateTX();
+    
+    /*------------------------------------------------
+    Process any ongoing connections if running
+    ------------------------------------------------*/
+    if ( connectionsInProgress() )
+    {
+      Connection::run( *this, nullptr );
+    }
   }
 
   bool Driver::available()
@@ -355,6 +361,45 @@ namespace RF24::Network
 
     return false;
   }
+
+
+  /*------------------------------------------------
+  Data Getters
+  ------------------------------------------------*/
+  bool Driver::connectionsInProgress()
+  {
+    return static_cast<bool>( mConnectionsInProgress );
+  }
+
+  Internal::Processes::Connection::ControlBlock &Driver::getConnection( const ConnectionId id )
+  {
+    return mConnectionList[ id ];
+  }
+
+  Internal::Processes::Connection::ControlBlockList &Driver::getConnectionList()
+  {
+    return mConnectionList;
+  }
+
+  /*------------------------------------------------
+  Data Setters
+  ------------------------------------------------*/
+  void Driver::setConnectionInProgress( const ConnectionId id, const bool enabled )
+  {
+    if ( enabled )
+    {
+      mConnectionsInProgress |= ( 1u << id );
+    }
+    else
+    {
+      mConnectionsInProgress &= ~( 1u << id );
+    }
+  }
+
+
+
+
+
 
   bool Driver::isDescendantOfRegisteredChild( const LogicalAddress toCheck, LogicalAddress &which )
   {
@@ -461,7 +506,7 @@ namespace RF24::Network
       case MSG_NET_REQUEST_BIND:
       case MSG_NET_REQUEST_BIND_ACK:
       case MSG_NET_REQUEST_BIND_NACK:
-        Internal::Processes::runConnection( *this, frame, message );
+        Internal::Processes::Connection::run( *this, &frame );
         break;
       
       default:

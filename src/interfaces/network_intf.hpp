@@ -19,6 +19,7 @@
 #include <uLog/types.hpp>
 
 /* RF24 Includes */
+#include <RF24Node/common>
 #include <RF24Node/src/hardware/types.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/types.hpp>
@@ -28,6 +29,50 @@
 
 namespace RF24::Network
 {
+  namespace Internal::Processes::Connection
+  {
+    enum class State
+    {
+      CONNECT_IDLE,
+      CONNECT_REQUEST,
+      CONNECT_REQUEST_RETRY,
+      CONNECT_WAIT_FOR_BIND_PARENT_RESPONSE,
+      CONNECT_WAIT_FOR_CHILD_NODE_ACK,
+      CONNECT_SEND_RESPONSE,
+      CONNECT_RESPONSE_ACK,
+      CONNECT_SUCCESS,
+      CONNECT_TERMINATE,
+      CONNECT_TIMEOUT,
+      CONNECT_EXIT_LOOP
+    };
+
+    struct ControlBlock
+    {
+      ConnectionId connectId;
+      RF24::LogicalAddress connectTo;
+      RF24::LogicalAddress connectFrom;
+      State currentState;
+      State previousState;
+      RF24::Connection::Callback onEventCallback;
+      size_t startTime;
+      size_t timeout;
+
+      ControlBlock()
+      {
+        connectId       = CONNECTION_FIRST;
+        connectTo       = RF24::Network::RSVD_ADDR_INVALID;
+        connectFrom     = RF24::Network::RSVD_ADDR_INVALID;
+        currentState    = State::CONNECT_IDLE;
+        previousState   = State::CONNECT_IDLE;
+        onEventCallback = nullptr;
+        startTime       = 0;
+        timeout         = 0;
+      }
+    };
+
+    using ControlBlockList = std::array<ControlBlock, MAX_CONNECTIONS>;
+  }
+
   class Interface;
   using Interface_sPtr = std::shared_ptr<Interface>;
   using Interface_uPtr = std::unique_ptr<Interface>;
@@ -36,9 +81,6 @@ namespace RF24::Network
   {
   public:
     virtual ~Interface() = default;
-
-    virtual bool requestAccessKey( size_t &key ) = 0;
-    virtual void releaseAccessKey( const size_t key ) = 0;
 
     /**
      *	Attaches a logging instance to the class so that we can log network
@@ -83,7 +125,7 @@ namespace RF24::Network
      *  @warning  Must be called regularly to handle data in a timely manner
      *  @return HeaderMessage
      */
-    virtual HeaderMessage updateRX( const size_t key ) = 0;
+    virtual HeaderMessage updateRX() = 0;
 
     /**
      *	Runs the TX half of the network processing stack
@@ -91,7 +133,15 @@ namespace RF24::Network
      *  @warning  Must be called regularly to handle data in a timely manner
      *	@return void
      */
-    virtual void updateTX( const size_t key ) = 0;
+    virtual void updateTX() = 0;
+
+    /**
+     *	Similar to Boost AsyncIO's pollOnce(), this function will poll the network
+     *  stack and do any work immediately available in the queue, then return.
+     *	
+     *	@return void
+     */
+    virtual void pollNetStack() = 0;
 
     /**
      *  Check whether a frame is available for this node.
@@ -100,6 +150,9 @@ namespace RF24::Network
      */
     virtual bool available() = 0;
 
+    /*------------------------------------------------
+    Actions
+    ------------------------------------------------*/
     /**
      *  Peeks the next available frame if it exists.
      *
@@ -173,6 +226,22 @@ namespace RF24::Network
      *	@return bool
      */
     virtual bool isConnectedTo( const LogicalAddress toCheck ) = 0;
+
+
+    /*------------------------------------------------
+    Data Getters
+    ------------------------------------------------*/
+    virtual bool connectionsInProgress() = 0;
+
+    virtual Internal::Processes::Connection::ControlBlock &getConnection( const ConnectionId id ) = 0;
+
+    virtual Internal::Processes::Connection::ControlBlockList &getConnectionList() = 0;
+
+
+    /*------------------------------------------------
+    Data Setters
+    ------------------------------------------------*/
+    virtual void setConnectionInProgress( const ConnectionId id, const bool enabled ) = 0;
 
   protected:
     /**
