@@ -1,0 +1,17 @@
+/********************************************************************************
+ *  File Name:
+ *    mock
+ * 
+ *  Description:
+ *    RF24 Node Mock
+ * 
+ *  2020 | Brandon Braun | brandonbraun653@gmail.com
+ ********************************************************************************/
+
+#pragma once
+#ifndef RF24_NODE_MOCK_INCLUDES
+#define RF24_NODE_MOCK_INCLUDES
+
+#include <RF24Node/src/physical/mock/physical_mock.hpp>
+
+#endif /* !RF24_NODE_MOCK_INCLUDES */

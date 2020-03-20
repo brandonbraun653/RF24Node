@@ -42,7 +42,13 @@ namespace RF24::Network::Frame
     memcpy( &mData, &rawFrame, sizeof( PackedData ) );
   }
 
-  FrameType::~FrameType(){};
+  FrameType::~FrameType(){}
+
+  void FrameType::operator=( const FrameType &&frame ) noexcept
+  {
+    mStaleCRC = true;
+    memcpy( &mData, &frame.mData, sizeof( PackedData ) );
+  }
 
   void FrameType::operator=( const Buffer &buffer )
   {

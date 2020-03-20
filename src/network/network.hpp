@@ -53,15 +53,13 @@ namespace RF24::Network
     Driver();
     ~Driver();
 
-    bool requestAccessKey( size_t &key ) final override;
-    void releaseAccessKey( const size_t key ) final override;
-
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
     Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) override;
     Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
     Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
-    HeaderMessage updateRX( const size_t key ) override;
-    void updateTX( const size_t key ) final override;
+    HeaderMessage updateRX() override;
+    void updateTX() final override;
+    void pollNetStack() final override;
     bool available() final override;
     bool peek( Frame::FrameType &frame ) final override;
     bool read( Frame::FrameType &frame ) final override;
@@ -74,6 +72,24 @@ namespace RF24::Network
     void setNodeAddress( const LogicalAddress address ) final override;
     LogicalAddress thisNode() final override;
     bool isConnectedTo( const LogicalAddress address ) final override;
+
+    /*------------------------------------------------
+    Data Getters
+    ------------------------------------------------*/
+    bool connectionsInProgress() final override;
+    Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) final override;
+    Internal::Processes::Connection::ControlBlockList &getConnectionList() final override;
+
+    /*------------------------------------------------
+    Data Setters
+    ------------------------------------------------*/
+    void setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled ) final override;
+
+    /*------------------------------------------------
+    Callbacks
+    ------------------------------------------------*/
+    void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) final override;
+
 
     /**
      * Determines whether update() will return after the radio buffers have been emptied (DEFAULT), or
@@ -120,7 +136,7 @@ namespace RF24::Network
 
     /**
      *	Computes the destination pipe for a given transfer
-     *	
+     *
      *	@param[in]	destination     The node receiving the data
      *	@param[in]	source          The node sending the data
      *	@return RF24::Hardware::PipeNumber
@@ -128,17 +144,19 @@ namespace RF24::Network
     Hardware::PipeNumber getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source );
 
   private:
-    size_t mAccessKey;
+    size_t mConnectionsInProgress;
 
     bool mInitialized;
     bool mReturnSystemMessages;
     bool mMulticastRelay;
     size_t mLastTxTime;
-    RF24::Physical::Interface_sPtr mPhysicalDriver; 
+    RF24::Physical::Interface_sPtr mPhysicalDriver;
     RF24::Network::Queue::ManagedFIFO mTXQueue;
     RF24::Network::Queue::ManagedFIFO mRXQueue;
     Internal::NodeConnections mRouteTable;
     uLog::SinkHandle mLogger;
+
+    Internal::Processes::Connection::ControlBlockList mConnectionList;
 
     void enqueueRXPacket( Frame::FrameType &frame );
     void enqueueTXPacket( Frame::FrameType &frame );

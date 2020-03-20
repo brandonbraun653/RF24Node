@@ -3,9 +3,9 @@
  *    physical_intf.hpp
  *
  *  Description:
+ *    Interface describing the physical layer interactions of the RF24 driver.
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once

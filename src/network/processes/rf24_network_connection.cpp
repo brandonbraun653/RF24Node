@@ -10,101 +10,57 @@
 
 /* RF24 Includes */
 #include <RF24Node/common>
-#include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/processes/rf24_network_connection.hpp>
 #include <RF24Node/src/network/processes/rf24_network_connection_internal.hpp>
 
 namespace RF24::Network::Internal::Processes::Connection
 {
-  enum class State
-  {
-    CONNECT_IDLE,
-    CONNECT_REQUEST,
-    CONNECT_WAIT_FOR_RESPONSE,
-    CONNECT_RESPONSE,
-    CONNECT_SUCCESS,
-    CONNECT_TERMINATE,
-    CONNECT_EXIT_LOOP
-  };
-
-  struct ControlBlock
-  {
-    State currentState;
-    RF24::Endpoint::Connection::Callback onEventCallback;
-    size_t timeout;
-
-    ControlBlock()
-    {
-      currentState = State::CONNECT_IDLE;
-      onEventCallback = nullptr;
-      timeout = 0;
-    }
-  };
-
-  static bool s_process_initialized;
-  static ControlBlock s_system_connections[ RF24::Network::MAX_CONNECTIONS ];
-
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Endpoint::Connection::Callback callback, const size_t timeout )
+  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback,
+              const size_t timeout )
   {
     /*------------------------------------------------
     Startup conditions
     ------------------------------------------------*/
-    if ( !s_process_initialized )
-    {
-      init();
-    }
-    else if ( !isAddressValid( node ) || !timeout || !callback )
+    if ( !isAddressValid( node ) || !timeout || !callback )
     {
       return false;
     }
     else if ( obj.isConnectedTo( node ) )
     {
       // Already registered, awesome!
-      callback( RF24::Endpoint::Connection::Result::CONNECTION_SUCCESS );
+      callback( RF24::Connection::Result::CONNECTION_SUCCESS, RF24::Connection::BindSite::INVALID );
       return true;
     }
 
     /*------------------------------------------------
-    Process the connection request to see if we can fit it in
+    Process the connection request only if the node is
+    a direct parent || a direct child.
     ------------------------------------------------*/
-    auto thisNode = obj.thisNode();
+    auto thisNode                    = obj.thisNode();
+    auto connectToParent             = isDirectDescendent( node, thisNode );
+    auto connectToChild              = isDirectDescendent( thisNode, node );
+    ControlBlockList &connectionList = obj.getConnectionList();
 
-    if ( isDirectDescendent( node, thisNode ) )
+    if ( connectToParent || connectToChild )
     {
-      /*------------------------------------------------
-      Register the connection request as thisNode->parent
-      ------------------------------------------------*/
-      s_system_connections[ CONNECTION_PARENT ].currentState = State::CONNECT_REQUEST;
-      s_system_connections[ CONNECTION_PARENT ].onEventCallback = callback;
-      s_system_connections[ CONNECTION_PARENT ].timeout = timeout;
-    }
-    else if ( isDirectDescendent( thisNode, node ) )
-    {
-      /*------------------------------------------------
-      Great! We know it's a child...which one? Thankfully the last number
-      in the node's address is equal to the child number of it's parent.
-      ------------------------------------------------*/
-      auto level = getIdAtLevel( node, getLevel( node ) );
-      auto childId = ConnectionId::CONNECTION_PARENT;
+      auto connectID = getDirectConnectionID( node );
+      auto index     = static_cast<size_t>( connectID );
 
-      if ( ConnectionId::CONNECTION_CHILD_1 <= level <= ConnectionId::CONNECTION_CHILD_5 )
-      {
-        childId = static_cast<ConnectionId>( level );
-      }
-      else
-      {
-        return false;
-      }
+      connectionList[ index ].bindId             = connectID;
+      connectionList[ index ].connectToAddress   = ( connectToParent ? node : thisNode );
+      connectionList[ index ].connectFromAddress = ( connectToParent ? thisNode : node );
+      connectionList[ index ].currentState       = State::CONNECT_REQUEST;
+      connectionList[ index ].onConnectComplete  = callback;
+      connectionList[ index ].lastEventTime      = Chimera::millis();
+      connectionList[ index ].processTimeout     = timeout;
+      connectionList[ index ].startTime          = Chimera::millis();
 
-      /*------------------------------------------------
-      Register the connection request as child->thisNode
-      ------------------------------------------------*/
-      s_system_connections[ childId ].currentState = State::CONNECT_REQUEST;
-      s_system_connections[ childId ].onEventCallback = callback;
-      s_system_connections[ childId ].timeout = timeout;
+      obj.setConnectionInProgress( connectID, true );
+
+      return true;
     }
-    
+
     /*------------------------------------------------
     Fall-through condition. If we get here, the desired node
     to connect with didn't have a direct relationship in the tree.
@@ -112,85 +68,284 @@ namespace RF24::Network::Internal::Processes::Connection
     return false;
   }
 
-  void run( ::RF24::Network::Interface& obj, ::RF24::Network::Frame::FrameType& frame, const HeaderMessage type )
+  void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame )
   {
-    /*------------------------------------------------
-    Ensure the process has been initialized properly
-    ------------------------------------------------*/
-    if ( !s_process_initialized )
-    {
-      init();
-    }
-
     /*------------------------------------------------
     Handle the message appropriately
     ------------------------------------------------*/
-    switch ( type )
+    ControlBlockList &connectionList = obj.getConnectionList();
+    for ( ControlBlock &connection : connectionList )
     {
-      case MSG_NET_REQUEST_BIND:
-        requestHandler( obj, frame );
+      /*------------------------------------------------
+      Handle processing states/events where this node is receiving data
+      ------------------------------------------------*/
+      if ( frame && ( frame->getDst() == obj.thisNode() ) )
+      {
+        switch ( frame->getType() )
+        {
+          case MSG_NET_REQUEST_BIND:
+            requestHandler( obj, *frame, connection );
+            break;
+
+          case MSG_NET_REQUEST_BIND_ACK:
+            ackHandler( obj, *frame, connection );
+            break;
+
+          case MSG_NET_REQUEST_BIND_NACK:
+            nackHandler( obj, *frame, connection );
+            break;
+
+          default:
+            break;
+        }
+      }
+
+      
+      /*------------------------------------------------
+      Handle high level process timeout behavior
+      ------------------------------------------------*/
+      auto deltaT = Chimera::millis() - connection.lastEventTime;
+      if ( ( deltaT > connection.processTimeout ) && ( connection.currentState != State::CONNECT_IDLE ) )
+      {
+        connection.currentState = State::CONNECT_TIMEOUT;
+      }
+
+      /*------------------------------------------------
+      Handle processing states where this node takes action of some kind
+      ------------------------------------------------*/
+      switch ( connection.currentState )
+      {
+        case State::CONNECT_IDLE:
+          continue;
+          break;
+
+        /*------------------------------------------------
+        Handles making a connection request from this node
+        to another node on the network
+        ------------------------------------------------*/
+        case State::CONNECT_REQUEST:
+          connection.frameCache.setDst( connection.connectToAddress );
+          connection.frameCache.setSrc( connection.connectFromAddress );
+          connection.frameCache.setType( Network::MSG_NET_REQUEST_BIND );
+          connection.frameCache.setPayload( nullptr, 0 );
+
+          obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+
+          connection.lastEventTime = Chimera::millis();
+          connection.connectAttempts += 1;
+          connection.currentState = State::CONNECT_WAIT_FOR_PARENT_RESPONSE;
+          break;
+
+        /*------------------------------------------------
+        Handles timeout and retransmit operations when the sending 
+        node is waiting on the receiver to send something back
+        ------------------------------------------------*/
+        case State::CONNECT_WAIT_FOR_CHILD_ACK:
+        case State::CONNECT_WAIT_FOR_PARENT_RESPONSE:
+          /*------------------------------------------------
+          We've spent too long waiting for the other node to respond
+          ------------------------------------------------*/
+          if ( deltaT > connection.netTimeout )
+          {
+            /*------------------------------------------------
+            Try and send the last packet again if we can, otherwise just fail out
+            ------------------------------------------------*/
+            if( connection.connectAttempts < connection.maxAttempts )
+            {
+              obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+
+              connection.lastEventTime = Chimera::millis();
+              connection.connectAttempts += 1;
+            }
+            else
+            {
+              connection.currentState = State::CONNECT_TERMINATE;
+              connection.result       = RF24::Connection::Result::CONNECTION_NO_RESPONSE;
+            }
+          }
+          break;
+
+        /*------------------------------------------------
+        The process timed out
+        ------------------------------------------------*/
+        case State::CONNECT_TIMEOUT:
+          connection.result       = RF24::Connection::Result::CONNECTION_TIMEOUT;
+          connection.currentState = State::CONNECT_TERMINATE;
+          break;
+
+        /*------------------------------------------------
+        Handle the various process exit conditions
+        ------------------------------------------------*/
+        case State::CONNECT_SUCCESS_DIRECT:    // Child's perspective
+        case State::CONNECT_SUCCESS_ASYNC:     // Parent's perspective
+        case State::CONNECT_TERMINATE: {       // Parent or Child perspective    
+          /*------------------------------------------------
+          Inform the user that the connection completed
+          ------------------------------------------------*/
+          if ( connection.onConnectComplete )
+          {
+            connection.onConnectComplete( connection.result, connection.bindId );
+          }
+
+          /*------------------------------------------------
+          Reset the tracking block information to defaults
+          ------------------------------------------------*/
+          auto cachedId = connection.bindId;
+
+          obj.setConnectionInProgress( cachedId, false );
+          connection        = {};
+          connection.bindId = cachedId;
+          break;
+        }
+
+        default:
+          break;
+      }
+    }
+  }
+
+  void requestHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
+  {
+    /*------------------------------------------------
+    Input & state protection
+    ------------------------------------------------*/
+    auto connectTo = getDirectConnectionID( frame.getSrc() );
+    if ( connectTo != connection.bindId )
+    {
+      /*------------------------------------------------
+      The node that's trying to connect doesn't match this
+      particular control block, so don't continue.
+      ------------------------------------------------*/
+      return;
+    }
+    else if ( connection.currentState != State::CONNECT_IDLE )
+    {
+      /*------------------------------------------------
+      The connection is in the process of doing something else, so
+      we can't allow the requesting node to start a connection.
+      ------------------------------------------------*/
+      buildNackPacket( obj, frame );
+      obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
+      return;
+    }
+
+    /*------------------------------------------------
+    Try and bind the requesting node into the network
+    ------------------------------------------------*/
+    auto childToBind = frame.getSrc();
+    if ( obj.updateRouteTable( childToBind ) )
+    {
+      buildAckPacket( obj, frame );
+      connection.connectToAddress   = childToBind;
+      connection.connectFromAddress = obj.thisNode();
+
+      obj.setConnectionInProgress( connection.bindId, true );
+    }
+    else
+    {
+      buildNackPacket( obj, frame );
+    }
+
+    /*------------------------------------------------
+    Inform the binding node of the result and transition
+    to waiting for their acknowledgment
+    ------------------------------------------------*/
+    connection.frameCache = frame;
+    obj.write( connection.frameCache, RF24::Network::RoutingStyle::ROUTE_DIRECT );
+    connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
+  }
+
+  void ackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
+  {
+    /*------------------------------------------------
+    If this particular connection control block isn't
+    the intended handler of the frame, exit early.
+    ------------------------------------------------*/
+    if ( frame.getSrc() != connection.connectToAddress )
+    {
+      return;
+    }
+
+    /*------------------------------------------------
+    Otherwise process the ACK according to the node type
+    ------------------------------------------------*/
+    switch ( connection.currentState )
+    {
+      /*------------------------------------------------
+      Child Node Perspective: The parent sent some kind
+      of response to us in regards to the bind request.
+      ------------------------------------------------*/
+      case State::CONNECT_WAIT_FOR_PARENT_RESPONSE:
+        if ( frame.getType() == Network::HeaderMessage::MSG_NET_REQUEST_BIND_ACK )
+        {
+          connection.currentState = State::CONNECT_SUCCESS_DIRECT;
+          connection.result       = RF24::Connection::Result::CONNECTION_SUCCESS;
+        }
+        else
+        {
+          connection.currentState = State::CONNECT_TERMINATE;
+          connection.result       = RF24::Connection::Result::CONNECTION_FAILED;
+        }
+
+        /*------------------------------------------------
+        Let the parent know we received the message
+        ------------------------------------------------*/
+        buildAckPacket( obj, frame );
+
+        connection.frameCache = frame;
+        obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
         break;
 
-      case MSG_NET_REQUEST_BIND_ACK:
-        ackHandler( obj, frame );
-        break;
-
-      case MSG_NET_REQUEST_BIND_NACK:
-        nackHandler( obj, frame );
+      /*------------------------------------------------
+      Parent Node Perspective: The child binding to us has
+      just acknowledged the bind status we sent them.
+      ------------------------------------------------*/
+      case State::CONNECT_WAIT_FOR_CHILD_ACK:
+        connection.currentState = State::CONNECT_SUCCESS_ASYNC;
+        connection.result       = RF24::Connection::Result::CONNECTION_BOUND;
         break;
 
       default:
+        return;
         break;
     }
   }
 
-  void init()
+  void nackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
-    /*------------------------------------------------
-    Initialize the process memory to defaults
-    ------------------------------------------------*/
-    for ( auto& item : s_system_connections )
-    {
-      item = {};
-    }
-
-    s_process_initialized = true;
   }
 
-  void requestHandler( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
+  RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address )
   {
-    /*------------------------------------------------
-    Repurpose the existing frame for the response
-    ------------------------------------------------*/
+    using namespace RF24::Connection;
+
+    // Can explicitly convert the pipe identifier (id at level) to a BindSite
+    auto level = static_cast<BindSite>( getIdAtLevel( address, getLevel( address ) ) );
+    auto id    = BindSite::PARENT;
+
+    if ( ( BindSite::CHILD_1 <= level ) && ( level <= BindSite::CHILD_5 ) )
+    {
+      id =  level;
+    }
+
+    return id;
+  }
+
+  void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame )
+  {
     auto cachedSrc = frame.getSrc();
     frame.setSrc( obj.thisNode() );
     frame.setDst( cachedSrc );
     frame.setType( Network::MSG_NET_REQUEST_BIND_NACK );
     frame.setPayload( nullptr, 0 );
-
-    /*------------------------------------------------
-    This will only update if the source address is a direct descendant
-    ------------------------------------------------*/
-    if ( obj.updateRouteTable( cachedSrc ) )
-    {
-      frame.setType( Network::MSG_NET_REQUEST_BIND_ACK );
-    }
-
-    /*------------------------------------------------
-    Send the response back using direct routing because only bind requests
-    from immediate children are allowed. Perhaps in the future virtual
-    paths will be allowed, but that's currently not the case.
-    ------------------------------------------------*/
-    obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
   }
-  
-  void ackHandler( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
+
+  void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame )
   {
-  
+    auto cachedSrc = frame.getSrc();
+    frame.setSrc( obj.thisNode() );
+    frame.setDst( cachedSrc );
+    frame.setType( Network::MSG_NET_REQUEST_BIND_ACK );
+    frame.setPayload( nullptr, 0 );
   }
-
-  void nackHandler( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
-  {
-  
-  }
-}
+}    // namespace RF24::Network::Internal::Processes::Connection

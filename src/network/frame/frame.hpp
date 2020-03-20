@@ -91,6 +91,7 @@ namespace RF24::Network::Frame
     FrameType( const FrameType &frame );
     FrameType( const PackedData &rawFrame );
 
+    void operator=( const FrameType &&frame ) noexcept;
     void operator=( const Buffer &buffer );
     void operator=( const FrameType &frame );
     void operator=( const PackedData &rawFrame );

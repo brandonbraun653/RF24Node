@@ -152,7 +152,7 @@ namespace RF24::Endpoint
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Device::connect( Connection::Callback callback, const size_t timeout )
+  Chimera::Status_t Device::connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
     /*------------------------------------------------
     Make sure someone can't interrupt us
@@ -248,8 +248,7 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::processNetworking()
   {
-    mNetworkDriver->updateRX(0);
-    mNetworkDriver->updateTX(0);
+    mNetworkDriver->pollNetStack();
     return Chimera::CommonStatusCodes::OK;
   }
 

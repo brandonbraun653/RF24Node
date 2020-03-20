@@ -14,6 +14,7 @@
 #include <limits>
 
 /* Driver Includes */
+#include <RF24Node/common>
 #include <RF24Node/src/hardware/definitions.hpp>
 #include <RF24Node/src/hardware/driver.hpp>
 #include <RF24Node/src/hardware/register.hpp>
@@ -28,7 +29,7 @@
 
 namespace RF24::Physical
 {
-  Interface_sPtr createShared( const RF24::Physical::Config &cfg )
+  Interface_sPtr createShared(  const RF24::Physical::Config &cfg )
   {
     HardwareDriver_sPtr temp = std::make_shared<HardwareDriver>();
     temp->initialize( cfg );
@@ -36,13 +37,14 @@ namespace RF24::Physical
     return temp;
   }
 
-  Interface_uPtr createUnique( const RF24::Physical::Config &cfg )
+  Interface_uPtr createUnique(  const RF24::Physical::Config &cfg )
   {
     HardwareDriver_uPtr temp = std::make_unique<HardwareDriver>();
     temp->initialize( cfg );
 
     return std::move( temp );
   }
+
 
   HardwareDriver::HardwareDriver()
   {
@@ -79,7 +81,7 @@ namespace RF24::Physical
     /*------------------------------------------------
     Initialize the low level hardware driver
     ------------------------------------------------*/
-    if ( !mHWDriver ) 
+    if ( !mHWDriver )
     {
       mHWDriver = std::make_shared<RF24::Hardware::Driver>();
     }
@@ -558,7 +560,6 @@ namespace RF24::Physical
     using namespace RF24::Hardware;
 
     auto status = mHWDriver->readPayload( buffer.data(), buffer.size(), length );
-    logger->flog(uLog::Level::LVL_INFO, "%d-PHY: RX packet of length [%d]\n", Chimera::millis(), length );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1
@@ -613,17 +614,16 @@ namespace RF24::Physical
     /*------------------------------------------------
     We're free! Load the data into the FIFO and kick off the transfer
     ------------------------------------------------*/
-    logger->flog(uLog::Level::LVL_INFO, "%d-PHY: TX packet of length [%d]\n", Chimera::millis(), length );
     return startFastWrite( buffer.data(), length, false, false );
   }
 
-  /******************************************************************************************************************** 
+  /********************************************************************************************************************
    *  @copydoc HardwareDriver::startFastWrite(const void*const, const size_t, const bool, const bool)
-   *  
+   *
    *  Copies over the buffer of data into the TX FIFO of the RF24 device. IF desired, will optionally enable
-   *  an ACK request from the receiver just for this transfer and then start the transfer. This is a pretty low level 
+   *  an ACK request from the receiver just for this transfer and then start the transfer. This is a pretty low level
    *  function that requires a fair amount of setup before use.
-   *  
+   *
    *******************************************************************************************************************/
   Chimera::Status_t HardwareDriver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
                                                     const bool startTX )
