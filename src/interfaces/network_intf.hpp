@@ -76,17 +76,48 @@ namespace RF24::Network
       State currentState;
 
       /**
-       *  System time (in milliseconds) on the child node when the
-       *  connection process actually began.
+       *  System time (in milliseconds) when the bind process started
+       *  
+       *  @note Child parameter only
        */
       size_t startTime;
+
+      /**
+       *  System time (in milliseconds) when the last event "X" started
+       */
+      size_t lastEventTime;
+
+      /**
+       *  How many attempts have been made to make a connection to another node
+       *  
+       *  @note Child parameter only
+       */
+      uint8_t connectAttempts;
+
+      /**
+       *  Maximum number of attempts that can be made to connect before exiting
+       *  
+       *  @note Child parameter only
+       */
+      uint8_t maxAttempts;
 
       /**
        *  User requested timeout on the connection operation. Typically this
        *  is from the child node's perspective as the parent's functionality
        *  tends to be more temporally fluid.
        */
-      size_t timeout;
+      size_t processTimeout;
+
+      /**
+       *  Internal timeout of how long to wait for a response from the other node 
+       *  before either exiting the process or retrying a transmission.
+       */
+      size_t netTimeout;
+
+      /**
+       *  Result of the connection attempt
+       */
+      RF24::Connection::Result result;
 
       /**
        *  A callback that is invoked on the child node when a direct connection to a
@@ -104,6 +135,12 @@ namespace RF24::Network
        */
       RF24::Connection::OnCompleteCallback onConnectComplete;
 
+      /**
+       *  Stores the last transmitted frame in case it needs to be retransmitted
+       *  due to some timeout
+       */
+      RF24::Network::Frame::FrameType frameCache;
+
       ControlBlock()
       {
         bindId             = RF24::Connection::BindSite::FIRST;
@@ -112,7 +149,13 @@ namespace RF24::Network
         currentState       = State::CONNECT_IDLE;
         onConnectComplete  = nullptr;
         startTime          = 0;
-        timeout            = 0;
+        lastEventTime      = 0;
+        connectAttempts    = 0;
+        maxAttempts        = 10;
+        processTimeout     = 60000;    // 60 seconds
+        netTimeout         = 500;      // 100 milliseconds
+        result             = RF24::Connection::Result::CONNECTION_UNKNOWN;
+        frameCache         = {};
       }
     };
 

@@ -52,8 +52,9 @@ namespace RF24::Network::Internal::Processes::Connection
       connectionList[ index ].connectFromAddress = ( connectToParent ? thisNode : node );
       connectionList[ index ].currentState       = State::CONNECT_REQUEST;
       connectionList[ index ].onConnectComplete  = callback;
+      connectionList[ index ].lastEventTime      = Chimera::millis();
+      connectionList[ index ].processTimeout     = timeout;
       connectionList[ index ].startTime          = Chimera::millis();
-      connectionList[ index ].timeout            = timeout;
 
       obj.setConnectionInProgress( connectID, true );
 
@@ -69,11 +70,6 @@ namespace RF24::Network::Internal::Processes::Connection
 
   void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame )
   {
-    /*------------------------------------------------
-    Initialize any variables needed for the algorithm
-    ------------------------------------------------*/
-    RF24::Network::Frame::FrameType tmpFrame;
-
     /*------------------------------------------------
     Handle the message appropriately
     ------------------------------------------------*/
@@ -104,6 +100,17 @@ namespace RF24::Network::Internal::Processes::Connection
         }
       }
 
+      
+      /*------------------------------------------------
+      Handle high level process timeout behavior
+      ------------------------------------------------*/
+      auto deltaT = Chimera::millis() - connection.lastEventTime;
+
+      if ( deltaT > connection.processTimeout )
+      {
+        connection.currentState = State::CONNECT_TIMEOUT;
+      }
+
       /*------------------------------------------------
       Handle processing states where this node takes action of some kind
       ------------------------------------------------*/
@@ -118,39 +125,68 @@ namespace RF24::Network::Internal::Processes::Connection
         to another node on the network
         ------------------------------------------------*/
         case State::CONNECT_REQUEST:
-        case State::CONNECT_REQUEST_RETRY:
-          tmpFrame.setDst( connection.connectToAddress );
-          tmpFrame.setSrc( connection.connectFromAddress );
-          tmpFrame.setType( Network::MSG_NET_REQUEST_BIND );
-          tmpFrame.setPayload( nullptr, 0 );
+          connection.frameCache.setDst( connection.connectToAddress );
+          connection.frameCache.setSrc( connection.connectFromAddress );
+          connection.frameCache.setType( Network::MSG_NET_REQUEST_BIND );
+          connection.frameCache.setPayload( nullptr, 0 );
 
-          obj.write( tmpFrame, Network::RoutingStyle::ROUTE_DIRECT );
+          obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+
+          connection.lastEventTime = Chimera::millis();
+          connection.connectAttempts += 1;
           connection.currentState = State::CONNECT_WAIT_FOR_PARENT_RESPONSE;
           break;
 
         /*------------------------------------------------
-        Either the child's connection attempt to the parent was
-        successful or the parent asynchronously bound a child.
+        Handles timeout and retransmit operations when the sending 
+        node is waiting on the receiver to send something back
         ------------------------------------------------*/
-        case State::CONNECT_SUCCESS_DIRECT:     // Child's perspective
-        case State::CONNECT_SUCCESS_ASYNC: {    // Parent's perspective
+        case State::CONNECT_WAIT_FOR_CHILD_ACK:
+        case State::CONNECT_WAIT_FOR_PARENT_RESPONSE:
+          /*------------------------------------------------
+          We've spent too long waiting for the other node to respond
+          ------------------------------------------------*/
+          if ( deltaT > connection.netTimeout )
+          {
+            /*------------------------------------------------
+            Try and send the last packet again if we can, otherwise just fail out
+            ------------------------------------------------*/
+            if( connection.connectAttempts < connection.maxAttempts )
+            {
+              obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+
+              connection.lastEventTime = Chimera::millis();
+              connection.connectAttempts += 1;
+            }
+            else
+            {
+              connection.currentState = State::CONNECT_TERMINATE;
+              connection.result       = RF24::Connection::Result::CONNECTION_NO_RESPONSE;
+            }
+          }
+          break;
+
+        /*------------------------------------------------
+        The process timed out
+        ------------------------------------------------*/
+        case State::CONNECT_TIMEOUT:
+          connection.result       = RF24::Connection::Result::CONNECTION_TIMEOUT;
+          connection.currentState = State::CONNECT_TERMINATE;
+          break;
+
+        /*------------------------------------------------
+        Handle the various process exit conditions
+        ------------------------------------------------*/
+        case State::CONNECT_SUCCESS_DIRECT:    // Child's perspective
+        case State::CONNECT_SUCCESS_ASYNC:     // Parent's perspective
+        case State::CONNECT_TERMINATE: {       // Parent or Child perspective    
           /*------------------------------------------------
           Inform the user that the connection completed
           ------------------------------------------------*/
           if ( connection.onConnectComplete )
           {
-            if ( connection.currentState == State::CONNECT_SUCCESS_DIRECT )
-            {
-              // Child perspective: The connection to the parent succeeded
-              connection.onConnectComplete( RF24::Connection::Result::CONNECTION_SUCCESS, connection.bindId );
-            }
-            else if ( connection.currentState == State::CONNECT_SUCCESS_ASYNC )
-            {
-              // Parent perspective: A child node just bound to me
-              connection.onConnectComplete( RF24::Connection::Result::CONNECTION_BOUND, connection.bindId );
-            }
+            connection.onConnectComplete( connection.result, connection.bindId );
           }
-          // else no callback was registered
 
           /*------------------------------------------------
           Reset the tracking block information to defaults
@@ -162,14 +198,6 @@ namespace RF24::Network::Internal::Processes::Connection
           connection.bindId = cachedId;
           break;
         }
-
-        case State::CONNECT_TIMEOUT:
-
-          break;
-
-        case State::CONNECT_TERMINATE:
-
-          break;
 
         default:
           break;
@@ -223,7 +251,8 @@ namespace RF24::Network::Internal::Processes::Connection
     Inform the binding node of the result and transition
     to waiting for their acknowledgment
     ------------------------------------------------*/
-    obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
+    connection.frameCache = frame;
+    obj.write( connection.frameCache, RF24::Network::RoutingStyle::ROUTE_DIRECT );
     connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
   }
 
@@ -251,30 +280,31 @@ namespace RF24::Network::Internal::Processes::Connection
         if ( frame.getType() == Network::HeaderMessage::MSG_NET_REQUEST_BIND_ACK )
         {
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
+          connection.result       = RF24::Connection::Result::CONNECTION_SUCCESS;
         }
         else
         {
           connection.currentState = State::CONNECT_TERMINATE;
+          connection.result       = RF24::Connection::Result::CONNECTION_FAILED;
         }
 
         /*------------------------------------------------
         Let the parent know we received the message
         ------------------------------------------------*/
         buildAckPacket( obj, frame );
-        obj.write( frame, Network::RoutingStyle::ROUTE_DIRECT );
+
+        connection.frameCache = frame;
+        obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
         break;
 
       /*------------------------------------------------
       Parent Node Perspective: The child binding to us has
-      just acknowledged the bind status we sent them. The
-      connection process is complete, so reset the handler.
+      just acknowledged the bind status we sent them.
       ------------------------------------------------*/
-      case State::CONNECT_WAIT_FOR_CHILD_ACK: {
-        auto cachedId     = connection.bindId;
-        connection        = {};
-        connection.bindId = cachedId;
+      case State::CONNECT_WAIT_FOR_CHILD_ACK:
+        connection.currentState = State::CONNECT_SUCCESS_ASYNC;
+        connection.result       = RF24::Connection::Result::CONNECTION_BOUND;
         break;
-      }
 
       default:
         return;

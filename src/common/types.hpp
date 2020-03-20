@@ -47,11 +47,12 @@ namespace RF24
   {
     enum class Result
     {
-      CONNECTION_UNKNOWN, /**< Something happened but it was not known how to be handled */
-      CONNECTION_SUCCESS, /**< The connection to the parent node succeeded */
-      CONNECTION_FAILED,  /**< The connection to the parent node failed for some reason */
-      CONNECTION_TIMEOUT, /**< The connection to the parent node timed out */
-      CONNECTION_BOUND,   /**< A child node was bound */
+      CONNECTION_UNKNOWN,     /**< Something happened but it was not known how to be handled */
+      CONNECTION_SUCCESS,     /**< The connection to the parent node succeeded */
+      CONNECTION_FAILED,      /**< The connection to the parent node failed for some reason */
+      CONNECTION_TIMEOUT,     /**< The connection to the parent node timed out */
+      CONNECTION_NO_RESPONSE, /**< The other node did not respond to a packet */
+      CONNECTION_BOUND,       /**< A child node was bound */
     };
     
     enum class BindSite : uint8_t
