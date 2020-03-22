@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\src\common\conversion.hpp" />
     <ClInclude Include="..\..\..\src\common\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\common\environment.hpp" />
     <ClInclude Include="..\..\..\src\common\types.hpp" />
     <ClInclude Include="..\..\..\src\common\utility.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
@@ -55,6 +56,7 @@
     <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp" />
     <ClInclude Include="..\..\..\src\network\queue\queue.hpp" />
     <ClInclude Include="..\..\..\src\network\types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\mock\physical_mock.hpp" />
     <ClInclude Include="..\..\..\src\physical\physical.hpp" />
     <ClInclude Include="..\..\..\src\physical\simulator\pipe.hpp" />
     <ClInclude Include="..\..\..\src\physical\simulator\pipe_types.hpp" />
@@ -72,6 +74,7 @@
     <None Include="..\..\..\src\network\about.md" />
     <None Include="..\..\..\src\network\message" />
     <None Include="..\..\..\src\physical\about.md" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\conversion.cpp" />
@@ -94,6 +97,7 @@
     <ClCompile Include="..\..\..\src\network\processes\rf24_network_connection.cpp" />
     <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp" />
     <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp" />
+    <ClCompile Include="..\..\..\src\physical\mock\physical_mock.cpp" />
     <ClCompile Include="..\..\..\src\physical\physical.cpp" />
     <ClCompile Include="..\..\..\src\physical\simulator\pipe.cpp" />
     <ClCompile Include="..\..\..\src\physical\simulator\shockburst.cpp" />
@@ -247,5 +251,14 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gtest.1.7.0\build\native\gtest.targets" Condition="Exists('..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gtest.1.7.0\build\native\gtest.targets')" />
+    <Import Project="..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gmock.1.10.0\build\native\gmock.targets" Condition="Exists('..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gmock.1.10.0\build\native\gmock.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gtest.1.7.0\build\native\gtest.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gtest.1.7.0\build\native\gtest.targets'))" />
+    <Error Condition="!Exists('..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gmock.1.10.0\build\native\gmock.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\..\dev\VisualStudio\Simulator\NetworkExplorer\packages\gmock.1.10.0\build\native\gmock.targets'))" />
+  </Target>
 </Project>

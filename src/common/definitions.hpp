@@ -62,7 +62,7 @@ namespace RF24
   /*------------------------------------------------
   Master logging On/Off switch
   ------------------------------------------------*/
-  static constexpr bool ENABLE_DBG_LOG = true;
+  static constexpr bool ENABLE_DBG_LOG = false;
 
   /*------------------------------------------------
   Individual layer logging switches

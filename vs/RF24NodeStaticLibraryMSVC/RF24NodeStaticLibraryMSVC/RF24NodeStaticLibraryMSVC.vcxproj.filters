@@ -52,6 +52,9 @@
     <Filter Include="src\network\processes">
       <UniqueIdentifier>{628a72ff-8de0-4689-9965-72c70989314f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\physical\mock">
+      <UniqueIdentifier>{5c57d2ca-2189-427e-9fcd-637faf8f9c8d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\common\conversion.hpp">
@@ -186,6 +189,12 @@
     <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection_internal.hpp">
       <Filter>src\network\processes</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\common\environment.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\mock\physical_mock.hpp">
+      <Filter>src\physical\mock</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hardware\about.md">
@@ -205,6 +214,7 @@
     <None Include="..\..\..\src\network\message">
       <Filter>src\network</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\conversion.cpp">
@@ -278,6 +288,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\network\processes\rf24_network_connection.cpp">
       <Filter>src\network\processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\physical\mock\physical_mock.cpp">
+      <Filter>src\physical\mock</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

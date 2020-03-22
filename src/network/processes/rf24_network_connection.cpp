@@ -105,8 +105,7 @@ namespace RF24::Network::Internal::Processes::Connection
       Handle high level process timeout behavior
       ------------------------------------------------*/
       auto deltaT = Chimera::millis() - connection.lastEventTime;
-
-      if ( deltaT > connection.processTimeout )
+      if ( ( deltaT > connection.processTimeout ) && ( connection.currentState != State::CONNECT_IDLE ) )
       {
         connection.currentState = State::CONNECT_TIMEOUT;
       }

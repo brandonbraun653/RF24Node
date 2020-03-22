@@ -14,6 +14,7 @@
 
 #include <RF24Node/src/common/conversion.hpp>
 #include <RF24Node/src/common/definitions.hpp>
+#include <RF24Node/src/common/environment.hpp>
 #include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/common/utility.hpp>
 
