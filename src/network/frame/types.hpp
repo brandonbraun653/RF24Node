@@ -67,7 +67,7 @@ namespace RF24::Network::Frame
   {
     LogicalAddress dstNode;
     LogicalAddress srcNode;
-    HeaderMessage type;
+    uint8_t type;
   };
 #pragma pack( pop )
 

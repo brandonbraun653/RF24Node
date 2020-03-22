@@ -553,7 +553,13 @@ namespace RF24::Network
                      dst );
     }
 
-    return transferToPipe( physicalAddress, frame.toBuffer(), frame.getPayloadLength(), false );
+    //TODO: Update to use dynamic frame total lengths (maybe)
+    /*------------------------------------------------
+    For the moment, the chinese clones of the RF24 chips won't work with 
+    dynamic payload lengths, so default to the full payload size. 
+    ------------------------------------------------*/
+    auto buffer = frame.toBuffer();
+    return transferToPipe( physicalAddress, buffer, buffer.size(), false );
   }
 
   bool Driver::writeRouted( Frame::FrameType &frame )

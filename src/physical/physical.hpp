@@ -3,16 +3,9 @@
  *    physical.hpp
  *
  *  Description:
- *    Interface to the NRF24L01 radio hardware driver. Originally based upon the work done by James Coliz
- *    (https://github.com/nRF24/RF24). This version expands on the original by adding more modern C++ features, reliability
- *    and safety checks, improved debugging notifications, and more helpful comments to understand how and why things are
- *    done.
+ *    Defines the physical layer interface to the RF24 driver
  *
- *    The hardware SPI driver has been abstracted away and can be driven by either the Chimera HAL
- *    (https://github.com/brandonbraun653/Chimera) or by providing overriding functions of the SPI/GPIO interface as defined
- *    in the class below. This allows the driver to be platform agnostic.
- *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -41,13 +34,20 @@
 
 namespace RF24::Physical
 {
+  Interface_sPtr createShared( const RF24::Physical::Config &cfg );
+  Interface_uPtr createUnique( const RF24::Physical::Config &cfg );
+
+  class HardwareDriver;
+  using HardwareDriver_sPtr = std::shared_ptr<HardwareDriver>;
+  using HardwareDriver_uPtr = std::unique_ptr<HardwareDriver>;
+
   /**
    *  Physical Layer Driver:
    *    Implements the physical layer in the OSI model and is concerned with accurately transmitting
    *    data across the wireless medium. In practice this is a conglomerate of the very low level
    *    hardware driver for the NRF24 and the various logic to configure the device appropriately.
    */
-  class HardwareDriver : public Interface
+  class HardwareDriver : virtual public Interface
   {
   public:
     HardwareDriver();

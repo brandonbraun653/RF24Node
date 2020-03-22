@@ -155,7 +155,7 @@ namespace RF24::Network
         processTimeout     = 60000;    // 60 seconds
         netTimeout         = 500;      // 100 milliseconds
         result             = RF24::Connection::Result::CONNECTION_UNKNOWN;
-        frameCache         = {};
+        frameCache         = RF24::Network::Frame::FrameType();
       }
     };
 

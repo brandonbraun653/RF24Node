@@ -14,6 +14,7 @@
 #include <limits>
 
 /* Driver Includes */
+#include <RF24Node/common>
 #include <RF24Node/src/hardware/definitions.hpp>
 #include <RF24Node/src/hardware/driver.hpp>
 #include <RF24Node/src/hardware/register.hpp>
@@ -28,6 +29,23 @@
 
 namespace RF24::Physical
 {
+  Interface_sPtr createShared(  const RF24::Physical::Config &cfg )
+  {
+    HardwareDriver_sPtr temp = std::make_shared<HardwareDriver>();
+    temp->initialize( cfg );
+
+    return temp;
+  }
+
+  Interface_uPtr createUnique(  const RF24::Physical::Config &cfg )
+  {
+    HardwareDriver_uPtr temp = std::make_unique<HardwareDriver>();
+    temp->initialize( cfg );
+
+    return std::move( temp );
+  }
+  
+
   HardwareDriver::HardwareDriver()
   {
     /*-------------------------------------------------
@@ -542,7 +560,6 @@ namespace RF24::Physical
     using namespace RF24::Hardware;
 
     auto status = mHWDriver->readPayload( buffer.data(), buffer.size(), length );
-    IF_SERIAL_DEBUG( logger->flog(uLog::Level::LVL_INFO, "%d-PHY: RX packet of length [%d]\n", Chimera::millis(), length ); );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1
@@ -597,7 +614,6 @@ namespace RF24::Physical
     /*------------------------------------------------
     We're free! Load the data into the FIFO and kick off the transfer
     ------------------------------------------------*/
-    IF_SERIAL_DEBUG( logger->flog(uLog::Level::LVL_INFO, "%d-PHY: TX packet of length [%d]\n", Chimera::millis(), length ); );
     return startFastWrite( buffer.data(), length, false, false );
   }
 
