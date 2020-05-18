@@ -41,6 +41,12 @@
 
 namespace RF24::Physical
 {
+  Interface_sPtr createShared( const RF24::Physical::Config &cfg );
+  Interface_uPtr createUnique( const RF24::Physical::Config &cfg );
+
+  class HardwareDriver;
+  using HardwareDriver_sPtr = std::shared_ptr<HardwareDriver>;
+  using HardwareDriver_uPtr = std::unique_ptr<HardwareDriver>;
   /**
    *  Physical Layer Driver:
    *    Implements the physical layer in the OSI model and is concerned with accurately transmitting

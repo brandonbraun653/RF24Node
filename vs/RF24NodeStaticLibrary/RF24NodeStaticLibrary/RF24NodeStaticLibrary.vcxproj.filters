@@ -1,220 +1,282 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="endpoint">
-      <UniqueIdentifier>{cfead708-a340-48c7-90ba-a1f4a85e81bb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="common">
-      <UniqueIdentifier>{fa4b0e8c-01e0-4698-8cc0-29646ac32681}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="hardware">
-      <UniqueIdentifier>{afa73a20-e5c3-4278-a294-abeb7cf9c515}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="interfaces">
-      <UniqueIdentifier>{ec4f6769-2ad8-46d3-9177-15f1671a2e02}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="mesh">
-      <UniqueIdentifier>{ecc225f2-31ee-4179-8bb1-aabcb0e2075d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="network">
-      <UniqueIdentifier>{8f5e256e-7934-406b-8487-0d74b461b055}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="physical">
-      <UniqueIdentifier>{420e6489-ed6d-49ce-9fa8-52ad53245d6f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="simulator">
-      <UniqueIdentifier>{d8ea0e9a-5078-49cd-a097-cfa7b9175c93}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="network\frame">
-      <UniqueIdentifier>{59e43a6a-49a9-4f43-a9a6-36220aafc754}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="network\path">
-      <UniqueIdentifier>{fedc9d8a-1787-42f3-9853-58e1402af6c3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="network\queue">
-      <UniqueIdentifier>{09d0b931-d2c1-47a2-9e4f-5c05c83a28ad}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="physical\simulator">
-      <UniqueIdentifier>{255cf27a-52a3-4e45-8ff8-a27e177d8b41}</UniqueIdentifier>
-    </Filter>
     <Filter Include="VisualGDB settings">
       <UniqueIdentifier>{17ec2dde-ac97-4a6e-ab9c-6d892678b9fc}</UniqueIdentifier>
       <Extensions>vgdbsettings</Extensions>
     </Filter>
-    <Filter Include="Device-specific files">
-      <UniqueIdentifier>{ca994b32-a0c0-4de3-af1b-b5c89dd8a8b7}</UniqueIdentifier>
+    <Filter Include="src">
+      <UniqueIdentifier>{4ec24123-af3c-4117-944c-4181be7ea028}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\common">
+      <UniqueIdentifier>{5bd758e9-497e-463a-aa66-b350f5bc8331}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\endpoint">
+      <UniqueIdentifier>{5bf81a1a-fc7d-4796-88ec-4fd64efc1406}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\endpoint\processes">
+      <UniqueIdentifier>{e1cbe1a9-c714-42b1-8a9d-3ff7babdb50e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\hardware">
+      <UniqueIdentifier>{43130ab5-ac28-4606-859a-208aeaa27877}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\interfaces">
+      <UniqueIdentifier>{67ddb111-2180-4036-899e-125279788447}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\mesh">
+      <UniqueIdentifier>{b7ad6ef2-1751-45ab-a5d6-08dbc59920b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network">
+      <UniqueIdentifier>{daaadada-28c8-4a1a-aa8b-3d9e82335ccb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\connections">
+      <UniqueIdentifier>{ad57b6a6-7455-42a6-9f8b-0aa197e5593c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\frame">
+      <UniqueIdentifier>{66cd2e28-044a-4145-abf5-c5c0c7a14cf9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\messaging">
+      <UniqueIdentifier>{40424696-82c2-47a3-9ef6-80af89acdebf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\path">
+      <UniqueIdentifier>{7e91b2e2-0b52-4b84-b27d-4ddf3782173f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\processes">
+      <UniqueIdentifier>{299ea816-0a4d-4a05-a799-ff362426b5c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\network\queue">
+      <UniqueIdentifier>{51becd3f-a064-48c4-a8c2-bf28a2a847b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\physical">
+      <UniqueIdentifier>{b33c8bb5-5264-44d9-b89f-718ecaabc2ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\physical\simulator">
+      <UniqueIdentifier>{6b54c93b-786b-4f36-8516-af4e5b123af8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\simulator">
+      <UniqueIdentifier>{6040f038-4f57-4991-a2fa-3e48ac73bbdd}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\common\conversion.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\common\utility.cpp">
-      <Filter>common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\endpoint\connection.cpp">
-      <Filter>endpoint</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\endpoint\endpoint.cpp">
-      <Filter>endpoint</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\endpoint\registration.cpp">
-      <Filter>endpoint</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\hardware\driver.cpp">
-      <Filter>hardware</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\interfaces\endpoint_intf.cpp">
-      <Filter>interfaces</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\mesh\mesh.cpp">
-      <Filter>mesh</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\network\network.cpp">
-      <Filter>network</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\network\queue\net_queue.cpp">
-      <Filter>network\queue</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\network\frame\frame.cpp">
-      <Filter>network\frame</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\network\path\net_path.cpp">
-      <Filter>network\path</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\physical\physical.cpp">
-      <Filter>physical</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\physical\simulator\pipe.cpp">
-      <Filter>physical\simulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\physical\simulator\shockburst.cpp">
-      <Filter>physical\simulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\physical\simulator\sim_physical.cpp">
-      <Filter>physical\simulator</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\common\conversion.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\common\definitions.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\common\types.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\common\utility.hpp">
-      <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\connection.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\endpoint.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\fwd.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\registration.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\types.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\endpoint\config.hpp">
-      <Filter>endpoint</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\hardware\driver.hpp">
-      <Filter>hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\hardware\register.hpp">
-      <Filter>hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\hardware\types.hpp">
-      <Filter>hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\hardware\definitions.hpp">
-      <Filter>hardware</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\interfaces\endpoint_intf.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\interfaces\network_intf.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\interfaces\physical_intf.hpp">
-      <Filter>interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\mesh\definitions.hpp">
-      <Filter>mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\mesh\mesh.hpp">
-      <Filter>mesh</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\definitions.hpp">
-      <Filter>network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\network.hpp">
-      <Filter>network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\types.hpp">
-      <Filter>network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\queue\queue.hpp">
-      <Filter>network\queue</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\frame\definitions.hpp">
-      <Filter>network\frame</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\frame\frame.hpp">
-      <Filter>network\frame</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\frame\types.hpp">
-      <Filter>network\frame</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\network\path\path.hpp">
-      <Filter>network\path</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\physical.hpp">
-      <Filter>physical</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\types.hpp">
-      <Filter>physical</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\simulator\pipe.hpp">
-      <Filter>physical\simulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\simulator\pipe_types.hpp">
-      <Filter>physical\simulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\simulator\shockburst.hpp">
-      <Filter>physical\simulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\simulator\shockburst_types.hpp">
-      <Filter>physical\simulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\physical\simulator\sim_physical.hpp">
-      <Filter>physical\simulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\simulator\sim_definitions.hpp">
-      <Filter>simulator</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\hardware\about.md">
-      <Filter>hardware</Filter>
+    <None Include="RF24NodeStaticLibrary-STM32F446RE-Debug.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
     </None>
-    <None Include="..\..\..\mesh\about.md">
-      <Filter>mesh</Filter>
+    <None Include="RF24NodeStaticLibrary-STM32F446RE-Release.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
     </None>
-    <None Include="..\..\..\network\about.md">
-      <Filter>network</Filter>
+    <None Include="RF24NodeStaticLibrary-STM32L432KC-Debug.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
     </None>
-    <None Include="..\..\..\physical\about.md">
-      <Filter>physical</Filter>
+    <None Include="RF24NodeStaticLibrary-STM32L432KC-Release.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
     </None>
+    <ClCompile Include="..\..\..\src\common\conversion.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\common\utility.cpp">
+      <Filter>src\common</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\common\conversion.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\common\definitions.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\common\types.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\common\utility.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\common\version.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\endpoint\endpoint.cpp">
+      <Filter>src\endpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\endpoint\endpoint_factory.cpp">
+      <Filter>src\endpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\endpoint\node.cpp">
+      <Filter>src\endpoint</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\endpoint\config.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\fwd.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\node.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\types.hpp">
+      <Filter>src\endpoint</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp">
+      <Filter>src\endpoint\processes</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\hardware\driver.cpp">
+      <Filter>src\hardware</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\hardware\definitions.hpp">
+      <Filter>src\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\hardware\driver.hpp">
+      <Filter>src\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\hardware\register.hpp">
+      <Filter>src\hardware</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\hardware\types.hpp">
+      <Filter>src\hardware</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp">
+      <Filter>src\interfaces</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\interfaces\endpoint_intf.hpp">
+      <Filter>src\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\interfaces\network_intf.hpp">
+      <Filter>src\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\interfaces\physical_intf.hpp">
+      <Filter>src\interfaces</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\mesh\mesh.cpp">
+      <Filter>src\mesh</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\mesh\definitions.hpp">
+      <Filter>src\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\mesh\mesh.hpp">
+      <Filter>src\mesh</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\network.cpp">
+      <Filter>src\network</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\definitions.hpp">
+      <Filter>src\network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\network.hpp">
+      <Filter>src\network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\types.hpp">
+      <Filter>src\network</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp">
+      <Filter>src\network\connections</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\connections\rf24_network_route_table.hpp">
+      <Filter>src\network\connections</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\frame\frame.cpp">
+      <Filter>src\network\frame</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\frame\definitions.hpp">
+      <Filter>src\network\frame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\frame\frame.hpp">
+      <Filter>src\network\frame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\frame\types.hpp">
+      <Filter>src\network\frame</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg.cpp">
+      <Filter>src\network\messaging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg_ping.cpp">
+      <Filter>src\network\messaging</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg.hpp">
+      <Filter>src\network\messaging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg_ping.hpp">
+      <Filter>src\network\messaging</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\path\net_path.cpp">
+      <Filter>src\network\path</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\path\path.hpp">
+      <Filter>src\network\path</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_connection.cpp">
+      <Filter>src\network\processes</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp">
+      <Filter>src\network\processes</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection.hpp">
+      <Filter>src\network\processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection_internal.hpp">
+      <Filter>src\network\processes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp">
+      <Filter>src\network\processes</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp">
+      <Filter>src\network\queue</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\network\queue\queue.hpp">
+      <Filter>src\network\queue</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\physical\physical.cpp">
+      <Filter>src\physical</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\physical\physical.hpp">
+      <Filter>src\physical</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\types.hpp">
+      <Filter>src\physical</Filter>
+    </ClInclude>
+    <ClCompile Include="..\..\..\src\physical\simulator\pipe.cpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\physical\simulator\shockburst.cpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\physical\simulator\sim_physical.cpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClCompile>
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe.hpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe_types.hpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst.hpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst_types.hpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\physical\simulator\sim_physical.hpp">
+      <Filter>src\physical\simulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\simulator\sim_definitions.hpp">
+      <Filter>src\simulator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Xml Include="stm32.xml">

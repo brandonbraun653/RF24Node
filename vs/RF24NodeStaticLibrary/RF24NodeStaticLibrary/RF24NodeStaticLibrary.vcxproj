@@ -1,9 +1,13 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|STM32F446RE">
       <Configuration>Debug</Configuration>
       <Platform>STM32F446RE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|STM32L432KC">
+      <Configuration>Debug</Configuration>
+      <Platform>STM32L432KC</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -12,6 +16,10 @@
     <ProjectConfiguration Include="Release|STM32F446RE">
       <Configuration>Release</Configuration>
       <Platform>STM32F446RE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|STM32L432KC">
+      <Configuration>Release</Configuration>
+      <Platform>STM32L432KC</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -29,6 +37,10 @@
       <Configuration>RF24_1</Configuration>
       <Platform>STM32F446RE</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="RF24_1|STM32L432KC">
+      <Configuration>RF24_1</Configuration>
+      <Platform>STM32L432KC</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="RF24_1|Win32">
       <Configuration>RF24_1</Configuration>
       <Platform>Win32</Platform>
@@ -41,6 +53,10 @@
       <Configuration>RF24_2</Configuration>
       <Platform>STM32F446RE</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="RF24_2|STM32L432KC">
+      <Configuration>RF24_2</Configuration>
+      <Platform>STM32L432KC</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="RF24_2|Win32">
       <Configuration>RF24_2</Configuration>
       <Platform>Win32</Platform>
@@ -51,65 +67,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\common\conversion.cpp" />
-    <ClCompile Include="..\..\..\common\utility.cpp" />
-    <ClCompile Include="..\..\..\endpoint\connection.cpp" />
-    <ClCompile Include="..\..\..\endpoint\endpoint.cpp" />
-    <ClCompile Include="..\..\..\endpoint\registration.cpp" />
-    <ClCompile Include="..\..\..\hardware\driver.cpp" />
-    <ClCompile Include="..\..\..\interfaces\endpoint_intf.cpp" />
-    <ClCompile Include="..\..\..\mesh\mesh.cpp" />
-    <ClCompile Include="..\..\..\network\frame\frame.cpp" />
-    <ClCompile Include="..\..\..\network\network.cpp" />
-    <ClCompile Include="..\..\..\network\path\net_path.cpp" />
-    <ClCompile Include="..\..\..\network\queue\net_queue.cpp" />
-    <ClCompile Include="..\..\..\physical\physical.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\pipe.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\shockburst.cpp" />
-    <ClCompile Include="..\..\..\physical\simulator\sim_physical.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\common\conversion.hpp" />
-    <ClInclude Include="..\..\..\common\definitions.hpp" />
-    <ClInclude Include="..\..\..\common\types.hpp" />
-    <ClInclude Include="..\..\..\common\utility.hpp" />
-    <ClInclude Include="..\..\..\endpoint\config.hpp" />
-    <ClInclude Include="..\..\..\endpoint\connection.hpp" />
-    <ClInclude Include="..\..\..\endpoint\endpoint.hpp" />
-    <ClInclude Include="..\..\..\endpoint\fwd.hpp" />
-    <ClInclude Include="..\..\..\endpoint\registration.hpp" />
-    <ClInclude Include="..\..\..\endpoint\types.hpp" />
-    <ClInclude Include="..\..\..\hardware\definitions.hpp" />
-    <ClInclude Include="..\..\..\hardware\driver.hpp" />
-    <ClInclude Include="..\..\..\hardware\register.hpp" />
-    <ClInclude Include="..\..\..\hardware\types.hpp" />
-    <ClInclude Include="..\..\..\interfaces\endpoint_intf.hpp" />
-    <ClInclude Include="..\..\..\interfaces\network_intf.hpp" />
-    <ClInclude Include="..\..\..\interfaces\physical_intf.hpp" />
-    <ClInclude Include="..\..\..\mesh\definitions.hpp" />
-    <ClInclude Include="..\..\..\mesh\mesh.hpp" />
-    <ClInclude Include="..\..\..\network\definitions.hpp" />
-    <ClInclude Include="..\..\..\network\frame\definitions.hpp" />
-    <ClInclude Include="..\..\..\network\frame\frame.hpp" />
-    <ClInclude Include="..\..\..\network\frame\types.hpp" />
-    <ClInclude Include="..\..\..\network\network.hpp" />
-    <ClInclude Include="..\..\..\network\path\path.hpp" />
-    <ClInclude Include="..\..\..\network\queue\queue.hpp" />
-    <ClInclude Include="..\..\..\network\types.hpp" />
-    <ClInclude Include="..\..\..\physical\physical.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\pipe.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\pipe_types.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\shockburst.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\shockburst_types.hpp" />
-    <ClInclude Include="..\..\..\physical\simulator\sim_physical.hpp" />
-    <ClInclude Include="..\..\..\physical\types.hpp" />
-    <ClInclude Include="..\..\..\simulator\sim_definitions.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\hardware\about.md" />
-    <None Include="..\..\..\mesh\about.md" />
-    <None Include="..\..\..\network\about.md" />
-    <None Include="..\..\..\physical\about.md" />
+    <None Include="RF24NodeStaticLibrary-STM32F446RE-Debug.vgdbsettings" />
+    <None Include="RF24NodeStaticLibrary-STM32F446RE-Release.vgdbsettings" />
+    <None Include="RF24NodeStaticLibrary-STM32L432KC-Debug.vgdbsettings" />
+    <None Include="RF24NodeStaticLibrary-STM32L432KC-Release.vgdbsettings" />
   </ItemGroup>
   <ItemGroup>
     <Xml Include="stm32.xml" />
@@ -177,13 +138,25 @@
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|STM32F446RE'">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32F446RE'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -226,13 +199,25 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|STM32F446RE'">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32F446RE'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -266,7 +251,20 @@
     <GNUTargetType>StaticLibrary</GNUTargetType>
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+    <GNUConfigurationType>Debug</GNUConfigurationType>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
     <GNUTargetType>StaticLibrary</GNUTargetType>
@@ -278,7 +276,19 @@
     <GNUTargetType>StaticLibrary</GNUTargetType>
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
     <GNUTargetType>StaticLibrary</GNUTargetType>
@@ -424,7 +434,23 @@
       <Optimization>O0</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>Og</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>O0</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
@@ -440,6 +466,14 @@
       <Optimization>O0</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>O0</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
@@ -447,7 +481,86 @@
       <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>Os</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\common\conversion.cpp" />
+    <ClCompile Include="..\..\..\src\common\utility.cpp" />
+    <ClInclude Include="..\..\..\src\common\conversion.hpp" />
+    <ClInclude Include="..\..\..\src\common\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\common\types.hpp" />
+    <ClInclude Include="..\..\..\src\common\utility.hpp" />
+    <ClInclude Include="..\..\..\src\common\version.hpp" />
+    <ClCompile Include="..\..\..\src\endpoint\endpoint.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\endpoint_factory.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\node.cpp" />
+    <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\fwd.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\node.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\types.hpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp" />
+    <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
+    <ClInclude Include="..\..\..\src\hardware\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\driver.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\register.hpp" />
+    <ClInclude Include="..\..\..\src\hardware\types.hpp" />
+    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp" />
+    <ClInclude Include="..\..\..\src\interfaces\endpoint_intf.hpp" />
+    <ClInclude Include="..\..\..\src\interfaces\network_intf.hpp" />
+    <ClInclude Include="..\..\..\src\interfaces\physical_intf.hpp" />
+    <ClCompile Include="..\..\..\src\mesh\mesh.cpp" />
+    <ClInclude Include="..\..\..\src\mesh\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\mesh\mesh.hpp" />
+    <ClCompile Include="..\..\..\src\network\network.cpp" />
+    <ClInclude Include="..\..\..\src\network\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\network\network.hpp" />
+    <ClInclude Include="..\..\..\src\network\types.hpp" />
+    <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp" />
+    <ClInclude Include="..\..\..\src\network\connections\rf24_network_route_table.hpp" />
+    <ClCompile Include="..\..\..\src\network\frame\frame.cpp" />
+    <ClInclude Include="..\..\..\src\network\frame\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\network\frame\frame.hpp" />
+    <ClInclude Include="..\..\..\src\network\frame\types.hpp" />
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg.cpp" />
+    <ClCompile Include="..\..\..\src\network\messaging\rf24_net_msg_ping.cpp" />
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg.hpp" />
+    <ClInclude Include="..\..\..\src\network\messaging\rf24_net_msg_ping.hpp" />
+    <ClCompile Include="..\..\..\src\network\path\net_path.cpp" />
+    <ClInclude Include="..\..\..\src\network\path\path.hpp" />
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_connection.cpp" />
+    <ClCompile Include="..\..\..\src\network\processes\rf24_network_ping.cpp" />
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection.hpp" />
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_connection_internal.hpp" />
+    <ClInclude Include="..\..\..\src\network\processes\rf24_network_ping.hpp" />
+    <ClCompile Include="..\..\..\src\network\queue\net_queue.cpp" />
+    <ClInclude Include="..\..\..\src\network\queue\queue.hpp" />
+    <ClCompile Include="..\..\..\src\physical\physical.cpp" />
+    <ClInclude Include="..\..\..\src\physical\physical.hpp" />
+    <ClInclude Include="..\..\..\src\physical\types.hpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\pipe.cpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\shockburst.cpp" />
+    <ClCompile Include="..\..\..\src\physical\simulator\sim_physical.cpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\pipe_types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\shockburst_types.hpp" />
+    <ClInclude Include="..\..\..\src\physical\simulator\sim_physical.hpp" />
+    <ClInclude Include="..\..\..\src\simulator\sim_definitions.hpp" />
+  </ItemGroup>
 </Project>

@@ -102,15 +102,6 @@ namespace RF24::Network
      */
     void toggleMulticastRelay( const bool state );
 
-    /**
-     *	Checks if the given address is registered directly with this network. This could be as
-     *  either a parent or a child
-     *
-     *	@param[in]	toCheck   The address to check
-     *	@return bool
-     */
-    bool isConnectedTo( const LogicalAddress toCheck ) final override;
-
   protected:
     friend Interface_sPtr createShared( const RF24::Network::Config &cfg );
     friend Interface_uPtr createUnique( const RF24::Network::Config &cfg );

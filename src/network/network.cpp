@@ -461,7 +461,7 @@ namespace RF24::Network
       case MSG_NET_REQUEST_BIND:
       case MSG_NET_REQUEST_BIND_ACK:
       case MSG_NET_REQUEST_BIND_NACK:
-        Internal::Processes::runConnection( *this, frame, message );
+        Internal::Processes::Connection::run( *this, frame, message );
         break;
       
       default:
