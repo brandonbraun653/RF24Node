@@ -12,6 +12,9 @@
 #include <array>
 #include <cstring>
 
+/* Aurora Includes */
+#include <Aurora/utility>
+
 /* Chimera Includes */
 #include <Chimera/common>
 #include <Chimera/event>
@@ -114,8 +117,9 @@ namespace RF24::Hardware
     resetDevice();
     readRegister( REG_CONFIG, &configState, 1 );
 
-    if ( ( configState & CONFIG_PWR_UP ) || ( result != Chimera::CommonStatusCodes::OK ) )
+    if ( ( ( configState & CONFIG_PWR_UP_Msk ) != CONFIG_PWR_UP ) || ( result != Chimera::CommonStatusCodes::OK ) )
     {
+      Aurora::Utility::insertBreakpoint();
       return Chimera::CommonStatusCodes::FAILED_INIT;
     }
 

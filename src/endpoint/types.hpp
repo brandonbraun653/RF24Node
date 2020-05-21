@@ -14,6 +14,8 @@
 
 /* C++ Includes */
 #include <cstdint>
+#include <cstring>
+#include <limits>
 #include <string>
 
 /* RF24 Includes */
@@ -30,6 +32,14 @@ namespace RF24::Endpoint
     uint32_t linkTimeout;      /**< How long to wait for any network connections to timeout */
     Network::Config network;   /**< Network layer configuration */
     Physical::Config physical; /**< Physical layer configuration */
+
+    void clear()
+    {
+      version = 0;
+      linkTimeout = std::numeric_limits<uint32_t>::max();
+      physical.clear();
+      memset( &network, 0, sizeof( Network::Config ) );
+    }
   };
 
   struct ConnectionStatus

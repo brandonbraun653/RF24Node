@@ -39,6 +39,16 @@ namespace RF24::Physical
     Chimera::SPI::DriverConfig spiConfig;
     Chimera::GPIO::PinInit chipEnableConfig;
     std::string deviceName;
+
+    void clear()
+    {
+      rfChannel      = 0;
+      powerAmplitude = RF24::Hardware::PA_MIN;
+      dataRate       = RF24::Hardware::DR_1MBPS;
+      deviceName     = {};
+      spiConfig.clear();
+      chipEnableConfig.clear();
+    }
   };
 
 }    // namespace RF24::Physical

@@ -46,7 +46,7 @@ namespace RF24::Network
     size_t rxQueueSize;                 /**< (Required) Size of the network rx queue in bytes */
     void *txQueueBuffer;                /**< (Optional) External buffer for the network tx queue */
     size_t txQueueSize;                 /**< (Required) Size of the network tx queue in bytes */
-    Mode mode;                   /**< Networking mode to use */
+    Mode mode;                          /**< Networking mode to use */
     LogicalAddress nodeStaticAddress;   /**< Static address for the node (Only available in NET_MODE_STATIC) */
     LogicalAddress parentStaticAddress; /**< Static address of the parent (Only available in NET_MODE_STATIC) */
   };
