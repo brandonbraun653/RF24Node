@@ -18,6 +18,7 @@
 /* Chimera Includes */
 #include <Chimera/common>
 #include <Chimera/event>
+#include <Chimera/thread>
 
 /* Driver Includes */
 #include <RF24Node/src/hardware/definitions.hpp>
@@ -35,21 +36,38 @@ namespace RF24::Hardware
   /*------------------------------------------------
   External Data
   ------------------------------------------------*/
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = { REG_RX_ADDR_P0, REG_RX_ADDR_P1, REG_RX_ADDR_P2,
-                                                                    REG_RX_ADDR_P3, REG_RX_ADDR_P4, REG_RX_ADDR_P5 };
+  /* clang-format off */
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = { 
+    REG_RX_ADDR_P0, 
+    REG_RX_ADDR_P1, 
+    REG_RX_ADDR_P2,
+    REG_RX_ADDR_P3, 
+    REG_RX_ADDR_P4, 
+    REG_RX_ADDR_P5 
+  };
 
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister = { REG_RX_PW_P0, REG_RX_PW_P1, REG_RX_PW_P2,
-                                                                         REG_RX_PW_P3, REG_RX_PW_P4, REG_RX_PW_P5 };
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister = { 
+    REG_RX_PW_P0, 
+    REG_RX_PW_P1, 
+    REG_RX_PW_P2,
+    REG_RX_PW_P3, 
+    REG_RX_PW_P4, 
+    REG_RX_PW_P5 
+  };
 
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = { EN_RXADDR_P0, EN_RXADDR_P1, EN_RXADDR_P2,
-                                                                   EN_RXADDR_P3, EN_RXADDR_P4, EN_RXADDR_P5 };
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = { 
+    EN_RXADDR_P0, 
+    EN_RXADDR_P1, 
+    EN_RXADDR_P2,
+    EN_RXADDR_P3, 
+    EN_RXADDR_P4, 
+    EN_RXADDR_P5 
+  };
+  /* clang-format on */
 
   /*-------------------------------------------------
   Constructors/Destructors
   -------------------------------------------------*/
-  /**
-   *
-   */
   Driver::Driver()
   {
     spi = nullptr;
@@ -63,9 +81,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Driver::~Driver()
   {
   }
@@ -73,11 +88,10 @@ namespace RF24::Hardware
   /*-------------------------------------------------
   Driver Functions
   -------------------------------------------------*/
-  /**
-   *
-   */
   Chimera::Status_t Driver::initialize( const Chimera::SPI::DriverConfig &setup, const Chimera::GPIO::PinInit &CE )
   {
+    using namespace Chimera::Threading;
+
     auto result = Chimera::CommonStatusCodes::OK;
 
     /*------------------------------------------------
@@ -102,12 +116,12 @@ namespace RF24::Hardware
     Configure radio chip enable & spi chip select pins
     ------------------------------------------------*/
     CEPin = Chimera::GPIO::create_unique_ptr();
-    result |= CEPin->init( CE, 100 );
-    CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    result |= CEPin->init( CE, TIMEOUT_DONT_WAIT );
+    CEPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     CSPin = Chimera::GPIO::create_unique_ptr();
-    result |= CSPin->init( setup.CSInit, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    result |= CSPin->init( setup.CSInit, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     /*------------------------------------------------
     Power down the device and make sure we actually achieve it
@@ -117,9 +131,9 @@ namespace RF24::Hardware
     resetDevice();
     readRegister( REG_CONFIG, &configState, 1 );
 
-    if ( ( ( configState & CONFIG_PWR_UP_Msk ) != CONFIG_PWR_UP ) || ( result != Chimera::CommonStatusCodes::OK ) )
+    if ( ( ( configState & CONFIG_PWR_UP_Msk ) == CONFIG_PWR_UP ) || ( result != Chimera::CommonStatusCodes::OK ) )
     {
-      Aurora::Utility::insertBreakpoint();
+      // The device didn't power off or failed a previous init step
       return Chimera::CommonStatusCodes::FAILED_INIT;
     }
 
@@ -127,9 +141,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::readRegister( const Reg8_t addr )
   {
     Reg8_t tempBuffer = std::numeric_limits<Reg8_t>::max();
@@ -138,11 +149,10 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::readRegister( const Reg8_t addr, void *const buf, size_t len )
   {
+    using namespace Chimera::Threading;
+
     /*------------------------------------------------
     Input protection
     ------------------------------------------------*/
@@ -160,12 +170,12 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Read the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    if ( spi->try_lock_for( 100 ) )
+    if ( spi->try_lock_for( Chimera::Threading::TIMEOUT_DONT_WAIT ) )
     {
-      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
-      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+      CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, TIMEOUT_DONT_WAIT );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+      CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
       memcpy( buf, &spi_rxbuff[ 1 ], len );
 
@@ -177,20 +187,16 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::writeRegister( const Reg8_t addr, const Reg8_t value, const bool check )
   {
     return writeRegister( addr, &value, 1u, check );
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::writeRegister( const Reg8_t addr, const void *const buffer, size_t len, const bool check )
   {
+    using namespace Chimera::Threading;
+
     /*------------------------------------------------
     Input protection
     ------------------------------------------------*/
@@ -208,12 +214,12 @@ namespace RF24::Hardware
     /*------------------------------------------------
     Write the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    if ( spi->try_lock_for( 100 ) )
+    if ( spi->try_lock_for( TIMEOUT_DONT_WAIT ) )
     {
-      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, 100 );
-      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+      CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), len + 1, TIMEOUT_DONT_WAIT );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+      CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
       /* Save off the return code because validation will overwrite the buffer */
       auto returnCode = spi_rxbuff[ 0 ];
@@ -221,7 +227,7 @@ namespace RF24::Hardware
       /*------------------------------------------------
       Optionally validate whatever was just written
       ------------------------------------------------*/
-#if defined( DEBUG ) && defined( _EMBEDDED )
+#if defined( DEBUG ) && defined( EMBEDDED )
       if ( check )
       {
         sValidationBuffer.fill( 0 );
@@ -241,9 +247,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::setRegisterBits( const Reg8_t addr, const Reg8_t mask, const bool check )
   {
     Reg8_t current = readRegister( addr );
@@ -252,9 +255,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::clrRegisterBits( const Reg8_t addr, const Reg8_t mask )
   {
     Reg8_t current = readRegister( addr );
@@ -263,11 +263,10 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleRFPower( const bool state )
   {
+    using namespace Chimera::Threading;
+
     if ( state && !( readRegister( REG_CONFIG ) & CONFIG_PWR_UP ) )
     {
       /*-------------------------------------------------
@@ -282,26 +281,25 @@ namespace RF24::Hardware
       /*-------------------------------------------------
       Force standby mode and power down the chip
       -------------------------------------------------*/
-      CEPin->setState( Chimera::GPIO::State::LOW, 100 );
+      CEPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
       clrRegisterBits( REG_CONFIG, CONFIG_PWR_UP );
     }
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleFeatures( const bool state )
   {
+    using namespace Chimera::Threading;
+
     if ( !mFeaturesActivated )
     {
       spi_txbuff[ 0 ] = RF24::Hardware::CMD_ACTIVATE;
       spi_txbuff[ 1 ] = 0x73;
 
-      CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), 2, 100 );
-      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-      CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+      CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+      spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), 2, TIMEOUT_DONT_WAIT );
+      spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+      CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
       mFeaturesActivated = true;
     }
@@ -316,9 +314,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleDynamicPayloads( const bool state )
   {
     if ( state )
@@ -356,9 +351,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleDynamicAck( const bool state )
   {
     if ( state )
@@ -373,9 +365,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleAutoAck( const bool state, const PipeNumber pipe )
   {
     if ( ( pipe == PIPE_NUM_ALL ) && state )
@@ -405,9 +394,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleAckPayloads( const bool state )
   {
     if ( !mDynamicPayloadsEnabled && state )
@@ -428,9 +414,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Chimera::Status_t Driver::resetDevice()
   {
     toggleRFPower( false );
@@ -464,45 +447,37 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   Chimera::Status_t Driver::selfTest( const bool rpd )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
 
-  /**
-   *
-   */
   Chimera::Status_t Driver::toggleRXDataPipe( const size_t pipe, const bool state )
   {
     return Chimera::CommonStatusCodes::NOT_SUPPORTED;
   }
 
 
-  /**
-   *
-   */
   void Driver::toggleCE( const bool state )
   {
+    using namespace Chimera::Threading;
+
     if ( state )
     {
-      CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
+      CEPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
     }
     else
     {
-      CEPin->setState( Chimera::GPIO::State::LOW, 100 );
+      CEPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
     }
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::writePayload( const void *const buf, const size_t len, const uint8_t writeType )
   {
+    using namespace Chimera::Threading;
+
     if ( ( writeType != CMD_W_TX_PAYLOAD_NO_ACK ) && ( writeType != CMD_W_TX_PAYLOAD ) )
     {
       return 0u;
@@ -525,21 +500,19 @@ namespace RF24::Hardware
     memcpy( &spi_txbuff[ 1 ], buf, len );           /* Payload information */
     memset( &spi_txbuff[ len + 1 ], 0, blank_len ); /* Null out the remaining buffer space */
 
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     return spi_rxbuff[ 0 ];
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::readPayload( void *const buffer, const size_t bufferLength, const size_t payloadLength )
   {
     using namespace RF24::Hardware;
+    using namespace Chimera::Threading;
 
     uint8_t status = 0u;
 
@@ -571,10 +544,10 @@ namespace RF24::Hardware
     /*-------------------------------------------------
     Read out the payload. The +1 is for the read command.
     -------------------------------------------------*/
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size + 1u, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size + 1u, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     status = spi_rxbuff[ 0 ];
     memcpy( buffer, &spi_rxbuff[ 1 ], readLength );
@@ -587,101 +560,91 @@ namespace RF24::Hardware
     /*-------------------------------------------------
     Reset the chip enable back to the initial RX state
     -------------------------------------------------*/
-    CEPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CEPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     return status;
   }
 
 
-  /**
-   *
-   */
   Chimera::Status_t Driver::writeAckPayload( const PipeNumber pipe, const void *const buffer, const size_t len )
   {
+    using namespace Chimera::Threading;
+
     // TODO: Magic numbers abound in this function. Get rid of them.
     size_t size = std::min( len, static_cast<size_t>( 32 ) ) + 1u;
 
     spi_txbuff[ 0 ] = RF24::Hardware::CMD_W_ACK_PAYLOAD | ( pipe & 0x07 );
     memcpy( &spi_txbuff[ 1 ], buffer, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     return Chimera::CommonStatusCodes::OK;
   }
 
 
-  /**
-   *
-   */
   Reg8_t Driver::writeCMD( const uint8_t cmd )
   {
+    using namespace Chimera::Threading;
+
     size_t txLength = 1;
     spi_txbuff[ 0 ] = cmd;
 
     /*------------------------------------------------
     Write the data out, adding 1 byte for the command instruction
     ------------------------------------------------*/
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), txLength, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     /* Return only the status code of the chip */
     return spi_rxbuff[ 0 ];
   }
 
 
-  /**
-   *
-   */
   void Driver::writeCMD( const Reg8_t cmd, const void *const buffer, const size_t length )
   {
+    using namespace Chimera::Threading;
+
     size_t size = std::min( length, ( spi_txbuff.size() - 1u ) );
 
     spi_txbuff[ 0 ] = cmd;
     memcpy( &spi_txbuff[ 1 ], buffer, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
   }
 
 
-  /**
-   *
-   */
   void Driver::readCMD( const Reg8_t cmd, void *const buffer, const size_t length )
   {
+    using namespace Chimera::Threading;
+
     size_t size = std::min( length, ( spi_rxbuff.size() - 1u ) );
 
     spi_txbuff[ 0 ] = cmd;
     memset( &spi_txbuff[ 1 ], 0, size );
 
-    CSPin->setState( Chimera::GPIO::State::LOW, 100 );
-    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, 100 );
-    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, 100 );
-    CSPin->setState( Chimera::GPIO::State::HIGH, 100 );
+    CSPin->setState( Chimera::GPIO::State::LOW, TIMEOUT_DONT_WAIT );
+    spi->readWriteBytes( spi_txbuff.data(), spi_rxbuff.data(), size, TIMEOUT_DONT_WAIT );
+    spi->await( Chimera::Event::TRIGGER_TRANSFER_COMPLETE, TIMEOUT_DONT_WAIT );
+    CSPin->setState( Chimera::GPIO::State::HIGH, TIMEOUT_DONT_WAIT );
 
     memcpy( buffer, &spi_rxbuff[ 1 ], size );
   }
 
 
-  /**
-   *
-   */
   uint8_t Driver::getStatus()
   {
     return writeCMD( CMD_NOP );
   }
 
 
-  /**
-   *
-   */
   void Driver::setCRCLength( const CRCLength length )
   {
     uint8_t config = readRegister( REG_CONFIG ) & ~( CONFIG_CRCO | CONFIG_EN_CRC );
@@ -705,9 +668,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   CRCLength Driver::getCRCLength()
   {
     CRCLength result = CRCLength::CRC_DISABLED;
@@ -731,9 +691,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::disableCRC()
   {
     uint8_t disable = readRegister( REG_CONFIG ) & ~CONFIG_EN_CRC;
@@ -741,9 +698,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   void Driver::maskIRQ( const bool tx_ok, const bool tx_fail, const bool rx_ready )
   {
     uint8_t config = readRegister( REG_CONFIG );
@@ -756,9 +710,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   bool Driver::rxFifoFull()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
@@ -766,9 +717,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   bool Driver::rxFifoEmpty()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
@@ -776,9 +724,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   bool Driver::txFifoFull()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
@@ -786,9 +731,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   bool Driver::txFifoEmpty()
   {
     Reg8_t status = readRegister( REG_FIFO_STATUS );
@@ -796,18 +738,12 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *  Function:
-   *    setAddressWidth
-   *
-   *  Notes:
-   *    
-   */
   void Driver::setAddressWidth( const AddressWidth address_width )
   {
     writeRegister( REG_SETUP_AW, static_cast<Reg8_t>( address_width ) );
     mAddressBytes = getAddressWidthAsBytes();
   }
+
 
   void Driver::setStaticPayloadWidth( const PipeNumber pipe, const size_t bytes )
   {
@@ -816,6 +752,7 @@ namespace RF24::Hardware
       writeRegister( rxPipePayloadWidthRegister[ pipe ], static_cast<Reg8_t>( bytes ) );
     }
   }
+
 
   size_t Driver::getStaticPayloadWidth( const PipeNumber pipe )
   {
@@ -830,9 +767,6 @@ namespace RF24::Hardware
   }
 
 
-  /**
-   *
-   */
   size_t Driver::getAddressWidthAsBytes()
   {
     auto reg = readRegister( REG_SETUP_AW );
@@ -855,12 +789,9 @@ namespace RF24::Hardware
         return 0;
         break;
     }
-  } /* getAddressWidthAsBytes() */
+  }
 
 
-  /**
-   *
-   */
   size_t Driver::getDynamicPayloadSize()
   {
     auto result = MIN_PAYLOAD_WIDTH;
@@ -884,6 +815,6 @@ namespace RF24::Hardware
     }
 
     return result;
-  } /* getDynamicPayloadSize() */
+  }
 
 }    // namespace RF24::Hardware
