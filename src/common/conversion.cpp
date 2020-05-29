@@ -39,7 +39,6 @@ namespace RF24::Physical::Conversion
       This node is directly connected to a root. The ID returned
       here is exactly equal to root node RX pipe number.
       ------------------------------------------------*/
-      auto id = getIdAtLevel( address, level );
       return static_cast<RF24::Hardware::PipeNumber>( level );
     }
     else
@@ -150,7 +149,7 @@ namespace RF24::Physical::Conversion
       0xec,   /**< Byte for child 1 of a node */
       0xc9,   /**< Byte for child 2 of a node */
       0x3c,   /**< Etc.... */
-      0x33, 
+      0x33,
       0xce
     };
 

@@ -38,8 +38,8 @@ namespace RF24::Endpoint
   }
 
   Node::Node() :
-      mValidity( false ), mLogicalAddress( RF24::Network::RSVD_ADDR_INVALID ), mPhysicalAddress( 0 ),
-      mPipe( Hardware::PipeNumber::PIPE_INVALID ), mNetworkLevel( NODE_LEVEL_INVALID )
+      mValidity( false ), mNetworkLevel( NODE_LEVEL_INVALID ), mLogicalAddress( RF24::Network::RSVD_ADDR_INVALID ),
+      mPhysicalAddress( 0 ), mPipe( Hardware::PipeNumber::PIPE_INVALID )
   {
   }
 

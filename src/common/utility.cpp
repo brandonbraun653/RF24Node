@@ -154,7 +154,6 @@ namespace RF24
   LogicalAddress getParent( const LogicalAddress child )
   {
     auto level = getLevel( child );
-    auto copy = child;
 
     if ( level == NODE_LEVEL_INVALID )
     {

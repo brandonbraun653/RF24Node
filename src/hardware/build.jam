@@ -1,0 +1,23 @@
+# ====================================================
+# Local Rules
+# ====================================================
+local rule explicit_alias ( name : sources * : requirements * : default-build * : usage-requirements * )
+    {
+    alias $(name) : $(sources) : $(requirements) : $(default-build) : $(usage-requirements) ;
+    explicit $(name) ;
+    }
+
+# ====================================================
+# Public Targets
+# ====================================================
+lib LIB
+  : driver.cpp
+
+  : <link>static
+    <use>/AURORA//PUB
+    <use>/CHIMERA//PUB
+    <use>/RF24//PUB
+    <use>/PRJ//TARGET_OPTIONS
+  ;
+
+explicit_alias TEST_COMPILE : LIB ;

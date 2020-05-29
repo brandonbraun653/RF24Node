@@ -221,7 +221,6 @@ namespace RF24::Network::Frame
   Length getFrameLengthFromBuffer( const Buffer &buffer )
   {
     Length payloadLength     = 0;
-    Length frameLength       = 0;
     constexpr auto lenOffset = offsetof( PackedData, payloadLength );
     auto readPtr             = buffer.data() + lenOffset;
 
@@ -252,7 +251,7 @@ namespace RF24::Network::Frame
   {
     RF24::LogicalAddress temp = 0;
     auto readPtr              = buffer.data() + offsetof( PackedData, header ) + offsetof( PackedHeader, dstNode );
-    
+
     memcpy( &temp, readPtr, sizeof( temp ) );
     return temp;
   }

@@ -32,13 +32,8 @@
 
 namespace RF24::Endpoint
 {
-  Device::Device() : mNetworkDriver( nullptr ), mPhysicalDriver( nullptr ), mLogger( nullptr )
+  Device::Device() : mPhysicalDriver( nullptr ), mNetworkDriver( nullptr ),  mLogger( nullptr ), mEndpointInit( {} ), mState( {} )
   {
-    /*------------------------------------------------
-    Initialize class vars
-    ------------------------------------------------*/
-    mEndpointInit = {};
-    mState = {};
   }
 
   Device::~Device()
@@ -378,7 +373,7 @@ namespace RF24::Endpoint
     {
       mState.endpointAddress = mEndpointInit.network.nodeStaticAddress;
       mState.parentAddress   = mEndpointInit.network.parentStaticAddress;
-    
+
       mNetworkDriver->setNodeAddress( mState.endpointAddress );
     }
 

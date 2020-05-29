@@ -31,37 +31,39 @@ namespace RF24::Hardware
   /*------------------------------------------------
   Static Data
   ------------------------------------------------*/
+#if defined( DEBUG ) && defined( EMBEDDED )
   static std::array<uint8_t, 25> sValidationBuffer;
+#endif
 
   /*------------------------------------------------
   External Data
   ------------------------------------------------*/
   /* clang-format off */
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = { 
-    REG_RX_ADDR_P0, 
-    REG_RX_ADDR_P1, 
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeAddressRegister = {
+    REG_RX_ADDR_P0,
+    REG_RX_ADDR_P1,
     REG_RX_ADDR_P2,
-    REG_RX_ADDR_P3, 
-    REG_RX_ADDR_P4, 
-    REG_RX_ADDR_P5 
+    REG_RX_ADDR_P3,
+    REG_RX_ADDR_P4,
+    REG_RX_ADDR_P5
   };
 
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister = { 
-    REG_RX_PW_P0, 
-    REG_RX_PW_P1, 
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipePayloadWidthRegister = {
+    REG_RX_PW_P0,
+    REG_RX_PW_P1,
     REG_RX_PW_P2,
-    REG_RX_PW_P3, 
-    REG_RX_PW_P4, 
-    REG_RX_PW_P5 
+    REG_RX_PW_P3,
+    REG_RX_PW_P4,
+    REG_RX_PW_P5
   };
 
-  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = { 
-    EN_RXADDR_P0, 
-    EN_RXADDR_P1, 
+  const std::array<Reg8_t, MAX_NUM_PIPES> rxPipeEnableBitField = {
+    EN_RXADDR_P0,
+    EN_RXADDR_P1,
     EN_RXADDR_P2,
-    EN_RXADDR_P3, 
-    EN_RXADDR_P4, 
-    EN_RXADDR_P5 
+    EN_RXADDR_P3,
+    EN_RXADDR_P4,
+    EN_RXADDR_P5
   };
   /* clang-format on */
 

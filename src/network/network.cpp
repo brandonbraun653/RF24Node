@@ -134,7 +134,6 @@ namespace RF24::Network
       return MSG_NETWORK_ERR;
     }
 
-    uint8_t pipeNum                 = 0u;
     size_t payloadSize              = 0u;
     HeaderMessage sysMsg            = MSG_TX_NORMAL;
     RF24::Hardware::PipeNumber pipe = mPhysicalDriver->payloadAvailable();
@@ -205,7 +204,6 @@ namespace RF24::Network
       Frame::FrameType frame;
       Frame::Buffer tempBuffer;
       auto element  = mTXQueue.peek();
-      bool validity = false;
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
       {
@@ -555,8 +553,8 @@ namespace RF24::Network
 
     //TODO: Update to use dynamic frame total lengths (maybe)
     /*------------------------------------------------
-    For the moment, the chinese clones of the RF24 chips won't work with 
-    dynamic payload lengths, so default to the full payload size. 
+    For the moment, the chinese clones of the RF24 chips won't work with
+    dynamic payload lengths, so default to the full payload size.
     ------------------------------------------------*/
     auto buffer = frame.toBuffer();
     return transferToPipe( physicalAddress, buffer, buffer.size(), false );
@@ -572,13 +570,6 @@ namespace RF24::Network
     auto hopAddress = nextHop( frame.getDst() );
     if ( hopAddress != RSVD_ADDR_INVALID )
     {
-      /*------------------------------------------------
-      Grab the physical address of the pipe on the destination node
-      assuming we are sending from this (central) node.
-      ------------------------------------------------*/
-      auto destinationPipe = getDestinationRXPipe( hopAddress, mRouteTable.getCentralNode().getLogicalAddress() );
-      auto physicalAddress = getPhysicalAddress( hopAddress, destinationPipe );
-
       frame.updateCRC();
 
       if constexpr ( DBG_LOG_NET )

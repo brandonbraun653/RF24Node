@@ -207,7 +207,6 @@ namespace RF24::Physical
   Chimera::Status_t HardwareDriver::setRetries( const RF24::Hardware::AutoRetransmitDelay delay, const size_t count,
                                                 const bool validate )
   {
-    bool returnVal    = true;
     Reg8_t ard        = ( static_cast<Reg8_t>( delay ) & 0x0F ) << RF24::Hardware::SETUP_RETR_ARD_Pos;
     Reg8_t arc        = ( count & 0x0F ) << RF24::Hardware::SETUP_RETR_ARC_Pos;
     Reg8_t setup_retr = ard | arc;
@@ -559,7 +558,7 @@ namespace RF24::Physical
   {
     using namespace RF24::Hardware;
 
-    auto status = mHWDriver->readPayload( buffer.data(), buffer.size(), length );
+    mHWDriver->readPayload( buffer.data(), buffer.size(), length );
 
     /*------------------------------------------------
     Clear the ISR flag bits by setting them to 1

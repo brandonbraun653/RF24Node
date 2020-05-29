@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>STM32F446RE</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|STM32L432KB">
+      <Configuration>Debug</Configuration>
+      <Platform>STM32L432KB</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|STM32L432KC">
       <Configuration>Debug</Configuration>
       <Platform>STM32L432KC</Platform>
@@ -16,6 +20,10 @@
     <ProjectConfiguration Include="Release|STM32F446RE">
       <Configuration>Release</Configuration>
       <Platform>STM32F446RE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|STM32L432KB">
+      <Configuration>Release</Configuration>
+      <Platform>STM32L432KB</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|STM32L432KC">
       <Configuration>Release</Configuration>
@@ -37,6 +45,10 @@
       <Configuration>RF24_1</Configuration>
       <Platform>STM32F446RE</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="RF24_1|STM32L432KB">
+      <Configuration>RF24_1</Configuration>
+      <Platform>STM32L432KB</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="RF24_1|STM32L432KC">
       <Configuration>RF24_1</Configuration>
       <Platform>STM32L432KC</Platform>
@@ -52,6 +64,10 @@
     <ProjectConfiguration Include="RF24_2|STM32F446RE">
       <Configuration>RF24_2</Configuration>
       <Platform>STM32F446RE</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="RF24_2|STM32L432KB">
+      <Configuration>RF24_2</Configuration>
+      <Platform>STM32L432KB</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="RF24_2|STM32L432KC">
       <Configuration>RF24_2</Configuration>
@@ -141,10 +157,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KB'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KB'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32F446RE'" Label="Configuration">
@@ -153,10 +175,16 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KB'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'" Label="Configuration">
+    <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KB'" Label="Configuration">
     <MCUPropertyListFile>$(ProjectDir)stm32.props</MCUPropertyListFile>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -202,10 +230,16 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KC'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KB'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KB'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32F446RE'" Label="PropertySheets">
@@ -214,10 +248,16 @@
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KC'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KB'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'" Label="PropertySheets">
+    <Import Project="CommonProperties.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KB'" Label="PropertySheets">
     <Import Project="CommonProperties.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -258,6 +298,13 @@
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
     <GNUConfigurationType>Debug</GNUConfigurationType>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KB'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+    <GNUConfigurationType>Debug</GNUConfigurationType>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
@@ -265,6 +312,12 @@
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KB'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
     <GNUTargetType>StaticLibrary</GNUTargetType>
@@ -282,6 +335,12 @@
     <GNUTargetType>StaticLibrary</GNUTargetType>
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KB'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
@@ -289,6 +348,12 @@
     <LinkAsWholeArchive>true</LinkAsWholeArchive>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'">
+    <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
+    <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
+    <GNUTargetType>StaticLibrary</GNUTargetType>
+    <LinkAsWholeArchive>true</LinkAsWholeArchive>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KB'">
     <ToolchainID>com.visualgdb.arm-eabi</ToolchainID>
     <ToolchainVersion>9.2.1/8.3.0/r1</ToolchainVersion>
     <GNUTargetType>StaticLibrary</GNUTargetType>
@@ -442,6 +507,14 @@
       <Optimization>O0</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|STM32L432KB'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP2A</CPPLanguageStandard>
+      <Optimization>Os</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
@@ -451,6 +524,14 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KC'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>O0</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32L432KB'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
@@ -474,6 +555,14 @@
       <Optimization>O0</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_1|STM32L432KB'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>O0</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32F446RE'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
@@ -483,6 +572,14 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KC'">
+    <ClCompile>
+      <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
+      <CPPLanguageStandard>CPP1Z</CPPLanguageStandard>
+      <Optimization>Os</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|STM32L432KB'">
     <ClCompile>
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);NDEBUG=1;RELEASE=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
