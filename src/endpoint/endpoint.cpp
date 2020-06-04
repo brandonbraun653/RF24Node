@@ -349,6 +349,8 @@ namespace RF24::Endpoint
 #else
       if constexpr ( DBG_LOG_APP )
       {
+        // This section tends to be pretty fast, so give time for the log sink to write
+        Chimera::delayMilliseconds( 100 );
         mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n",
                                       Chimera::millis(), pipe, nodeAddress, addr );
       }

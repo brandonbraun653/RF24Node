@@ -8,6 +8,10 @@
  *  2020 | Brandon Braun | brandonbraun653@gmail.com
  *******************************************************************************/
 
+/* uLog Includes */
+#include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_intf.hpp>
+
 /* RF24 Includes */
 #include <RF24Node/common>
 #include <RF24Node/src/network/definitions.hpp>
@@ -65,6 +69,7 @@ namespace RF24::Network::Internal::Processes::Connection
     Fall-through condition. If we get here, the desired node
     to connect with didn't have a direct relationship in the tree.
     ------------------------------------------------*/
+    uLog::getRootSink()->flog( uLog::Level::LVL_DEBUG, "Invalid configuration. Can't start connection\n" );
     return false;
   }
 

@@ -154,9 +154,6 @@
     <ClInclude Include="..\..\..\src\hardware\types.hpp">
       <Filter>src\hardware</Filter>
     </ClInclude>
-    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp">
-      <Filter>src\interfaces</Filter>
-    </ClCompile>
     <ClInclude Include="..\..\..\src\interfaces\endpoint_intf.hpp">
       <Filter>src\interfaces</Filter>
     </ClInclude>

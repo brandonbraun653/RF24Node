@@ -512,8 +512,20 @@
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
       <CPPLanguageStandard>CPP2A</CPPLanguageStandard>
-      <Optimization>Os</Optimization>
+      <Optimization>Og</Optimization>
     </ClCompile>
+    <ToolchainSettingsContainer>
+      <InstructionSet>THUMB</InstructionSet>
+    </ToolchainSettingsContainer>
+    <ToolchainSettingsContainer>
+      <FloatABI>hard</FloatABI>
+    </ToolchainSettingsContainer>
+    <ToolchainSettingsContainer>
+      <ARMFPU>fpv4-sp-d16</ARMFPU>
+    </ToolchainSettingsContainer>
+    <ToolchainSettingsContainer>
+      <ARMCPU>cortex-m4</ARMCPU>
+    </ToolchainSettingsContainer>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='RF24_2|STM32F446RE'">
     <ClCompile>
@@ -618,7 +630,6 @@
     <ClInclude Include="..\..\..\src\hardware\driver.hpp" />
     <ClInclude Include="..\..\..\src\hardware\register.hpp" />
     <ClInclude Include="..\..\..\src\hardware\types.hpp" />
-    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp" />
     <ClInclude Include="..\..\..\src\interfaces\endpoint_intf.hpp" />
     <ClInclude Include="..\..\..\src\interfaces\network_intf.hpp" />
     <ClInclude Include="..\..\..\src\interfaces\physical_intf.hpp" />
