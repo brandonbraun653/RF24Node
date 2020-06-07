@@ -44,7 +44,7 @@ namespace RF24::Endpoint
 
   Interface_sPtr createShared( const SystemInit &cfg );
   Interface_uPtr createUnique( const SystemInit &cfg );
-  
+
   class Device : public Interface
   {
   public:
@@ -59,10 +59,9 @@ namespace RF24::Endpoint
     Chimera::Status_t requestAddress() final override;
     Chimera::Status_t renewAddressReservation() final override;
     Chimera::Status_t releaseAddress() final override;
-    Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback,
-                               const size_t timeout ) override;
+    Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) override;
     Chimera::Status_t disconnect() final override;
-    Chimera::Status_t reconnect() final override;
+    Chimera::Status_t reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) final override;
     Chimera::Status_t onEvent( const Event event, const EventFuncPtr_t function ) final override;
     Chimera::Status_t doAsyncProcessing() final override;
     Chimera::Status_t processDHCPServer( RF24::Network::Frame::FrameType &frame ) final override;
@@ -80,7 +79,6 @@ namespace RF24::Endpoint
     bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) final override;
 
     void setName( const std::string &name ) final override;
-    
 
 
     RF24::Network::Interface_sPtr getNetworkingDriver() final override;
@@ -95,12 +93,12 @@ namespace RF24::Endpoint
     RF24::Network::Interface_sPtr mNetworkDriver;   /**< Network layer object */
     uLog::SinkHandle mLogger;                       /**< Logger object */
 
-    
-    SystemInit mEndpointInit;   /**< User endpoint initial configuration for this node */
-    SystemState mState; /**< Current state of this node */
+
+    SystemInit mEndpointInit; /**< User endpoint initial configuration for this node */
+    SystemState mState;       /**< Current state of this node */
 
 
-    void initNetworkingStack( ::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy );
+    void initNetworkingStack(::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy );
 
   private:
     Chimera::Status_t initHardwareLayer();

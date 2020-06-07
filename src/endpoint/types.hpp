@@ -45,7 +45,7 @@ namespace RF24::Endpoint
   struct ConnectionStatus
   {
     bool connected;     /**< The endpoint is connected to the network */
-    size_t expiredTick; /**< Tick when the connection state is due to expire */
+    size_t expiresAt; /**< Tick when the connection state is due to expire */
   };
 
   struct SystemState

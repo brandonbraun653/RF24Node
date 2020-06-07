@@ -15,12 +15,16 @@
 /* RF24 Includes */
 #include <RF24Node/common>
 #include <RF24Node/src/network/definitions.hpp>
+#include <RF24Node/src/network/types.hpp>
 #include <RF24Node/src/network/processes/rf24_network_connection.hpp>
 #include <RF24Node/src/network/processes/rf24_network_connection_internal.hpp>
 
 namespace RF24::Network::Internal::Processes::Connection
 {
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback,
+  /*-------------------------------------------------------------------------------
+  Make A Connection
+  -------------------------------------------------------------------------------*/
+  bool startConnect( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback,
               const size_t timeout )
   {
     /*------------------------------------------------
@@ -60,7 +64,7 @@ namespace RF24::Network::Internal::Processes::Connection
       connectionList[ index ].processTimeout     = timeout;
       connectionList[ index ].startTime          = Chimera::millis();
 
-      obj.setConnectionInProgress( connectID, true );
+      obj.setConnectionInProgress( connectID, RF24::Connection::Direction::CONNECT, true );
 
       return true;
     }
@@ -69,11 +73,11 @@ namespace RF24::Network::Internal::Processes::Connection
     Fall-through condition. If we get here, the desired node
     to connect with didn't have a direct relationship in the tree.
     ------------------------------------------------*/
-    uLog::getRootSink()->flog( uLog::Level::LVL_DEBUG, "Invalid configuration. Can't start connection\n" );
     return false;
   }
 
-  void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame )
+
+  void runInProgressConnect( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame )
   {
     /*------------------------------------------------
     Handle the message appropriately
@@ -105,7 +109,6 @@ namespace RF24::Network::Internal::Processes::Connection
         }
       }
 
-      
       /*------------------------------------------------
       Handle high level process timeout behavior
       ------------------------------------------------*/
@@ -142,7 +145,7 @@ namespace RF24::Network::Internal::Processes::Connection
           break;
 
         /*------------------------------------------------
-        Handles timeout and retransmit operations when the sending 
+        Handles timeout and retransmit operations when the sending
         node is waiting on the receiver to send something back
         ------------------------------------------------*/
         case State::CONNECT_WAIT_FOR_CHILD_ACK:
@@ -183,7 +186,7 @@ namespace RF24::Network::Internal::Processes::Connection
         ------------------------------------------------*/
         case State::CONNECT_SUCCESS_DIRECT:    // Child's perspective
         case State::CONNECT_SUCCESS_ASYNC:     // Parent's perspective
-        case State::CONNECT_TERMINATE: {       // Parent or Child perspective    
+        case State::CONNECT_TERMINATE: {       // Parent or Child perspective
           /*------------------------------------------------
           Inform the user that the connection completed
           ------------------------------------------------*/
@@ -197,9 +200,10 @@ namespace RF24::Network::Internal::Processes::Connection
           ------------------------------------------------*/
           auto cachedId = connection.bindId;
 
-          obj.setConnectionInProgress( cachedId, false );
-          connection        = {};
-          connection.bindId = cachedId;
+          obj.setConnectionInProgress( cachedId, RF24::Connection::Direction::CONNECT, false );
+          connection              = {};
+          connection.bindId       = cachedId;
+          connection.currentState = State::CONNECT_IDLE;
           break;
         }
 
@@ -209,6 +213,72 @@ namespace RF24::Network::Internal::Processes::Connection
     }
   }
 
+
+  /*-------------------------------------------------------------------------------
+  Remove A Connection
+  -------------------------------------------------------------------------------*/
+  bool startDisconnect( RF24::Network::Interface &obj, RF24::Connection::BindSite id,
+                        RF24::Connection::OnCompleteCallback callback, const size_t timeout )
+  {
+    /*------------------------------------------------
+    Startup conditions
+    ------------------------------------------------*/
+    auto ccb = obj.getConnection( id );
+
+    if ( !timeout || !callback )
+    {
+      return false;
+    }
+    else if ( ccb.result == RF24::Connection::Result::CONNECTION_NOT_BOUND )
+    {
+      // Already unregistered, awesome!
+      callback( RF24::Connection::Result::CONNECTION_NOT_BOUND, id );
+      return true;
+    }
+
+    /*------------------------------------------------
+    Process the connection request only
+    ------------------------------------------------*/
+    auto thisNode                    = obj.thisNode();
+    auto connectToParent             = ( id == RF24::Connection::BindSite::PARENT );
+    ControlBlockList &connectionList = obj.getConnectionList();
+
+    auto index     = static_cast<size_t>( id );
+
+    connectionList[ index ].bindId             = id;
+    connectionList[ index ].connectToAddress   = ( connectToParent ? thisNode : ccb.connectToAddress );
+    connectionList[ index ].connectFromAddress = ( connectToParent ? ccb.connectToAddress : thisNode );
+    connectionList[ index ].currentState       = State::CONNECT_REQUEST;
+    connectionList[ index ].onConnectComplete  = callback;
+    connectionList[ index ].lastEventTime      = Chimera::millis();
+    connectionList[ index ].processTimeout     = timeout;
+    connectionList[ index ].startTime          = Chimera::millis();
+
+    obj.setConnectionInProgress( id, RF24::Connection::Direction::DISCONNECT, true );
+
+    return true;
+  }
+
+
+  void runInProgressDisconnect( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame )
+  {
+    ControlBlockList &connectionList = obj.getConnectionList();
+    for ( ControlBlock &connection : connectionList )
+    {
+
+    }
+  }
+
+
+  bool handleDisconnectRequest( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
+  {
+    return true;
+  }
+
+
+  /*-------------------------------------------------------------------------------
+  Internal Helper Methods
+  -------------------------------------------------------------------------------*/
   void requestHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
     /*------------------------------------------------
@@ -244,7 +314,7 @@ namespace RF24::Network::Internal::Processes::Connection
       connection.connectToAddress   = childToBind;
       connection.connectFromAddress = obj.thisNode();
 
-      obj.setConnectionInProgress( connection.bindId, true );
+      obj.setConnectionInProgress( connection.bindId, RF24::Connection::Direction::CONNECT, true );
     }
     else
     {
@@ -260,6 +330,7 @@ namespace RF24::Network::Internal::Processes::Connection
     connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
   }
 
+
   void ackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
     /*------------------------------------------------
@@ -274,6 +345,8 @@ namespace RF24::Network::Internal::Processes::Connection
     /*------------------------------------------------
     Otherwise process the ACK according to the node type
     ------------------------------------------------*/
+    RF24::Network::ControlBlock scbCopy;
+
     switch ( connection.currentState )
     {
       /*------------------------------------------------
@@ -281,16 +354,34 @@ namespace RF24::Network::Internal::Processes::Connection
       of response to us in regards to the bind request.
       ------------------------------------------------*/
       case State::CONNECT_WAIT_FOR_PARENT_RESPONSE:
+        obj.lock();
+        obj.getSCBUnsafe( scbCopy );
+
         if ( frame.getType() == Network::HeaderMessage::MSG_NET_REQUEST_BIND_ACK )
         {
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
           connection.result       = RF24::Connection::Result::CONNECTION_SUCCESS;
+
+          /*------------------------------------------------
+          Update the network's internal state to reflect connection status
+          ------------------------------------------------*/
+          scbCopy.connectedToNet   = true;
+          scbCopy.connectedToNetAt = Chimera::millis();
         }
         else
         {
           connection.currentState = State::CONNECT_TERMINATE;
           connection.result       = RF24::Connection::Result::CONNECTION_FAILED;
+
+          /*------------------------------------------------
+          Update the network's internal state to reflect connection status
+          ------------------------------------------------*/
+          scbCopy.connectedToNet   = false;
+          scbCopy.connectedToNetAt = 0;
         }
+
+        obj.setSCBUnsafe( scbCopy );
+        obj.unlock();
 
         /*------------------------------------------------
         Let the parent know we received the message
@@ -316,9 +407,11 @@ namespace RF24::Network::Internal::Processes::Connection
     }
   }
 
+
   void nackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
   }
+
 
   RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address )
   {
@@ -336,6 +429,7 @@ namespace RF24::Network::Internal::Processes::Connection
     return id;
   }
 
+
   void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame )
   {
     auto cachedSrc = frame.getSrc();
@@ -344,6 +438,7 @@ namespace RF24::Network::Internal::Processes::Connection
     frame.setType( Network::MSG_NET_REQUEST_BIND_NACK );
     frame.setPayload( nullptr, 0 );
   }
+
 
   void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame )
   {

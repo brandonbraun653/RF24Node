@@ -63,6 +63,8 @@ namespace RF24::Network
     mLastTxTime            = 0;
     mConnectionsInProgress = 0;
 
+    mSCB.clear();
+
     /*------------------------------------------------
     Initialize the connection tracker with the proper data
     ------------------------------------------------*/
@@ -261,11 +263,15 @@ namespace RF24::Network
     updateTX();
 
     /*------------------------------------------------
-    Process any ongoing connections if running
+    Process any ongoing connection processes if they are running
     ------------------------------------------------*/
-    if ( connectionsInProgress() )
+    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) )
     {
-      Connection::run( *this, nullptr );
+      Connection::runInProgressConnect( *this, nullptr );
+    }
+    else if ( connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
+    {
+      Connection::runInProgressDisconnect( *this, nullptr );
     }
   }
 
@@ -361,12 +367,42 @@ namespace RF24::Network
   }
 
 
+  void Driver::resetConnection( const RF24::Connection::BindSite id )
+  {
+    this->lock();
+
+    /*-------------------------------------------------
+    The connection control block manages the runtime process for
+    connecting to a new node. Clearing this data allows for a new
+    process to begin and create a new connection.
+    -------------------------------------------------*/
+    auto connection = getConnection( id );
+    connection.clear();
+
+    /*-------------------------------------------------
+    Clearing these variables allow external users of the network
+    object to be able to see that the connection has been terminated.
+    -------------------------------------------------*/
+    mSCB.connectedToNet = false;
+    mSCB.connectedToNetAt = 0;
+
+    this->unlock();
+  }
+
+
   /*------------------------------------------------
   Data Getters
   ------------------------------------------------*/
-  bool Driver::connectionsInProgress()
+  bool Driver::connectionsInProgress( const RF24::Connection::Direction dir )
   {
-    return static_cast<bool>( mConnectionsInProgress );
+    if ( dir == RF24::Connection::Direction::CONNECT )
+    {
+      return static_cast<bool>( mConnectionsInProgress );
+    }
+    else
+    {
+      return static_cast<bool>( mDisconnectsInProgress );
+    }
   }
 
   Internal::Processes::Connection::ControlBlock &Driver::getConnection( const RF24::Connection::BindSite id )
@@ -379,19 +415,60 @@ namespace RF24::Network
     return mConnectionList;
   }
 
+  void Driver::getSCBUnsafe( ControlBlock &scb )
+  {
+    scb = mSCB;
+  }
+
+  ControlBlock Driver::getSCBSafe()
+  {
+    ControlBlock scbCopy;
+    scbCopy.clear();
+
+    this->lock();
+    getSCBUnsafe( scbCopy );
+    this->unlock();
+
+    return scbCopy;
+  }
+
   /*------------------------------------------------
   Data Setters
   ------------------------------------------------*/
-  void Driver::setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled )
+  void Driver::setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled )
   {
-    if ( enabled )
+    switch ( dir )
     {
-      mConnectionsInProgress |= ( 1u << static_cast<size_t>( id ) );
+      case RF24::Connection::Direction::CONNECT:
+        if ( enabled )
+        {
+          mConnectionsInProgress |= ( 1u << static_cast<size_t>( id ) );
+        }
+        else
+        {
+          mConnectionsInProgress &= ~( 1u << static_cast<size_t>( id ) );
+        }
+        break;
+
+      case RF24::Connection::Direction::DISCONNECT:
+        if ( enabled )
+        {
+          mDisconnectsInProgress |= ( 1u << static_cast<size_t>( id ) );
+        }
+        else
+        {
+          mDisconnectsInProgress &= ~( 1u << static_cast<size_t>( id ) );
+        }
+        break;
+
+      default:
+        break;
     }
-    else
-    {
-      mConnectionsInProgress &= ~( 1u << static_cast<size_t>( id ) );
-    }
+  }
+
+  void Driver::setSCBUnsafe( const ControlBlock &scb )
+  {
+    mSCB = scb;
   }
 
 
@@ -498,21 +575,24 @@ namespace RF24::Network
     ------------------------------------------------*/
     switch ( message )
     {
-        /*------------------------------------------------
-        Simple ping packet
-        ------------------------------------------------*/
-        // case MSG_NETWORK_PING:
-        //  if ( Messages::Ping::isPingRequest( frame ) )
-        //  {
-        //    Internal::Processes::handlePingRequest( *this, frame );
-        //    return message;
-        //  }
-        //  break;
+      /*------------------------------------------------
+      Simple ping packet
+      ------------------------------------------------*/
+      case MSG_NETWORK_PING:
+        if ( Messages::Ping::isPingRequest( frame ) )
+        {
+          Internal::Processes::handlePingRequest( *this, frame );
+          return message;
+        }
+        break;
 
+      /*-------------------------------------------------
+      On-going connection process
+      -------------------------------------------------*/
       case MSG_NET_REQUEST_BIND:
       case MSG_NET_REQUEST_BIND_ACK:
       case MSG_NET_REQUEST_BIND_NACK:
-        Internal::Processes::Connection::run( *this, &frame );
+        Internal::Processes::Connection::runInProgressConnect( *this, &frame );
         break;
 
       default:

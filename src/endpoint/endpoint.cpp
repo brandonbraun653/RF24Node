@@ -167,6 +167,7 @@ namespace RF24::Endpoint
     switch ( mEndpointInit.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
+        mState.linkStatus.expiresAt = Chimera::millis() + mEndpointInit.linkTimeout;
         return Internal::Processes::Connection::makeStaticConnection( *this, mEndpointInit.network.parentStaticAddress, callback, timeout );
         break;
 
@@ -186,9 +187,43 @@ namespace RF24::Endpoint
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Device::reconnect()
+  Chimera::Status_t Device::reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
-    return Chimera::Status_t();
+    /*-------------------------------------------------
+    Threading protection
+    -------------------------------------------------*/
+    auto lockGuard = Chimera::Threading::TimedLockGuard( *this );
+    if ( !lockGuard.try_lock_for( 100 ) )
+    {
+      return Chimera::CommonStatusCodes::LOCKED;
+    }
+
+    /*------------------------------------------------
+    Reset any needed connection parameters to the "unconnected" state
+    ------------------------------------------------*/
+    switch ( mEndpointInit.network.mode )
+    {
+      case Network::Mode::NET_MODE_STATIC:
+        mState.linkStatus.connected = false;
+        mNetworkDriver->resetConnection( RF24::Connection::BindSite::PARENT );
+        break;
+
+      case Network::Mode::NET_MODE_MESH:
+        return Chimera::CommonStatusCodes::FAIL;
+        break;
+
+      case Network::Mode::NET_MODE_INVALID:
+      default:
+        return Chimera::CommonStatusCodes::FAIL;
+        break;
+    }
+
+    if constexpr( DBG_LOG_NET_TRACE )
+    {
+      mLogger->flog( uLog::Level::LVL_INFO, "%d-NET: Begin reconnect\n", Chimera::millis() );
+    }
+
+    return connect( callback, timeout );
   }
 
   Chimera::Status_t Device::onEvent( const ::RF24::Event event, const ::RF24::EventFuncPtr_t function )
@@ -279,7 +314,14 @@ namespace RF24::Endpoint
 
   bool Device::isConnected()
   {
-    const bool expired = ( Chimera::millis() < mState.linkStatus.expiredTick );
+    /*-------------------------------------------------
+    Grab the latest network status
+    -------------------------------------------------*/
+    auto netSCB = mNetworkDriver->getSCBSafe();
+    mState.linkStatus.connected = netSCB.connectedToNet;
+
+
+    const bool expired = ( Chimera::millis() > mState.linkStatus.expiresAt );
     const bool cachedConnection = mState.linkStatus.connected;
 
     if ( cachedConnection && !expired )
@@ -290,7 +332,7 @@ namespace RF24::Endpoint
     else if ( cachedConnection && expired && ping( mState.parentAddress, 150 ) )
     {
       // We were previously connected but have expired. Try to refresh.
-      mState.linkStatus.expiredTick = Chimera::millis() + mEndpointInit.linkTimeout;
+      mState.linkStatus.expiresAt = Chimera::millis() + mEndpointInit.linkTimeout;
       return true;
     }
     else

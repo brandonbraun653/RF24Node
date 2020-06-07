@@ -154,20 +154,13 @@ namespace RF24
   LogicalAddress getParent( const LogicalAddress child )
   {
     auto level = getLevel( child );
-
-    if ( level == NODE_LEVEL_INVALID )
+    
+    if ( ( level == NODE_LEVEL_INVALID ) || ( level == NODE_LEVEL_0 ) )
     {
       /*------------------------------------------------
-      The child address is invalid, so is the parent
+      A root node has no parent. Neither do invalid levels.
       ------------------------------------------------*/
       return Network::RSVD_ADDR_INVALID;
-    }
-    else if ( level == NODE_LEVEL_0 )
-    {
-      /*------------------------------------------------
-      If an address is at the root level, it's the parent
-      ------------------------------------------------*/
-      return child;
     }
     else if ( level == NODE_LEVEL_1 )
     {

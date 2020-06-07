@@ -20,6 +20,7 @@
 
 /* Chimera Includes */
 #include <Chimera/common>
+#include <Chimera/thread>
 
 /* uLog Includes */
 #include <uLog/types.hpp>
@@ -47,7 +48,7 @@ namespace RF24::Network
   using Driver_sPtr = std::shared_ptr<Driver>;
   using Driver_uPtr = std::unique_ptr<Driver>;
 
-  class Driver : virtual public Interface
+  class Driver : virtual public Interface, public Chimera::Threading::Lockable
   {
   public:
     Driver();
@@ -72,18 +73,22 @@ namespace RF24::Network
     void setNodeAddress( const LogicalAddress address ) final override;
     LogicalAddress thisNode() final override;
     bool isConnectedTo( const LogicalAddress address ) final override;
+    void resetConnection( const RF24::Connection::BindSite id ) final override;
 
     /*------------------------------------------------
     Data Getters
     ------------------------------------------------*/
-    bool connectionsInProgress() final override;
+    bool connectionsInProgress( const RF24::Connection::Direction dir ) final override;
     Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) final override;
     Internal::Processes::Connection::ControlBlockList &getConnectionList() final override;
+    void getSCBUnsafe( ControlBlock &scb ) final override;
+    ControlBlock getSCBSafe() final override;
 
     /*------------------------------------------------
     Data Setters
     ------------------------------------------------*/
-    void setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled ) final override;
+    void setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled ) final override;
+    void setSCBUnsafe( const ControlBlock &scb ) final override;
 
     /*------------------------------------------------
     Callbacks
@@ -145,6 +150,7 @@ namespace RF24::Network
 
   private:
     size_t mConnectionsInProgress;
+    size_t mDisconnectsInProgress;
 
     bool mInitialized;
     bool mReturnSystemMessages;
@@ -155,6 +161,7 @@ namespace RF24::Network
     RF24::Network::Queue::ManagedFIFO mRXQueue;
     Internal::NodeConnections mRouteTable;
     uLog::SinkHandle mLogger;
+    ControlBlock mSCB;
 
     Internal::Processes::Connection::ControlBlockList mConnectionList;
 

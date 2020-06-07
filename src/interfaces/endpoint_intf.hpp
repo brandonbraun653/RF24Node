@@ -130,8 +130,7 @@ namespace RF24::Endpoint
      *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback,
-                                       const size_t timeout ) = 0;
+    virtual Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) = 0;
 
     /**
      *  Gracefully detaches from the network
@@ -145,13 +144,18 @@ namespace RF24::Endpoint
      *  known network settings. If a mesh network, will try and dynamically obtain a new address
      *  from the DHCP server.
      *
+     *  @note Only reconnects this device to the parent node. Child node connections are handled by
+     *        the connect() protocol.
+     *
+     *  @param[in]  callback    The callback to be invoked upon success/fail/timeout
+     *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t reconnect() = 0;
+    virtual Chimera::Status_t reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) = 0;
 
     /**
      *  Pings a given node to see if it's on the network
-     *  
+     *
      *  @param[in]  node      The node to ping
      *  @param[in]  timeout   How long to wait for the ping to succeed (mS) before error-ing out
      *  @return bool

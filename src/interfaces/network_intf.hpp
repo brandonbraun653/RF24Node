@@ -15,6 +15,9 @@
 /* C++ Includes */
 #include <memory>
 
+/* Chimera Includes */
+#include <Chimera/thread>
+
 /* uLog Includes */
 #include <uLog/types.hpp>
 
@@ -56,6 +59,11 @@ namespace RF24::Network
       RF24::Connection::BindSite bindId;
 
       /**
+       *  Defines whether or not a new connection is being created or destroyed
+       */
+      RF24::Connection::Direction direction;
+
+      /**
        *  The address of the node that is being connected to. From the parent's
        *  perspective, this is the child node. From the child's perspective, this
        *  is the parent node.
@@ -77,7 +85,7 @@ namespace RF24::Network
 
       /**
        *  System time (in milliseconds) when the bind process started
-       *  
+       *
        *  @note Child parameter only
        */
       size_t startTime;
@@ -89,14 +97,14 @@ namespace RF24::Network
 
       /**
        *  How many attempts have been made to make a connection to another node
-       *  
+       *
        *  @note Child parameter only
        */
       uint8_t connectAttempts;
 
       /**
        *  Maximum number of attempts that can be made to connect before exiting
-       *  
+       *
        *  @note Child parameter only
        */
       uint8_t maxAttempts;
@@ -109,7 +117,7 @@ namespace RF24::Network
       size_t processTimeout;
 
       /**
-       *  Internal timeout of how long to wait for a response from the other node 
+       *  Internal timeout of how long to wait for a response from the other node
        *  before either exiting the process or retrying a transmission.
        */
       size_t netTimeout;
@@ -143,7 +151,13 @@ namespace RF24::Network
 
       ControlBlock()
       {
+        clear();
+      }
+
+      void clear()
+      {
         bindId             = RF24::Connection::BindSite::FIRST;
+        direction          = RF24::Connection::Direction::CONNECT;
         connectToAddress   = RF24::Network::RSVD_ADDR_INVALID;
         connectFromAddress = RF24::Network::RSVD_ADDR_INVALID;
         currentState       = State::CONNECT_IDLE;
@@ -166,7 +180,7 @@ namespace RF24::Network
   using Interface_sPtr = std::shared_ptr<Interface>;
   using Interface_uPtr = std::unique_ptr<Interface>;
 
-  class Interface
+  class Interface : virtual public Chimera::Threading::LockableInterface
   {
   public:
     virtual ~Interface() = default;
@@ -316,21 +330,75 @@ namespace RF24::Network
      */
     virtual bool isConnectedTo( const LogicalAddress toCheck ) = 0;
 
+    /**
+     *  Resets connection information with the associated bind site. This will detach
+     *  any information about a previous connection, forcing another process to reinitialize
+     *  later if the bind site is to be used for a new connection.
+     *
+     *  @param[in]  id          The bind site to be reset
+     *  @return void
+     */
+    virtual void resetConnection( const RF24::Connection::BindSite id ) = 0;
+
 
     /*------------------------------------------------
     Data Getters
     ------------------------------------------------*/
-    virtual bool connectionsInProgress() = 0;
+    /**
+     *  Checks if a connection process in the given direction is ongoing for any node
+     *  in the connection list.
+     *
+     *  @param[in]  dir         Which connect direction to look up
+     *  @return bool
+     */
+    virtual bool connectionsInProgress( const RF24::Connection::Direction dir ) = 0;
 
     virtual Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) = 0;
 
     virtual Internal::Processes::Connection::ControlBlockList &getConnectionList() = 0;
 
+    /**
+     *  Gets the current system control block
+     *
+     *  @warning This should only be used with the appropriate lock on the
+     *            network object. Otherwise the SCB could get corrupted.
+     *
+     *  @param[in]  scb         Variable to copy the internal SCB state into
+     *  @return void
+     */
+    virtual void getSCBUnsafe( ControlBlock &scb ) = 0;
+
+    /**
+     *  Makes a copy of the internal system control block in a thread-safe manner
+     *  @return ControlBlock
+     */
+    virtual ControlBlock getSCBSafe() = 0;
+
 
     /*------------------------------------------------
     Data Setters
     ------------------------------------------------*/
-    virtual void setConnectionInProgress( const RF24::Connection::BindSite id, const bool enabled ) = 0;
+    /**
+     *  Updates the connection control blocks for the given bind site so
+     *  that it knows a new process has begun.
+     *
+     *  @param[in]  id          Which bindsite to set up
+     *  @param[in]  dir         The direction the connection process is going
+     *  @param[in]  enabled     If enabled, marks the process as beginning. If not, marks as completed.
+     *  @return void
+     */
+    virtual void setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled ) = 0;
+
+    /**
+     *  Updates the system control block with new data.
+     *
+     *  @warning This should only be used in conjunction with getSCB and the appropriate lock on the
+     *            network object. Otherwise the SCB could get corrupted.
+     *
+     *  @param[in]  scb         Data used to update the internal SCB state
+     *  @return void
+     */
+    virtual void setSCBUnsafe( const ControlBlock &scb ) = 0;
 
 
     /*------------------------------------------------

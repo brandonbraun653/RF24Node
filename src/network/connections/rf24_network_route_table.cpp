@@ -7,11 +7,14 @@
  *
  *  2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
+ 
+/* uLog Includes */
+#include <uLog/ulog.hpp>
+#include <uLog/sinks/sink_intf.hpp>
 
 /* RF24 Includes */
 #include <RF24Node/common>
 #include <RF24Node/endpoint>
-
 #include <RF24Node/src/network/connections/rf24_network_route_table.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 
@@ -138,7 +141,6 @@ namespace RF24::Network::Internal
     return mCentralNode;
   }
 
-
   void NodeConnections::resetRegistration( const RF24::Hardware::PipeNumber pipe )
   {
     const size_t lookupIndex = static_cast<size_t>( pipe );
@@ -151,6 +153,7 @@ namespace RF24::Network::Internal
   bool NodeConnections::initRegistration( const RF24::LogicalAddress address, InitType placement )
   {
     size_t lookupIndex;
+    auto logger = uLog::getRootSink();
 
     switch ( placement )
     {
@@ -158,6 +161,7 @@ namespace RF24::Network::Internal
         lookupIndex = static_cast<size_t>( ::RF24::Physical::Conversion::getExpectedPipe( address ) );
         if ( lookupIndex < mChildrenNodes.size() )
         {
+          logger->flog( uLog::Level::LVL_INFO, "%d-NET: Attached node 0%o as child\n", Chimera::millis(), address );
           mChildrenNodes[ lookupIndex ] = ::RF24::Endpoint::Node( address );
           return true;
         }
@@ -165,6 +169,7 @@ namespace RF24::Network::Internal
         break;
 
       case InitType::AS_PARENT:
+        logger->flog( uLog::Level::LVL_INFO, "%d-NET: Attached node 0%o as parent\n", Chimera::millis(), address );
         mParentNode = ::RF24::Endpoint::Node( address );
         return true;
         break;

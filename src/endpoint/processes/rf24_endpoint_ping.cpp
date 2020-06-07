@@ -64,7 +64,7 @@ namespace RF24::Endpoint::Internal::Processes
       /*------------------------------------------------
       Run the network layer so we don't stall communication
       ------------------------------------------------*/
-      obj.doAsyncProcessing();
+      obj.processNetworking();
 
       /*------------------------------------------------
       Handle the current state

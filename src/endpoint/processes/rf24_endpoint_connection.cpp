@@ -45,11 +45,10 @@ namespace RF24::Endpoint::Internal::Processes::Connection
   };
 
   Chimera::Status_t makeStaticConnection( RF24::Endpoint::Interface &obj, const RF24::LogicalAddress node,
-                                          RF24::Connection::OnCompleteCallback callback,
-                                          const size_t timeout )
+                                          RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
     auto network = obj.getNetworkingDriver();
-    RF24::Network::Internal::Processes::Connection::begin( *network, node, callback, timeout );
+    RF24::Network::Internal::Processes::Connection::startConnect( *network, node, callback, timeout );
     return Chimera::CommonStatusCodes::OK;
   }
 
@@ -59,4 +58,12 @@ namespace RF24::Endpoint::Internal::Processes::Connection
   }
 
 
-}    // namespace RF24::Endpoint
+  Chimera::Status_t disconnect( RF24::Endpoint::Interface &obj, RF24::Connection::OnCompleteCallback callback,
+                                const size_t timeout )
+  {
+    auto network = obj.getNetworkingDriver();
+    RF24::Network::Internal::Processes::Connection::startDisconnect( *network, RF24::Connection::BindSite::PARENT, callback, timeout );
+    return Chimera::CommonStatusCodes::OK;
+  }
+
+}    // namespace RF24::Endpoint::Internal::Processes::Connection

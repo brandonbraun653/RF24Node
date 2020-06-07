@@ -52,6 +52,22 @@ namespace RF24::Network
   };
   static_assert( sizeof( Config ) % sizeof( size_t ) == 0, "Struct not aligned properly" );
 
+  /**
+   *  Network object system control block to manage the runtime
+   *  state of the network.
+   */
+  struct ControlBlock
+  {
+    bool connectedToNet;      /**< Device has connected to the network through the parent node */
+    size_t connectedToNetAt;  /**< Time stamp the network connection occured at */
+
+    void clear()
+    {
+      connectedToNet = false;
+      connectedToNetAt = 0;
+    }
+  };
+
 }    // namespace RF24::Network
 
 

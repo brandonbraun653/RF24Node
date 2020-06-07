@@ -24,7 +24,7 @@ namespace RF24::Endpoint::Internal::Processes::Connection
    *
    *  @note   setEndpointStaticAddress() and setParentStaticAddress() need to be
    *          called before this function will succeed.
-   *  
+   *
    *  @param[in]  obj           The endpoint object to connect with
    *  @param[in]  node          The node to make the connection to
    *  @param[in]  callback      The callback to be invoked upon success/fail/timeout
@@ -43,7 +43,17 @@ namespace RF24::Endpoint::Internal::Processes::Connection
    *	@return Chimera::Status_t
    */
   Chimera::Status_t makeMeshConnection( const size_t timeout );
-  
+
+  /**
+   *  Disconnects from the network
+   *
+   *  @param[in]  obj           The endpoint object to connect with
+   *  @param[in]  callback      The callback to be invoked upon success/fail/timeout
+   *  @param[in]  timeout       Timeout in milliseconds for the connection to succeed
+   */
+  Chimera::Status_t disconnect( RF24::Endpoint::Interface &obj, RF24::Connection::OnCompleteCallback callback,
+                                const size_t timeout );
+
 }    // namespace RF24::Endpoint::Internal::Processor
 
 #endif /* !RF24_NODE_ENDPOINT_CONNECTION_HPP */

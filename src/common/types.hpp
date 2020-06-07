@@ -53,8 +53,9 @@ namespace RF24
       CONNECTION_TIMEOUT,     /**< The connection to the parent node timed out */
       CONNECTION_NO_RESPONSE, /**< The other node did not respond to a packet */
       CONNECTION_BOUND,       /**< A child node was bound */
+      CONNECTION_NOT_BOUND,   /**< The connection is not bound to anything */
     };
-    
+
     enum class BindSite : uint8_t
     {
       PARENT = 0,
@@ -69,18 +70,22 @@ namespace RF24
       LAST = CHILD_5
     };
 
+    enum class Direction : uint8_t
+    {
+      CONNECT,
+      DISCONNECT
+    };
+
     /**
      *	Defines an event callback for the user to have invoked when a connection
      *	to a parent node succeeds (child perspective) or a child is bound to the
      *	parent node (parent perspective).
-     *	
+     *
      *	@param[in]  result    Whether or not the connection succeeded
      *	@param[in]  id        The connection id describing which node the result applies to
      *	@return void
      */
     using OnCompleteCallback = void(*)(const Result result, const BindSite id );
-
-
   }
 
 }    // namespace RF24

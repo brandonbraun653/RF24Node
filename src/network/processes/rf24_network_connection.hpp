@@ -20,16 +20,20 @@
 
 namespace RF24::Network::Internal::Processes::Connection
 {
+  /*-------------------------------------------------------------------------------
+  Make A Connection
+  -------------------------------------------------------------------------------*/
   /**
-   *	Starts the process of creating a new connection to a node 
-   *	
+   *	Starts the process of creating a new connection to a node
+   *
    *	@param[in]  obj         The network driver instance to utilize
    *	@param[in]	node        The node to try and connect to
    *	@param[in]	callback    Callback to execute upon success/fail/timeout
    *	@param[in]	timeout     How long to wait for the connection to succeed
    *	@return bool
    */
-  bool begin( RF24::Network::Interface &obj, const RF24::LogicalAddress node, RF24::Connection::OnCompleteCallback callback, const size_t timeout );
+  bool startConnect( RF24::Network::Interface &obj, const RF24::LogicalAddress node,
+                     RF24::Connection::OnCompleteCallback callback, const size_t timeout );
 
   /**
    *  Runs the connection handling processing logic to allow connections to form
@@ -39,7 +43,40 @@ namespace RF24::Network::Internal::Processes::Connection
    *	@param[in]	frame       The frame that was received (optional)
    *	@return void
    */
-  void run( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame );
+  void runInProgressConnect( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame );
+
+  /*-------------------------------------------------------------------------------
+  Remove A Connection
+  -------------------------------------------------------------------------------*/
+  /**
+   *	Disconnects from a previously connected bind site (parent or child)
+   *
+   *	@param[in]  obj         The network driver instance to utilize
+   *	@param[in]	id          The bindsite that is being disconnected from
+   *	@param[in]	callback    Callback to execute upon success/fail/timeout
+   *	@param[in]	timeout     How long to wait for the disconnect to succeed
+   *	@return bool
+   */
+  bool startDisconnect( RF24::Network::Interface &obj, RF24::Connection::BindSite id,
+                        RF24::Connection::OnCompleteCallback callback, const size_t timeout );
+
+  /**
+   *  Runs the disconnection handling logic to allow nodes to disconnect from each other
+   *
+   *	@param[in]	obj         The network driver instance to utilize
+   *	@param[in]	frame       The frame that was received (optional)
+   *	@return void
+   */
+  void runInProgressDisconnect( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType *frame );
+
+  /**
+   *	Handles a disconnection request from another node
+   *
+   *	@param[in]	obj     The network driver doing the handling
+   *  @param[in]  frame   The disconnect request frame that was received
+   *	@return bool
+   */
+  bool handleDisconnectRequest( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
 
 }    // namespace RF24::Network::Internal::Processes
 
