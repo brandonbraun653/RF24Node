@@ -24,6 +24,7 @@
     <ClInclude Include="..\..\..\src\common\environment.hpp" />
     <ClInclude Include="..\..\..\src\common\types.hpp" />
     <ClInclude Include="..\..\..\src\common\utility.hpp" />
+    <ClInclude Include="..\..\..\src\common\version.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\config.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\endpoint.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp" />
@@ -69,11 +70,16 @@
   <ItemGroup>
     <None Include="..\..\..\common" />
     <None Include="..\..\..\endpoint" />
+    <None Include="..\..\..\src\common\build.jam" />
+    <None Include="..\..\..\src\endpoint\build.jam" />
     <None Include="..\..\..\src\hardware\about.md" />
+    <None Include="..\..\..\src\hardware\build.jam" />
     <None Include="..\..\..\src\mesh\about.md" />
     <None Include="..\..\..\src\network\about.md" />
+    <None Include="..\..\..\src\network\build.jam" />
     <None Include="..\..\..\src\network\message" />
     <None Include="..\..\..\src\physical\about.md" />
+    <None Include="..\..\..\src\physical\build.jam" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -86,7 +92,6 @@
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
     <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
-    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp" />
     <ClCompile Include="..\..\..\src\mesh\mesh.cpp" />
     <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp" />
     <ClCompile Include="..\..\..\src\network\frame\frame.cpp" />
@@ -102,6 +107,9 @@
     <ClCompile Include="..\..\..\src\physical\simulator\pipe.cpp" />
     <ClCompile Include="..\..\..\src\physical\simulator\shockburst.cpp" />
     <ClCompile Include="..\..\..\src\physical\simulator\sim_physical.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="compiler_notes.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -182,7 +190,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -199,7 +207,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -218,7 +226,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -239,7 +247,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(ChimeraPortDir);$(ChimeraIncDir);$(ChimeraCfgDir);$(uLogIncDir);$(CRCIncDir);$(BoostIncDir);$(RF24NodeIncDir);</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4250;26812</DisableSpecificWarnings>
     </ClCompile>
     <Link>

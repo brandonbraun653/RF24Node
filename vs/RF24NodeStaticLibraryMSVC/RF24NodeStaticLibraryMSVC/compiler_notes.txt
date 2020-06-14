@@ -1,0 +1,1 @@
+1. Currently GMock and GTest won't compile properly under C++20 due to std::result_of being removed from the STL. The fix is to compile with C++17.

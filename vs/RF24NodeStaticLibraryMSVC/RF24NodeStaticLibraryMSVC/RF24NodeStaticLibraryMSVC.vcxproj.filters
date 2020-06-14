@@ -195,6 +195,9 @@
     <ClInclude Include="..\..\..\src\physical\mock\physical_mock.hpp">
       <Filter>src\physical\mock</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\common\version.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hardware\about.md">
@@ -215,6 +218,21 @@
       <Filter>src\network</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="..\..\..\src\common\build.jam">
+      <Filter>src\common</Filter>
+    </None>
+    <None Include="..\..\..\src\endpoint\build.jam">
+      <Filter>src\endpoint</Filter>
+    </None>
+    <None Include="..\..\..\src\hardware\build.jam">
+      <Filter>src\hardware</Filter>
+    </None>
+    <None Include="..\..\..\src\network\build.jam">
+      <Filter>src\network</Filter>
+    </None>
+    <None Include="..\..\..\src\physical\build.jam">
+      <Filter>src\physical</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\conversion.cpp">
@@ -234,9 +252,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\hardware\driver.cpp">
       <Filter>src\hardware</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\interfaces\endpoint_intf.cpp">
-      <Filter>src\interfaces</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\mesh\mesh.cpp">
       <Filter>src\mesh</Filter>
@@ -292,5 +307,10 @@
     <ClCompile Include="..\..\..\src\physical\mock\physical_mock.cpp">
       <Filter>src\physical\mock</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gtest\gtest-all.cc" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gmock\gmock-all.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="compiler_notes.txt" />
   </ItemGroup>
 </Project>
