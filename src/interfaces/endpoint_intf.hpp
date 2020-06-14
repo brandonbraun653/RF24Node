@@ -5,7 +5,7 @@
  *  Description:
  *    Describes a high level interface to configuring and using the NRF24L01
  *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -120,17 +120,27 @@ namespace RF24::Endpoint
     virtual Chimera::Status_t releaseAddress() = 0;
 
     /**
-     *  Attempts to connect to the network using previously configured settings
+     *  Attempts to connect to the network asynchronously. Immediately returns before
+     *  the connection has fully completed.
      *
-     *  @warning  All nodes must use the same networking mode in order for the
-     *            connection to succeed. Otherwise nodes won't know how to talk
-     *            with one another.
+     *  @warning  Node must have previously had settings configured correctly
      *
      *  @param[in]  callback    The callback to be invoked upon success/fail/timeout
      *  @param[in]  timeout     Timeout in milliseconds to wait for success
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) = 0;
+    virtual Chimera::Status_t connectAsync( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) = 0;
+
+    /**
+     *  Attempts to connect to the network, blocking until either a connection has
+     *  been made or the specified timeout occurs.
+     *
+     *  @warning  Node must have previously had settings configured correctly
+     *
+     *  @param[in]  timeout     Timeout in milliseconds to wait for the response
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t connectBlocking( const size_t timeout ) = 0;
 
     /**
      *  Gracefully detaches from the network
@@ -282,9 +292,13 @@ namespace RF24::Endpoint
     virtual ::RF24::LogicalAddress getLogicalAddress() = 0;
 
     /**
-     *  Checks if the node is still connected to the network with
+     *  Checks if the node is still connected to the network. By default uses
+     *  cached connection status data, but can also update this via a ping.
+     *
+     *  @param[in]  check     Optionally check via a ping if the connection is stale
+     *  @return bool
      */
-    virtual bool isConnected() = 0;
+    virtual bool isConnected( const bool check ) = 0;
 
     virtual SystemState getCurrentState() = 0;
   };

@@ -147,7 +147,7 @@ namespace RF24::Endpoint
     return Chimera::Status_t();
   }
 
-  Chimera::Status_t Device::connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
+  Chimera::Status_t Device::connectAsync( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
     /*------------------------------------------------
     Make sure someone can't interrupt us
@@ -179,6 +179,40 @@ namespace RF24::Endpoint
       default:
         return Chimera::CommonStatusCodes::FAIL;
         break;
+    }
+  }
+
+  Chimera::Status_t Device::connectBlocking( const size_t timeout )
+  {
+    const size_t startTime = Chimera::millis();
+    bool connected = false;
+
+    /*-------------------------------------------------
+    Kick off the connection process
+    -------------------------------------------------*/
+    connectAsync( nullptr, timeout );
+
+    /*-------------------------------------------------
+    Wait for the connection to complete
+    -------------------------------------------------*/
+    while ( !connected && ( ( Chimera::millis() - startTime ) < timeout ) )
+    {
+      connected = isConnected( false );
+
+      processNetworking();
+      Chimera::delayMilliseconds( 10 );
+    }
+
+    /*-------------------------------------------------
+    Parse that result
+    -------------------------------------------------*/
+    if( connected )
+    {
+      return Chimera::CommonStatusCodes::OK;
+    }
+    else
+    {
+      return Chimera::CommonStatusCodes::FAIL;
     }
   }
 
@@ -223,7 +257,7 @@ namespace RF24::Endpoint
       mLogger->flog( uLog::Level::LVL_INFO, "%d-NET: Begin reconnect\n", Chimera::millis() );
     }
 
-    return connect( callback, timeout );
+    return connectAsync( callback, timeout );
   }
 
   Chimera::Status_t Device::onEvent( const ::RF24::Event event, const ::RF24::EventFuncPtr_t function )
@@ -312,7 +346,7 @@ namespace RF24::Endpoint
     return mState.endpointAddress;
   }
 
-  bool Device::isConnected()
+  bool Device::isConnected( const bool check )
   {
     /*-------------------------------------------------
     Grab the latest network status
@@ -323,13 +357,14 @@ namespace RF24::Endpoint
 
     const bool expired = ( Chimera::millis() > mState.linkStatus.expiresAt );
     const bool cachedConnection = mState.linkStatus.connected;
+    const bool connectionGood = cachedConnection && !expired;
 
-    if ( cachedConnection && !expired )
+    if ( connectionGood )
     {
       // Most likely scenario: Connection is good.
       return true;
     }
-    else if ( cachedConnection && expired && ping( mState.parentAddress, 150 ) )
+    else if ( check && ping( mState.parentAddress, 150 ) )
     {
       // We were previously connected but have expired. Try to refresh.
       mState.linkStatus.expiresAt = Chimera::millis() + mEndpointInit.linkTimeout;

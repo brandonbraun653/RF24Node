@@ -20,7 +20,7 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::write( const ::RF24::LogicalAddress dst, const void *const data, const size_t length )
   {
-    if ( !isConnected() )
+    if ( !isConnected( false ) )
     {
       return Chimera::CommonStatusCodes::NOT_AVAILABLE;
     }

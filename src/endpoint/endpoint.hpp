@@ -59,7 +59,8 @@ namespace RF24::Endpoint
     Chimera::Status_t requestAddress() final override;
     Chimera::Status_t renewAddressReservation() final override;
     Chimera::Status_t releaseAddress() final override;
-    Chimera::Status_t connect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) override;
+    Chimera::Status_t connectAsync( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) override;
+    Chimera::Status_t connectBlocking( const size_t timeout ) final override;
     Chimera::Status_t disconnect() final override;
     Chimera::Status_t reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout ) final override;
     Chimera::Status_t onEvent( const Event event, const EventFuncPtr_t function ) final override;
@@ -75,7 +76,7 @@ namespace RF24::Endpoint
     Status getStatus() final override;
     SystemInit &getConfig() final override;
     LogicalAddress getLogicalAddress() final override;
-    bool isConnected() override;
+    bool isConnected( const bool check ) override;
     bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) final override;
 
     void setName( const std::string &name ) final override;
