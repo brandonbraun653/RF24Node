@@ -68,7 +68,7 @@ namespace RF24::Network
        *  perspective, this is the child node. From the child's perspective, this
        *  is the parent node.
        */
-      RF24::LogicalAddress connectToAddress;
+      RF24::LogicalAddress toAddress;
 
       /**
        *  The "other" node in the connection process, opposite of the connectToAddress.
@@ -76,7 +76,7 @@ namespace RF24::Network
        *  This simply ends up being the address of the node that is actually processing
        *  the control block locally.
        */
-      RF24::LogicalAddress connectFromAddress;
+      RF24::LogicalAddress fromAddress;
 
       /**
        *  Simply keeps track of the current state of the connection process
@@ -100,7 +100,7 @@ namespace RF24::Network
        *
        *  @note Child parameter only
        */
-      uint8_t connectAttempts;
+      uint8_t attempts;
 
       /**
        *  Maximum number of attempts that can be made to connect before exiting
@@ -158,17 +158,17 @@ namespace RF24::Network
       {
         bindId             = RF24::Connection::BindSite::FIRST;
         direction          = RF24::Connection::Direction::CONNECT;
-        connectToAddress   = RF24::Network::RSVD_ADDR_INVALID;
-        connectFromAddress = RF24::Network::RSVD_ADDR_INVALID;
+        toAddress   = RF24::Network::RSVD_ADDR_INVALID;
+        fromAddress = RF24::Network::RSVD_ADDR_INVALID;
         currentState       = State::CONNECT_IDLE;
         onConnectComplete  = nullptr;
         startTime          = 0;
         lastEventTime      = 0;
-        connectAttempts    = 0;
+        attempts    = 0;
         maxAttempts        = 10;
         processTimeout     = 60000;    // 60 seconds
         netTimeout         = 500;      // 100 milliseconds
-        result             = RF24::Connection::Result::CONNECTION_UNKNOWN;
+        result             = RF24::Connection::Result::CONNECT_PROC_UNKNOWN;
         frameCache         = RF24::Network::Frame::FrameType();
       }
     };
@@ -303,9 +303,10 @@ namespace RF24::Network
      *	it should be placed (parent/child).
      *
      *	@param[in]	address     The address to update the route table with
+     *	@param[in]  attach      Whether or not the address should be attached or removed
      *	@return bool
      */
-    virtual bool updateRouteTable( const LogicalAddress address ) = 0;
+    virtual bool updateRouteTable( const LogicalAddress address, const bool attach ) = 0;
 
     /**
      *	Let's the network driver know which node it is in the network.
@@ -353,9 +354,14 @@ namespace RF24::Network
      */
     virtual bool connectionsInProgress( const RF24::Connection::Direction dir ) = 0;
 
-    virtual Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) = 0;
-
-    virtual Internal::Processes::Connection::ControlBlockList &getConnectionList() = 0;
+    /**
+     *  Copies out the latest bind site control block data
+     *  
+     *  @param[in]  id          The bind site to get the data for
+     *  @param[in]  cb          The control block structure to copy into
+     *  @return void
+     */
+    virtual void getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb ) = 0;
 
     /**
      *  Gets the current system control block
@@ -366,13 +372,15 @@ namespace RF24::Network
      *  @param[in]  scb         Variable to copy the internal SCB state into
      *  @return void
      */
-    virtual void getSCBUnsafe( ControlBlock &scb ) = 0;
+    virtual void getSCBUnsafe( SystemCB &scb ) = 0;
 
     /**
      *  Makes a copy of the internal system control block in a thread-safe manner
-     *  @return ControlBlock
+     *  @return SystemControlBlock
      */
-    virtual ControlBlock getSCBSafe() = 0;
+    virtual SystemCB getSCBSafe() = 0;
+
+    virtual RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) = 0;
 
 
     /*------------------------------------------------
@@ -398,7 +406,7 @@ namespace RF24::Network
      *  @param[in]  scb         Data used to update the internal SCB state
      *  @return void
      */
-    virtual void setSCBUnsafe( const ControlBlock &scb ) = 0;
+    virtual void setSCBUnsafe( const SystemCB &scb ) = 0;
 
 
     /*------------------------------------------------
@@ -415,6 +423,29 @@ namespace RF24::Network
      *	@return void
      */
     virtual void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) = 0;
+
+
+   
+    /*-------------------------------------------------------------------------------
+    Unsafe Data: The network driver is not meant to used directly and this class
+      exposes lots of data that can screw up the network layer if handled frivolously.
+      Due to the memory overhead of adding thread-safe getters/setters for all complex
+      class metadata, access to the below variables is left up to the programmer to
+      maintain thread safety. When in doubt, wrap accesses to these data types with
+      proper lock/unlock protocol.
+    -------------------------------------------------------------------------------*/
+
+    /**
+     *  Tracks ongoing connections and their runtime status
+     */
+    Internal::Processes::Connection::ControlBlockList unsafe_ConnectionList;
+    
+    /**
+     *  Tracks the state of all bind-sites
+     */
+    BindSiteCBList unsafe_BindSiteList;
+    
+    SystemCB unsafe_DriverCB;
 
   protected:
     /**

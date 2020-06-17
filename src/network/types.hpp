@@ -18,6 +18,7 @@
 
 /* RF24 Includes */
 #include <RF24Node/src/common/types.hpp>
+#include <RF24Node/src/network/definitions.hpp>
 
 namespace RF24::Network
 {
@@ -56,10 +57,10 @@ namespace RF24::Network
    *  Network object system control block to manage the runtime
    *  state of the network.
    */
-  struct ControlBlock
+  struct SystemCB
   {
     bool connectedToNet;      /**< Device has connected to the network through the parent node */
-    size_t connectedToNetAt;  /**< Time stamp the network connection occured at */
+    size_t connectedToNetAt;  /**< Time stamp the network connection occurred at */
 
     void clear()
     {
@@ -67,6 +68,77 @@ namespace RF24::Network
       connectedToNetAt = 0;
     }
   };
+
+
+  /**
+   *  Control block that describes a bind site. These objects will track the lifetime
+   *  information about any existing connections present at a bind site.
+   */
+  struct BindSiteCB
+  {
+    bool valid;
+
+    /**
+     *  High level on/off switch to enable a particular bind site to maintain
+     *  a connection pipe to other nodes.
+     */
+    bool enabled;
+
+    bool connected;
+
+    /**
+     *  Tracks which bind site this control block is for
+     */
+    RF24::Connection::BindSite bindId;
+
+    /**
+     *  Marks the system time at which the site was last active on the network.
+     *  This could be updated by any event that generates network traffic.
+     */
+    size_t lastActive;
+
+    /**
+     *  Number of milliseconds past lastActive that means the network connection is
+     *  stale and needs to be refreshed.
+     */
+    size_t expirationDelta;
+
+    /**
+     *  The address of the node at the other end of this bind site
+     */
+    RF24::LogicalAddress address;
+
+
+    /**
+     *  Various event callbacks that can be executed
+     */
+    OnConnectCallback onConnect;       /**< Executes when the bind site connects */
+    OnDisconnectCallback onDisconnect; /**< Executes when the bind site disconnects */
+
+    BindSiteCB()
+    {
+      clear();
+    }
+
+    /**
+     *  Clears the control block data back to defaults
+     */
+    void clear()
+    {
+      valid           = false;
+      enabled         = false;
+      connected       = false;
+      bindId          = Connection::BindSite::INVALID;
+      lastActive      = 0;
+      expirationDelta = 1000 * 60 * 60; // 1hr
+      address         = RF24::Network::RSVD_ADDR_INVALID;
+
+      onConnect    = nullptr;
+      onDisconnect = nullptr;
+    }
+  };
+
+  using BindSiteCBList = std::array<BindSiteCB, static_cast<size_t>( RF24::Connection::BindSite::MAX )>;
 
 }    // namespace RF24::Network
 

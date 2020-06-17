@@ -62,16 +62,25 @@ namespace RF24::Network
     mMulticastRelay        = false;
     mLastTxTime            = 0;
     mConnectionsInProgress = 0;
+    mDisconnectsInProgress = 0;
 
-    mSCB.clear();
+    unsafe_DriverCB.clear();
 
     /*------------------------------------------------
     Initialize the connection tracker with the proper data
     ------------------------------------------------*/
-    for ( size_t x = 0; x < mConnectionList.size(); x++ )
+    for ( size_t x = 0; x < unsafe_ConnectionList.size(); x++ )
     {
-      mConnectionList[ x ]        = {};
-      mConnectionList[ x ].bindId = static_cast<RF24::Connection::BindSite>( x );
+      unsafe_ConnectionList[ x ]        = {};
+      unsafe_ConnectionList[ x ].bindId = static_cast<RF24::Connection::BindSite>( x );
+    }
+
+    /*------------------------------------------------
+    Initialize the bind site control blocks
+    ------------------------------------------------*/
+    for ( size_t x = 0; x < unsafe_BindSiteList.size(); x++ )
+    {
+      unsafe_BindSiteList[ x ].clear();
     }
   }
 
@@ -265,13 +274,9 @@ namespace RF24::Network
     /*------------------------------------------------
     Process any ongoing connection processes if they are running
     ------------------------------------------------*/
-    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) )
+    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) || connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
     {
-      Connection::runInProgressConnect( *this, nullptr );
-    }
-    else if ( connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
-    {
-      Connection::runInProgressDisconnect( *this, nullptr );
+      Connection::runConnectProcess( *this, nullptr );
     }
   }
 
@@ -327,9 +332,17 @@ namespace RF24::Network
     }
   }
 
-  bool Driver::updateRouteTable( const LogicalAddress address )
+  bool Driver::updateRouteTable( const LogicalAddress address, const bool attach )
   {
-    return mRouteTable.attach( address );
+    if ( attach )
+    {
+      return mRouteTable.attach( address );
+    }
+    else
+    {
+      mRouteTable.detach( address );
+      return true;
+    }
   }
 
   void Driver::setNodeAddress( const LogicalAddress address )
@@ -376,15 +389,10 @@ namespace RF24::Network
     connecting to a new node. Clearing this data allows for a new
     process to begin and create a new connection.
     -------------------------------------------------*/
-    auto connection = getConnection( id );
-    connection.clear();
-
-    /*-------------------------------------------------
-    Clearing these variables allow external users of the network
-    object to be able to see that the connection has been terminated.
-    -------------------------------------------------*/
-    mSCB.connectedToNet = false;
-    mSCB.connectedToNetAt = 0;
+    if ( id < Connection::BindSite::MAX )
+    {
+      unsafe_BindSiteList[ static_cast<size_t>( id ) ].clear();
+    }
 
     this->unlock();
   }
@@ -405,24 +413,26 @@ namespace RF24::Network
     }
   }
 
-  Internal::Processes::Connection::ControlBlock &Driver::getConnection( const RF24::Connection::BindSite id )
+  void Driver::getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb )
   {
-    return mConnectionList[ static_cast<size_t>( id ) ];
+    this->lock();
+
+    if ( id < Connection::BindSite::MAX )
+    {
+      cb = unsafe_BindSiteList[ static_cast<size_t>( id ) ];
+    }
+
+    this->unlock();
   }
 
-  Internal::Processes::Connection::ControlBlockList &Driver::getConnectionList()
+  void Driver::getSCBUnsafe( SystemCB &scb )
   {
-    return mConnectionList;
+    scb = unsafe_DriverCB;
   }
 
-  void Driver::getSCBUnsafe( ControlBlock &scb )
+  SystemCB Driver::getSCBSafe()
   {
-    scb = mSCB;
-  }
-
-  ControlBlock Driver::getSCBSafe()
-  {
-    ControlBlock scbCopy;
+    SystemCB scbCopy;
     scbCopy.clear();
 
     this->lock();
@@ -430,6 +440,30 @@ namespace RF24::Network
     this->unlock();
 
     return scbCopy;
+  }
+
+
+  RF24::Network::BindSiteCB Driver::getBindSiteCBSafe( const RF24::Connection::BindSite site )
+  {
+    /*------------------------------------------------
+    Make sure an invalid bind site isn't accessed
+    ------------------------------------------------*/
+    if( site >= Connection::BindSite::MAX )
+    {
+      return {};
+    }
+
+    /*-------------------------------------------------
+    Grab the latest network status
+    -------------------------------------------------*/
+    RF24::Network::BindSiteCB tmp;
+    tmp.clear();
+
+    lock();
+    tmp = unsafe_BindSiteList[ static_cast<size_t>( RF24::Connection::BindSite::PARENT ) ];
+    unlock();
+
+    return tmp;
   }
 
   /*------------------------------------------------
@@ -466,9 +500,9 @@ namespace RF24::Network
     }
   }
 
-  void Driver::setSCBUnsafe( const ControlBlock &scb )
+  void Driver::setSCBUnsafe( const SystemCB &scb )
   {
-    mSCB = scb;
+    unsafe_DriverCB = scb;
   }
 
 
@@ -479,7 +513,7 @@ namespace RF24::Network
   {
     if ( ( RF24::Connection::BindSite::CHILD_1 <= id ) && ( id <= RF24::Connection::BindSite::CHILD_5 ) )
     {
-      mConnectionList[ static_cast<size_t>( id ) ].onConnectComplete = listener;
+      unsafe_ConnectionList[ static_cast<size_t>( id ) ].onConnectComplete = listener;
     }
   }
 
@@ -592,7 +626,10 @@ namespace RF24::Network
       case MSG_NET_REQUEST_BIND:
       case MSG_NET_REQUEST_BIND_ACK:
       case MSG_NET_REQUEST_BIND_NACK:
-        Internal::Processes::Connection::runInProgressConnect( *this, &frame );
+      case MSG_NET_REQUEST_DISCONNECT:
+      case MSG_NET_REQUEST_DISCONNECT_ACK:
+      case MSG_NET_REQUEST_DISCONNECT_NACK:
+        Internal::Processes::Connection::runConnectProcess( *this, &frame );
         break;
 
       default:

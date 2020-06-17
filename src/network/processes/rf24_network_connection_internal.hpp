@@ -66,9 +66,10 @@ namespace RF24::Network::Internal::Processes::Connection
    *	
    *	@param[in]	obj       The network driver that received the packet
    *	@param[in]	frame     The frame to be modified
+   *	@param[in]  dir       The direction of the connection
    *	@return void
    */
-  void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame );
+  void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, const RF24::Connection::Direction dir );
 
   /**
    *	Modifies a received packed from some node and converts it into a connection
@@ -76,9 +77,10 @@ namespace RF24::Network::Internal::Processes::Connection
    *	
    *	@param[in]	obj       The network driver that received the packet
    *	@param[in]	frame     The frame to be modified
+   *	@param[in]  dir       The direction of the connection
    *	@return void
    */
-  void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame );
+  void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, const RF24::Connection::Direction dir );
 
 }    // namespace RF24::Network::Internal::Processes
 

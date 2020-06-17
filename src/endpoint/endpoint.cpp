@@ -195,10 +195,25 @@ namespace RF24::Endpoint
     /*-------------------------------------------------
     Wait for the connection to complete
     -------------------------------------------------*/
-    while ( !connected && ( ( Chimera::millis() - startTime ) < timeout ) )
+    while ( !connected )
     {
-      connected = isConnected( false );
+      /*------------------------------------------------
+      Handle connections taking too long
+      ------------------------------------------------*/
+      if ( ( Chimera::millis() - startTime ) > timeout )
+      {
+        break;
+      }
 
+      /*------------------------------------------------
+      Poll the network layer to see if we've connected
+      to the parent node
+      ------------------------------------------------*/
+      connected = isConnected( RF24::Connection::BindSite::PARENT );
+
+      /*------------------------------------------------
+      Keep the network alive
+      ------------------------------------------------*/
       processNetworking();
       Chimera::delayMilliseconds( 10 );
     }
@@ -218,7 +233,34 @@ namespace RF24::Endpoint
 
   Chimera::Status_t Device::disconnect()
   {
-    return Chimera::Status_t();
+    /*------------------------------------------------
+    Make sure someone can't interrupt us
+    ------------------------------------------------*/
+    auto lockGuard = Chimera::Threading::TimedLockGuard( *this );
+    if ( !lockGuard.try_lock_for( 100 ) )
+    {
+      return Chimera::CommonStatusCodes::LOCKED;
+    }
+
+    /*------------------------------------------------
+    Select the disconnection method based on the network 
+    operational mode
+    ------------------------------------------------*/
+    switch ( mEndpointInit.network.mode )
+    {
+      case Network::Mode::NET_MODE_STATIC:
+        return Internal::Processes::Connection::disconnect( *this, nullptr, Chimera::Threading::TIMEOUT_BLOCK );
+        break;
+
+      case Network::Mode::NET_MODE_MESH:
+        return Chimera::CommonStatusCodes::FAIL;
+        break;
+
+      case Network::Mode::NET_MODE_INVALID:
+      default:
+        return Chimera::CommonStatusCodes::FAIL;
+        break;
+    }
   }
 
   Chimera::Status_t Device::reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
@@ -346,38 +388,17 @@ namespace RF24::Endpoint
     return mState.endpointAddress;
   }
 
-  bool Device::isConnected( const bool check )
+  bool Device::isConnected( const RF24::Connection::BindSite site )
   {
-    /*-------------------------------------------------
-    Grab the latest network status
-    -------------------------------------------------*/
-    auto netSCB = mNetworkDriver->getSCBSafe();
-    mState.linkStatus.connected = netSCB.connectedToNet;
+    /*------------------------------------------------
+    Device is connected if it hasn't expired and the 
+    control block says it's connected
+    ------------------------------------------------*/
+    auto tmp = mNetworkDriver->getBindSiteCBSafe( site );
+    const bool expired = ( Chimera::millis() > ( tmp.lastActive + tmp.expirationDelta ) );
+    const bool connected = tmp.connected && !expired;
 
-
-    const bool expired = ( Chimera::millis() > mState.linkStatus.expiresAt );
-    const bool cachedConnection = mState.linkStatus.connected;
-    const bool connectionGood = cachedConnection && !expired;
-
-    if ( connectionGood )
-    {
-      // Most likely scenario: Connection is good.
-      return true;
-    }
-    else if ( check && ping( mState.parentAddress, 150 ) )
-    {
-      // We were previously connected but have expired. Try to refresh.
-      mState.linkStatus.expiresAt = Chimera::millis() + mEndpointInit.linkTimeout;
-      return true;
-    }
-    else
-    {
-      // No matter what, all other states are invalid:
-      //  1. No cached connection
-      //  2. The ping failed to reach the parent
-      //  3. Edge case where cachedConnection == false and expired == true
-      return false;
-    }
+    return connected;
   }
 
   Chimera::Status_t Device::initHardwareLayer()
@@ -469,6 +490,8 @@ namespace RF24::Endpoint
     return Chimera::CommonStatusCodes::OK;
   }
 
+
+
   RF24::Network::Interface_sPtr Device::getNetworkingDriver()
 {
     return mNetworkDriver;
@@ -483,6 +506,25 @@ namespace RF24::Endpoint
   bool Device::ping( const ::RF24::LogicalAddress node, const size_t timeout )
   {
     return Internal::Processes::dispatchPing( *this, node, timeout );
+  }
+
+  void Device::refreshConnection( const RF24::Connection::BindSite site )
+  {
+    /*------------------------------------------------
+    Grab the site control block
+    ------------------------------------------------*/
+    auto tmp = mNetworkDriver->getBindSiteCBSafe( site );
+
+    /*------------------------------------------------
+    Ping the configured node to see if it says hello
+    ------------------------------------------------*/
+    if ( tmp.valid && ping( tmp.address, Chimera::Threading::TIMEOUT_500MS ) )
+    {
+      auto lockGuard = Chimera::Threading::LockGuard( *mNetworkDriver );
+      auto idx = static_cast<size_t>( site );
+
+      mNetworkDriver->unsafe_BindSiteList[ idx ].lastActive = Chimera::millis();
+    }
   }
 
 }    // namespace RF24::Endpoint

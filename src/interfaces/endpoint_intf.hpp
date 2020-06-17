@@ -172,6 +172,14 @@ namespace RF24::Endpoint
      */
     virtual bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) = 0;
 
+    /**
+     *  Refreshes an existing connection on the network
+     *  
+     *  @param[in]  site      The bind site to refresh
+     *  @return void
+     */
+    virtual void refreshConnection( const RF24::Connection::BindSite site ) = 0;
+
 
     /*-------------------------------------------------
     Asynchronous Processing
@@ -292,13 +300,12 @@ namespace RF24::Endpoint
     virtual ::RF24::LogicalAddress getLogicalAddress() = 0;
 
     /**
-     *  Checks if the node is still connected to the network. By default uses
-     *  cached connection status data, but can also update this via a ping.
+     *  Checks if the node is still connected to the network
      *
-     *  @param[in]  check     Optionally check via a ping if the connection is stale
+     *  @param[in]  site      The bind site to check
      *  @return bool
      */
-    virtual bool isConnected( const bool check ) = 0;
+    virtual bool isConnected( const RF24::Connection::BindSite site ) = 0;
 
     virtual SystemState getCurrentState() = 0;
   };

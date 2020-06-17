@@ -28,12 +28,8 @@ namespace RF24
 
 
   static constexpr size_t DEVICE_NAME_LEN = 16;
-  using DeviceName = std::array<char, DEVICE_NAME_LEN + 1u>;
+  using DeviceName                        = std::array<char, DEVICE_NAME_LEN + 1u>;
 
-  /**
-   *  Function pointer callback to be invoked on an event occurrence
-   */
-  using EventFuncPtr_t = void ( * )( void );
 
   enum class Event
   {
@@ -47,13 +43,11 @@ namespace RF24
   {
     enum class Result
     {
-      CONNECTION_UNKNOWN,     /**< Something happened but it was not known how to be handled */
-      CONNECTION_SUCCESS,     /**< The connection to the parent node succeeded */
-      CONNECTION_FAILED,      /**< The connection to the parent node failed for some reason */
-      CONNECTION_TIMEOUT,     /**< The connection to the parent node timed out */
-      CONNECTION_NO_RESPONSE, /**< The other node did not respond to a packet */
-      CONNECTION_BOUND,       /**< A child node was bound */
-      CONNECTION_NOT_BOUND,   /**< The connection is not bound to anything */
+      CONNECT_PROC_UNKNOWN,     /**< Something happened but it was not known how to be handled */
+      CONNECT_PROC_SUCCESS,     /**< The connection to the parent node succeeded */
+      CONNECT_PROC_FAIL,        /**< The connection to the parent node failed for some reason */
+      CONNECT_PROC_TIMEOUT,     /**< The connection to the parent node timed out */
+      CONNECT_PROC_NO_RESPONSE, /**< The other node did not respond to a packet */
     };
 
     enum class BindSite : uint8_t
@@ -67,7 +61,8 @@ namespace RF24
       INVALID,
 
       FIRST = PARENT,
-      LAST = CHILD_5
+      LAST  = CHILD_5,
+      MAX   = LAST - FIRST + 1
     };
 
     enum class Direction : uint8_t
@@ -85,9 +80,22 @@ namespace RF24
      *	@param[in]  id        The connection id describing which node the result applies to
      *	@return void
      */
-    using OnCompleteCallback = void(*)(const Result result, const BindSite id );
-  }
+    using OnCompleteCallback = void ( * )( const Result result, const BindSite id );
 
+  }    // namespace Connection
+
+
+  
+  /**
+   *  Function pointer callback to be invoked on an event occurrence
+   */
+  using EventFuncPtr_t = void ( * )( void );
+
+
+  using OnConnectCallback = void ( * )( const Connection::BindSite id );
+
+
+  using OnDisconnectCallback = void ( * )( const Connection::BindSite id );
 }    // namespace RF24
 
 #endif /* !RF24_NODE_COMMON_TYPES_HPP */

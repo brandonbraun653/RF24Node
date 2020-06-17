@@ -31,6 +31,7 @@
 #include <RF24Node/src/interfaces/endpoint_intf.hpp>
 #include <RF24Node/src/interfaces/network_intf.hpp>
 #include <RF24Node/src/network/connections/rf24_network_route_table.hpp>
+#include <RF24Node/src/network/processes/rf24_network_connection.hpp>
 #include <RF24Node/src/network/definitions.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
 #include <RF24Node/src/network/frame/types.hpp>
@@ -69,7 +70,7 @@ namespace RF24::Network
 
     LogicalAddress nextHop( const LogicalAddress dst ) final override;
 
-    bool updateRouteTable( const LogicalAddress address ) final override;
+    bool updateRouteTable( const LogicalAddress address, const bool attach ) final override;
     void setNodeAddress( const LogicalAddress address ) final override;
     LogicalAddress thisNode() final override;
     bool isConnectedTo( const LogicalAddress address ) final override;
@@ -79,16 +80,16 @@ namespace RF24::Network
     Data Getters
     ------------------------------------------------*/
     bool connectionsInProgress( const RF24::Connection::Direction dir ) final override;
-    Internal::Processes::Connection::ControlBlock &getConnection( const RF24::Connection::BindSite id ) final override;
-    Internal::Processes::Connection::ControlBlockList &getConnectionList() final override;
-    void getSCBUnsafe( ControlBlock &scb ) final override;
-    ControlBlock getSCBSafe() final override;
+    void getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb ) final override;
+    void getSCBUnsafe( SystemCB &scb ) final override;
+    SystemCB getSCBSafe() final override;
+    RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) final override;
 
     /*------------------------------------------------
     Data Setters
     ------------------------------------------------*/
     void setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled ) final override;
-    void setSCBUnsafe( const ControlBlock &scb ) final override;
+    void setSCBUnsafe( const SystemCB &scb ) final override;
 
     /*------------------------------------------------
     Callbacks
@@ -161,9 +162,9 @@ namespace RF24::Network
     RF24::Network::Queue::ManagedFIFO mRXQueue;
     Internal::NodeConnections mRouteTable;
     uLog::SinkHandle mLogger;
-    ControlBlock mSCB;
 
-    Internal::Processes::Connection::ControlBlockList mConnectionList;
+
+
 
     void enqueueRXPacket( Frame::FrameType &frame );
     void enqueueTXPacket( Frame::FrameType &frame );
@@ -177,6 +178,14 @@ namespace RF24::Network
     bool writeMulticast( Frame::FrameType &frame );
 
     bool readWithPop( Frame::FrameType &frame, const bool pop );
+
+    /*------------------------------------------------
+    Internal C-style functions that need access to object
+    data. Designed this way to provide clearer boundaries
+    between operations on a network and network metadata.
+    ------------------------------------------------*/
+    friend bool Internal::Processes::Connection::startConnect( RF24::Network::Interface &, const RF24::LogicalAddress,
+                                                               RF24::Connection::OnCompleteCallback, const size_t );
   };
 }    // namespace RF24::Network
 

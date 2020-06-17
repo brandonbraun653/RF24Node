@@ -76,8 +76,9 @@ namespace RF24::Endpoint
     Status getStatus() final override;
     SystemInit &getConfig() final override;
     LogicalAddress getLogicalAddress() final override;
-    bool isConnected( const bool check ) override;
+    bool isConnected( const RF24::Connection::BindSite site ) final override;
     bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) final override;
+    void refreshConnection( const RF24::Connection::BindSite site ) final override;
 
     void setName( const std::string &name ) final override;
 
