@@ -59,19 +59,36 @@ namespace RF24
   static constexpr LogicalID NODE_ID_MAX     = NODE_ID_7;
   static constexpr LogicalID NODE_ID_INVALID = NODE_ID_MAX + 1u;
 
-  /*------------------------------------------------
-  Master logging On/Off switch
-  ------------------------------------------------*/
-  static constexpr bool ENABLE_DBG_LOG = true;
+  /*-------------------------------------------------------------------------------
+  Logging Filters:
+    Filters named "DBG_LOG_XXX" are top level filters for that particular layer and
+    are the most generic possible.
 
-  /*------------------------------------------------
-  Individual layer logging switches
-  ------------------------------------------------*/
-  static constexpr bool DBG_LOG_APP       = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_NET       = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_NET_TRACE = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_PHY       = true && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_PHY_TRACE = true && ENABLE_DBG_LOG;
+    Filters named "DBG_LOG_XXX_TRACE" are intended to provide short statements about
+    where lines of code have been hit, to help trace execution flow at a fine level.
+
+    Filters named "DBG_LOG_XXX_PROC_YYY" are meant to follow execution flow of a
+    process running at that layer. These tend to be state machines of some sort.
+  -------------------------------------------------------------------------------*/
+  static constexpr bool ENABLE_DBG_LOG = true;  /**< Master logging on/off switch */
+
+  /*-------------------------------------------------
+  Application Layer
+  -------------------------------------------------*/
+  static constexpr bool DBG_LOG_APP = true && ENABLE_DBG_LOG;
+
+  /*-------------------------------------------------
+  Network Layer
+  -------------------------------------------------*/
+  static constexpr bool DBG_LOG_NET              = false && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET_TRACE        = false && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET_PROC_CONNECT = true && ENABLE_DBG_LOG;
+
+  /*-------------------------------------------------
+  Physical Layer
+  -------------------------------------------------*/
+  static constexpr bool DBG_LOG_PHY       = false && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_PHY_TRACE = false && ENABLE_DBG_LOG;
 
 }    // namespace RF24
 

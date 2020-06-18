@@ -466,6 +466,12 @@ namespace RF24::Network
     return tmp;
   }
 
+
+  uLog::SinkHandle Driver::getLogger()
+  {
+    return mLogger;
+  }
+
   /*------------------------------------------------
   Data Setters
   ------------------------------------------------*/
@@ -623,9 +629,9 @@ namespace RF24::Network
       /*-------------------------------------------------
       On-going connection process
       -------------------------------------------------*/
-      case MSG_NET_REQUEST_BIND:
-      case MSG_NET_REQUEST_BIND_ACK:
-      case MSG_NET_REQUEST_BIND_NACK:
+      case MSG_NET_REQUEST_CONNECT:
+      case MSG_NET_REQUEST_CONNECT_ACK:
+      case MSG_NET_REQUEST_CONNECT_NACK:
       case MSG_NET_REQUEST_DISCONNECT:
       case MSG_NET_REQUEST_DISCONNECT_ACK:
       case MSG_NET_REQUEST_DISCONNECT_NACK:

@@ -356,7 +356,7 @@ namespace RF24::Network
 
     /**
      *  Copies out the latest bind site control block data
-     *  
+     *
      *  @param[in]  id          The bind site to get the data for
      *  @param[in]  cb          The control block structure to copy into
      *  @return void
@@ -381,6 +381,13 @@ namespace RF24::Network
     virtual SystemCB getSCBSafe() = 0;
 
     virtual RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) = 0;
+
+    /**
+     *	Gets the logger registered with the network
+     *
+     *	@return uLog::SinkHandle
+     */
+    virtual uLog::SinkHandle getLogger() = 0;
 
 
     /*------------------------------------------------
@@ -425,7 +432,7 @@ namespace RF24::Network
     virtual void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) = 0;
 
 
-   
+
     /*-------------------------------------------------------------------------------
     Unsafe Data: The network driver is not meant to used directly and this class
       exposes lots of data that can screw up the network layer if handled frivolously.
@@ -439,12 +446,12 @@ namespace RF24::Network
      *  Tracks ongoing connections and their runtime status
      */
     Internal::Processes::Connection::ControlBlockList unsafe_ConnectionList;
-    
+
     /**
      *  Tracks the state of all bind-sites
      */
     BindSiteCBList unsafe_BindSiteList;
-    
+
     SystemCB unsafe_DriverCB;
 
   protected:

@@ -84,6 +84,7 @@ namespace RF24::Network
     void getSCBUnsafe( SystemCB &scb ) final override;
     SystemCB getSCBSafe() final override;
     RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) final override;
+    uLog::SinkHandle getLogger() final override;
 
     /*------------------------------------------------
     Data Setters

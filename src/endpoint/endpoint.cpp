@@ -158,6 +158,11 @@ namespace RF24::Endpoint
       return Chimera::CommonStatusCodes::LOCKED;
     }
 
+    if constexpr ( DBG_LOG_APP )
+    {
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-APP: Connect to the network\n", Chimera::millis() );
+    }
+
     /*------------------------------------------------
     The connection algorithm greatly depends upon what kind of network we are.
     Direct connections are pretty easy, but mesh ones might take a hot second
@@ -242,6 +247,11 @@ namespace RF24::Endpoint
       return Chimera::CommonStatusCodes::LOCKED;
     }
 
+    if constexpr ( DBG_LOG_APP )
+    {
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-APP: Disconnecting from the network\n", Chimera::millis() );
+    }
+
     /*------------------------------------------------
     Select the disconnection method based on the network 
     operational mode
@@ -273,6 +283,11 @@ namespace RF24::Endpoint
     {
       return Chimera::CommonStatusCodes::LOCKED;
     }
+    
+    if constexpr ( DBG_LOG_APP )
+    {
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-APP: Reconnect to the network\n", Chimera::millis() );
+    }
 
     /*------------------------------------------------
     Reset any needed connection parameters to the "unconnected" state
@@ -292,11 +307,6 @@ namespace RF24::Endpoint
       default:
         return Chimera::CommonStatusCodes::FAIL;
         break;
-    }
-
-    if constexpr( DBG_LOG_NET_TRACE )
-    {
-      mLogger->flog( uLog::Level::LVL_INFO, "%d-NET: Begin reconnect\n", Chimera::millis() );
     }
 
     return connectAsync( callback, timeout );
