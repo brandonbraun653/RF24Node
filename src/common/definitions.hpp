@@ -80,9 +80,9 @@ namespace RF24
   /*-------------------------------------------------
   Network Layer
   -------------------------------------------------*/
-  static constexpr bool DBG_LOG_NET              = false && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET              = true && ENABLE_DBG_LOG;
   static constexpr bool DBG_LOG_NET_TRACE        = false && ENABLE_DBG_LOG;
-  static constexpr bool DBG_LOG_NET_PROC_CONNECT = true && ENABLE_DBG_LOG;
+  static constexpr bool DBG_LOG_NET_PROC_CONNECT = false && ENABLE_DBG_LOG;
 
   /*-------------------------------------------------
   Physical Layer

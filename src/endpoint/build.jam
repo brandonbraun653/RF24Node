@@ -13,6 +13,7 @@ local rule explicit_alias ( name : sources * : requirements * : default-build * 
 lib LIB
   : [ glob *.cpp ]
     [ glob processes/*.cpp ]
+    [ glob runtime/*.cpp ]
 
   : <link>static
     <use>/AURORA//PUB

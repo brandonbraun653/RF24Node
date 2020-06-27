@@ -253,7 +253,7 @@ namespace RF24::Endpoint
     }
 
     /*------------------------------------------------
-    Select the disconnection method based on the network 
+    Select the disconnection method based on the network
     operational mode
     ------------------------------------------------*/
     switch ( mEndpointInit.network.mode )
@@ -283,7 +283,7 @@ namespace RF24::Endpoint
     {
       return Chimera::CommonStatusCodes::LOCKED;
     }
-    
+
     if constexpr ( DBG_LOG_APP )
     {
       mLogger->flog( uLog::Level::LVL_DEBUG, "%d-APP: Reconnect to the network\n", Chimera::millis() );
@@ -324,7 +324,7 @@ namespace RF24::Endpoint
 
     result |= processNetworking();
 
-    if ( mNetworkDriver->read( frame ) )
+    if ( mNetworkDriver->read( frame ) ) the message data is getting pulled out here
     {
       result |= processMessageRequests( frame );
       result |= processDHCPServer( frame );
@@ -368,21 +368,6 @@ namespace RF24::Endpoint
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Device::read( void *const data, const size_t length )
-  {
-    return Chimera::Status_t();
-  }
-
-  bool Device::packetAvailable()
-  {
-    return false;
-  }
-
-  size_t Device::nextPacketLength()
-  {
-    return size_t();
-  }
-
   Status Device::getStatus()
   {
     return Status();
@@ -401,7 +386,7 @@ namespace RF24::Endpoint
   bool Device::isConnected( const RF24::Connection::BindSite site )
   {
     /*------------------------------------------------
-    Device is connected if it hasn't expired and the 
+    Device is connected if it hasn't expired and the
     control block says it's connected
     ------------------------------------------------*/
     auto tmp = mNetworkDriver->getBindSiteCBSafe( site );

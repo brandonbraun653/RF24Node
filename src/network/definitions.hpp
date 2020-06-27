@@ -112,7 +112,12 @@ namespace RF24::Network
      */
     MSG_TX_MULTICAST = 2,
 
-
+    /**
+     *  Indicates that the data in the payload is destined for the application layer. This is
+     *  a transmission that was started by the user application and can send around any kind 
+     *  of binary data desired.
+     */
+    MSG_APP_DATA = 10,
 
     MSG_USER_MAX_NO_ACK = 64,
     MSG_USER_MIN_ACK = 65,

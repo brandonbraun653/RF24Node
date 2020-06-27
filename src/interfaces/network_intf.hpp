@@ -205,22 +205,23 @@ namespace RF24::Network
     virtual Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) = 0;
 
     /**
-     *  Assigns the memory pool used for dynamic RX allocation
+     *  Assigns the memory pool used for queueing data packets that are destined
+     *  for the application layer.
      *
      *  @param[in]  buffer    The memory pool
      *  @param[in]  size      Number of bytes in the pool
      *  @return Chimera::Status_t
      */
-    virtual Chimera::Status_t initRXQueue( void *buffer, const size_t size ) = 0;
+    virtual Chimera::Status_t initAppRXQueue( void *buffer, const size_t size ) = 0;
 
     /**
-     *	Assigns the memory pool used for dynamic TX allocation
+     *	Assigns the memory pool used for queueing data packets that need to be transmitted.
      *
      *	@param[in]	buffer    The memory pool
      *	@param[in]	size      Number of bytes in the pool
      *	@return Chimera::Status_t
      */
-    virtual Chimera::Status_t initTXQueue( void *buffer, const size_t size ) = 0;
+    virtual Chimera::Status_t initNetTXQueue( void *buffer, const size_t size ) = 0;
 
     /**
      *  Runs the RX half of the network processing stack

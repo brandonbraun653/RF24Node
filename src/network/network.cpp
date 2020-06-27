@@ -105,14 +105,14 @@ namespace RF24::Network
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Chimera::Status_t Driver::initRXQueue( void *buffer, const size_t size )
+  Chimera::Status_t Driver::initAppRXQueue( void *buffer, const size_t size )
   {
-    return mRXQueue.attachHeap( buffer, size );
+    return mAppRXQueue.attachHeap( buffer, size );
   }
 
-  Chimera::Status_t Driver::initTXQueue( void *buffer, const size_t size )
+  Chimera::Status_t Driver::initNetTXQueue( void *buffer, const size_t size )
   {
-    return mTXQueue.attachHeap( buffer, size );
+    return mNetTXQueue.attachHeap( buffer, size );
   }
 
   Chimera::Status_t Driver::initialize( const RF24::Network::Config &cfg )
@@ -122,8 +122,8 @@ namespace RF24::Network
     /*------------------------------------------------
     Queues must be attached before startup
     ------------------------------------------------*/
-    configResult |= initRXQueue( cfg.rxQueueBuffer, cfg.rxQueueSize );
-    configResult |= initTXQueue( cfg.txQueueBuffer, cfg.txQueueSize );
+    configResult |= initAppRXQueue( cfg.rxQueueBuffer, cfg.rxQueueSize );
+    configResult |= initNetTXQueue( cfg.txQueueBuffer, cfg.txQueueSize );
 
 
     if ( configResult == Chimera::CommonStatusCodes::OK )
@@ -207,14 +207,14 @@ namespace RF24::Network
   {
     bool writeSuccess = false;
 
-    while ( !mTXQueue.empty() )
+    while ( !mNetTXQueue.empty() )
     {
       /*------------------------------------------------
       Peek the next element and verify it contains data
       ------------------------------------------------*/
       Frame::FrameType frame;
       Frame::Buffer tempBuffer;
-      auto element  = mTXQueue.peek();
+      auto element  = mNetTXQueue.peek();
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
       {
@@ -256,7 +256,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       if ( writeSuccess )
       {
-        mTXQueue.pop( element.payload, element.size );
+        mNetTXQueue.pop( element.payload, element.size );
       }
     }
   }
@@ -273,6 +273,8 @@ namespace RF24::Network
 
     /*------------------------------------------------
     Process any ongoing connection processes if they are running
+
+    TODO: Collapse this into a single call
     ------------------------------------------------*/
     if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) || connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
     {
@@ -282,7 +284,7 @@ namespace RF24::Network
 
   bool Driver::available()
   {
-    return !mRXQueue.empty();
+    return !mAppRXQueue.empty();
   }
 
   bool Driver::peek( Frame::FrameType &frame )
@@ -303,7 +305,7 @@ namespace RF24::Network
 
   void Driver::removeRXFrame()
   {
-    mRXQueue.removeFront();
+    mAppRXQueue.removeFront();
   }
 
   LogicalAddress Driver::nextHop( const LogicalAddress dst )
@@ -571,10 +573,10 @@ namespace RF24::Network
 
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
-    if ( !mRXQueue.full() )
+    if ( !mAppRXQueue.full() )
     {
       auto buffer = frame.toBuffer();
-      mRXQueue.push( buffer.data(), buffer.size() );
+      mAppRXQueue.push( buffer.data(), buffer.size() );
     }
     else if constexpr ( DBG_LOG_NET )
     {
@@ -584,10 +586,10 @@ namespace RF24::Network
 
   void Driver::enqueueTXPacket( Frame::FrameType &frame )
   {
-    if ( !mTXQueue.full() )
+    if ( !mNetTXQueue.full() )
     {
       auto buffer = frame.toBuffer();
-      mTXQueue.push( buffer.data(), buffer.size() );
+      mNetTXQueue.push( buffer.data(), buffer.size() );
     }
     else if constexpr ( DBG_LOG_NET )
     {
@@ -607,6 +609,7 @@ namespace RF24::Network
 
   HeaderMessage Driver::handleDestination( Frame::FrameType &frame )
   {
+    bool handledInternally = true;
     HeaderMessage message = frame.getType();
 
     /*------------------------------------------------
@@ -622,7 +625,6 @@ namespace RF24::Network
         if ( Messages::Ping::isPingRequest( frame ) )
         {
           Internal::Processes::handlePingRequest( *this, frame );
-          return message;
         }
         break;
 
@@ -639,13 +641,17 @@ namespace RF24::Network
         break;
 
       default:
+        handledInternally = false;
         break;
     }
 
     /*------------------------------------------------
     Enqueue any unhandled packets
     ------------------------------------------------*/
-    enqueueRXPacket( frame );
+    if ( !handledInternally )
+    {
+      enqueueRXPacket( frame );
+    }
 
     return message;
   }
@@ -740,13 +746,13 @@ namespace RF24::Network
 
   bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
   {
-    if ( !mRXQueue.empty() )
+    if ( !mAppRXQueue.empty() )
     {
       /*------------------------------------------------
       Peek the next element and verify it contains data
       ------------------------------------------------*/
       Frame::Buffer tempBuffer;
-      auto element  = mRXQueue.peek();
+      auto element  = mAppRXQueue.peek();
       bool validity = false;
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
@@ -771,7 +777,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       if ( pop )
       {
-        mRXQueue.pop( element.payload, element.size );
+        mAppRXQueue.pop( element.payload, element.size );
       }
 
       return validity;

@@ -73,7 +73,7 @@ namespace RF24::Network::Frame
 
 
   /**
-   *   Base frame structure for sending messages around
+   *   Base frame structure for sending messages around.
    *
    *
    *                   FRAME STRUCTURE

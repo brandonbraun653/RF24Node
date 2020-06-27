@@ -174,7 +174,7 @@ namespace RF24::Endpoint
 
     /**
      *  Refreshes an existing connection on the network
-     *  
+     *
      *  @param[in]  site      The bind site to refresh
      *  @return void
      */
@@ -246,7 +246,8 @@ namespace RF24::Endpoint
     virtual Chimera::Status_t write( const ::RF24::LogicalAddress dst, const void *const data, const size_t length ) = 0;
 
     /**
-     *  Reads the next available data packet into the buffer
+     *  Reads the next available data packet into the given buffer. It is highly recommended
+     *  to check if a new packet is available and what it's length is first.
      *
      *  @see packetAvailable()
      *  @see nextPacketLength()

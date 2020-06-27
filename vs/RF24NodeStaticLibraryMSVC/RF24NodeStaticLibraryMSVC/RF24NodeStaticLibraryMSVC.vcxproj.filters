@@ -55,6 +55,9 @@
     <Filter Include="src\physical\mock">
       <UniqueIdentifier>{5c57d2ca-2189-427e-9fcd-637faf8f9c8d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\endpoint\runtime">
+      <UniqueIdentifier>{9aa250c8-4f18-4ea4-89ff-b661bddb540e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\src\common\conversion.hpp">
@@ -82,9 +85,6 @@
       <Filter>src\endpoint</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp">
-      <Filter>src\endpoint\processes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp">
       <Filter>src\endpoint\processes</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\hardware\definitions.hpp">
@@ -198,6 +198,9 @@
     <ClInclude Include="..\..\..\src\common\version.hpp">
       <Filter>src\common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.hpp">
+      <Filter>src\endpoint\runtime</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\hardware\about.md">
@@ -233,6 +236,7 @@
     <None Include="..\..\..\src\physical\build.jam">
       <Filter>src\physical</Filter>
     </None>
+    <None Include="..\..\..\network" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\common\conversion.cpp">
@@ -245,9 +249,6 @@
       <Filter>src\endpoint</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp">
-      <Filter>src\endpoint\processes</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp">
       <Filter>src\endpoint\processes</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\hardware\driver.cpp">
@@ -309,6 +310,9 @@
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gtest\gtest-all.cc" />
     <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gmock\gmock-all.cc" />
+    <ClCompile Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.cpp">
+      <Filter>src\endpoint\runtime</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="compiler_notes.txt" />

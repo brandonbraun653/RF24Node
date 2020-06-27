@@ -32,7 +32,7 @@
     <ClInclude Include="..\..\..\src\endpoint\node.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp" />
-    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\types.hpp" />
     <ClInclude Include="..\..\..\src\hardware\definitions.hpp" />
     <ClInclude Include="..\..\..\src\hardware\driver.hpp" />
@@ -70,6 +70,7 @@
   <ItemGroup>
     <None Include="..\..\..\common" />
     <None Include="..\..\..\endpoint" />
+    <None Include="..\..\..\network" />
     <None Include="..\..\..\src\common\build.jam" />
     <None Include="..\..\..\src\endpoint\build.jam" />
     <None Include="..\..\..\src\hardware\about.md" />
@@ -90,7 +91,7 @@
     <ClCompile Include="..\..\..\src\endpoint\node.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
-    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
+    <ClCompile Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.cpp" />
     <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
     <ClCompile Include="..\..\..\src\mesh\mesh.cpp" />
     <ClCompile Include="..\..\..\src\network\connections\rf24_network_route_table.cpp" />

@@ -57,8 +57,8 @@ namespace RF24::Network
 
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
     Chimera::Status_t attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer ) override;
-    Chimera::Status_t initRXQueue( void *buffer, const size_t size ) final override;
-    Chimera::Status_t initTXQueue( void *buffer, const size_t size ) final override;
+    Chimera::Status_t initAppRXQueue( void *buffer, const size_t size ) final override;
+    Chimera::Status_t initNetTXQueue( void *buffer, const size_t size ) final override;
     HeaderMessage updateRX() override;
     void updateTX() final override;
     void pollNetStack() final override;
@@ -158,10 +158,28 @@ namespace RF24::Network
     bool mReturnSystemMessages;
     bool mMulticastRelay;
     size_t mLastTxTime;
+
+
     RF24::Physical::Interface_sPtr mPhysicalDriver;
-    RF24::Network::Queue::ManagedFIFO mTXQueue;
-    RF24::Network::Queue::ManagedFIFO mRXQueue;
+
+    /**
+     *  Queue for storing packets awaiting transmission
+     */
+    RF24::Network::Queue::ManagedFIFO mNetTXQueue;
+
+    /**
+     *  Queue for storing packets waiting to be read by the application layer
+     */
+    RF24::Network::Queue::ManagedFIFO mAppRXQueue;
+
+    /**
+     *  Maintains a list of connected nodes and their properties
+     */
     Internal::NodeConnections mRouteTable;
+
+    /**
+     *  Debug logger
+     */
     uLog::SinkHandle mLogger;
 
 
