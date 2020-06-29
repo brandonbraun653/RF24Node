@@ -238,7 +238,7 @@ namespace RF24::Network
     /**
      *   Use the current channel when setting up the network
      */
-    MSG_USE_CURRENT_CHANNEL = 255
+    MSG_INVALID = 255
   };
 
 
@@ -247,7 +247,8 @@ namespace RF24::Network
   {
     ROUTE_NORMALLY  = HeaderMessage::MSG_TX_NORMAL,
     ROUTE_DIRECT    = HeaderMessage::MSG_TX_DIRECT,
-    ROUTE_MULTICAST = HeaderMessage::MSG_TX_MULTICAST
+    ROUTE_MULTICAST = HeaderMessage::MSG_TX_MULTICAST,
+    ROUTE_INVALID   = HeaderMessage::MSG_INVALID
   };
 
   /**

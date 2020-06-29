@@ -21,6 +21,15 @@
 
 namespace RF24
 {
+  enum BranchPosition
+  {
+    BRANCH_HIGHER,  /**< Higher in the tree's branch */
+    BRANCH_LOWER,   /**< Lower in the tree's branch */
+    BRANCH_SAME,    /**< No change in position */
+    BRANCH_INVALID  /**< Error condition */
+  };
+
+
   /**
    *  Checks if the given address is valid for a network child node
    *
@@ -103,6 +112,18 @@ namespace RF24
    *	@return RF24::LogicalID
    */
   LogicalID getIdAtLevel( const LogicalAddress address, const LogicalLevel level );
+
+  /**
+   *  Masks the given address to the appropriate level
+   *  
+   *  For example, node 04325's address at level 2 would be 0025.
+   *  
+   *  @param[in]  address       The address to be masked
+   *  @param[in]  level         The level to mask to
+   *  @return LogicalAddress
+   */
+  LogicalAddress getAddressAtLevel( const LogicalAddress address, const LogicalLevel level );
+
 }    // namespace RF24
 
 #endif /* !RF24_NODE_COMMON_UTILITY_HPP */

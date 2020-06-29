@@ -68,7 +68,7 @@ namespace RF24::Network
     bool write( Frame::FrameType &frame, const RoutingStyle route ) final override;
     void removeRXFrame() final override;
 
-    LogicalAddress nextHop( const LogicalAddress dst ) final override;
+    JumpType nextHop( const LogicalAddress dst ) final override;
 
     bool updateRouteTable( const LogicalAddress address, const bool attach ) final override;
     void setNodeAddress( const LogicalAddress address ) final override;
@@ -192,10 +192,7 @@ namespace RF24::Network
     HeaderMessage handleDestination( Frame::FrameType &frame );
     HeaderMessage handlePassthrough( Frame::FrameType &frame );
 
-    bool writeDirect( Frame::FrameType &frame );
-    bool writeRouted( Frame::FrameType &frame );
-    bool writeMulticast( Frame::FrameType &frame );
-
+    bool writeDirect( Frame::FrameType &frame, const LogicalAddress hopAddress, const RoutingStyle routeType );
     bool readWithPop( Frame::FrameType &frame, const bool pop );
 
     /*------------------------------------------------

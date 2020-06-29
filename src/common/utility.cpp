@@ -109,12 +109,29 @@ namespace RF24
   bool isDescendent( const LogicalAddress parent, const LogicalAddress descendent )
   {
     /*------------------------------------------------
+    Only valid addresses can be checked for descendants
+    ------------------------------------------------*/
+    if ( !isAddressValid( parent ) || !isAddressValid( descendent ) )
+    {
+      return false;
+    }
+
+    /*------------------------------------------------
+    Every node is a descendent of a root node, as long
+    as its also not a root node
+    ------------------------------------------------*/
+    if ( isAddressRoot( parent ) )
+    {
+      return !isAddressRoot( descendent );
+    }
+
+    /*------------------------------------------------
     Simplest checks first: Is the parent at a higher level?
     If the parent happens to be a root node (level 0) then we don't know
     if the child actually is a descendant as there could be multiple roots.
     (Higher level == lower number)
     ------------------------------------------------*/
-    auto parentLevel = getLevel( parent );
+    auto parentLevel     = getLevel( parent );
     auto descendentLevel = getLevel( descendent );
     if ( ( parentLevel >= descendentLevel ) || ( parentLevel == NODE_LEVEL_0 ) )
     {
@@ -148,13 +165,21 @@ namespace RF24
 
   bool isDirectDescendent( const LogicalAddress parent, const LogicalAddress child )
   {
+    /*------------------------------------------------
+    Only valid addresses can be checked for descendants
+    ------------------------------------------------*/
+    if ( !isAddressValid( parent ) || !isAddressValid( child ) )
+    {
+      return false;
+    }
+
     return ( parent == getParent( child ) );
   }
 
   LogicalAddress getParent( const LogicalAddress child )
   {
     auto level = getLevel( child );
-    
+
     if ( ( level == NODE_LEVEL_INVALID ) || ( level == NODE_LEVEL_0 ) )
     {
       /*------------------------------------------------
@@ -234,18 +259,75 @@ namespace RF24
     Otherwise, the ID is just a simple bit-mask
     ------------------------------------------------*/
     const auto shiftAmount = Network::BITS_PER_LEVEL * ( level - 1u );
-    const auto levelMask = Network::BASE_LEVEL_MASK << shiftAmount;
-    const auto actLevel = ( address & levelMask ) >> shiftAmount;
+    const auto levelMask   = Network::BASE_LEVEL_MASK << shiftAmount;
+    const auto idAtLevel   = ( address & levelMask ) >> shiftAmount;
 
     /*------------------------------------------------
     Beyond level 0 we are in the realm of possible children nodes, which
     have a minimum level constraint on them.
     ------------------------------------------------*/
-    if ( ( actLevel > NODE_LEVEL_MAX ) || ( actLevel < Network::MIN_CHILD_NODE_ID) )
+    if ( ( idAtLevel > NODE_LEVEL_MAX ) || ( idAtLevel < Network::MIN_CHILD_NODE_ID ) )
     {
       return NODE_ID_INVALID;
     }
 
-    return actLevel;
+    return idAtLevel;
   }
-}
+
+
+  LogicalAddress getAddressAtLevel( const LogicalAddress address, const LogicalLevel level )
+  {
+    using namespace RF24::Network;
+
+    /*------------------------------------------------
+    Handle edge cases 
+    ------------------------------------------------*/
+    if ( !isAddressValid( address ) )
+    {
+      return RSVD_ADDR_INVALID;
+    }
+    else if ( level == NODE_LEVEL_0 )
+    {
+      if ( isAddressRoot( address ) )
+      {
+        return address;
+      }
+      else
+      {
+        return RSVD_ADDR_INVALID;
+      }
+    }
+
+    /*------------------------------------------------
+    Build the address mask for the appropriate level
+    ------------------------------------------------*/
+    LogicalAddress mask = 0;
+
+    for ( size_t idxLvl = 1; idxLvl <= level; idxLvl++ )
+    {
+      const auto shiftAmount = Network::BITS_PER_LEVEL * ( idxLvl - 1u );
+      const auto levelMask   = Network::BASE_LEVEL_MASK << shiftAmount;
+
+      mask |= levelMask;
+    }
+
+    /*------------------------------------------------
+    Apply the mask and if the resulting address has the 
+    same level as the requested level, it is valid. 
+    
+    Don't need to check for valid resulting addresses 
+    because invalid base addresses are rejected at the 
+    start of the function.
+    ------------------------------------------------*/
+    LogicalAddress resultAddress = address & mask;
+    if ( getLevel( resultAddress ) == level )
+    {
+      return resultAddress;
+    }
+    else
+    {
+      return RSVD_ADDR_INVALID;
+    }
+
+  }
+}    // namespace RF24

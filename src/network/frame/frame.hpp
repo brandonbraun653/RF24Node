@@ -118,7 +118,7 @@ namespace RF24::Network::Frame
     ------------------------------------------------*/
     CRC16_t getCRC() const;
     Header getHeader() const;
-    Payload getPayload() const;
+    void getPayload( Payload &pl ) const;
     const uint8_t * const peekPayload();
     Length getPayloadLength() const;
     RF24::LogicalAddress getDst() const;

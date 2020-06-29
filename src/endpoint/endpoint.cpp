@@ -323,13 +323,9 @@ namespace RF24::Endpoint
     RF24::Network::Frame::FrameType frame;
 
     result |= processNetworking();
-
-    if ( mNetworkDriver->read( frame ) ) the message data is getting pulled out here
-    {
-      result |= processMessageRequests( frame );
-      result |= processDHCPServer( frame );
-      result |= processEventHandlers( frame );
-    }
+    
+    // Try not to read out data from the queues here unless you peek it first. It is corrupting
+    // the expected data flow of many higher level processes.
 
     return result;
   }

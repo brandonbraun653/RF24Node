@@ -73,12 +73,15 @@ namespace RF24::Endpoint
     mNetworkDriver->lock();
 
     size_t readLength = 0;
+    RF24::Network::Frame::Payload payload;
     RF24::Network::Frame::FrameType tmp;
+
+    payload.fill( 0 );
     tmp.clear();
 
     if ( mNetworkDriver->available() && mNetworkDriver->read( tmp ) )
     {
-      auto payload = tmp.getPayload();
+      tmp.getPayload( payload );
       auto size    = tmp.getPayloadLength();
 
       readLength = ( size > length ) ? length : size;

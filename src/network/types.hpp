@@ -54,6 +54,17 @@ namespace RF24::Network
   static_assert( sizeof( Config ) % sizeof( size_t ) == 0, "Struct not aligned properly" );
 
   /**
+   *  Consolidates metrics about where the next destination of 
+   *  a frame should be transmitted and what routing style it should
+   *  take.
+   */
+  struct JumpType
+  {
+    LogicalAddress hopAddress;  /**< The address of the next node in the transmit sequence */
+    RoutingStyle routing;       /**< The type of routing that should be used for transmission */
+  };
+
+  /**
    *  Network object system control block to manage the runtime
    *  state of the network.
    */

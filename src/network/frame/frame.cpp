@@ -109,11 +109,10 @@ namespace RF24::Network::Frame
     return temp;
   }
 
-  Payload FrameType::getPayload() const
+  void FrameType::getPayload( Payload &pl ) const
   {
-    Payload temp;
-    memcpy( &temp, &mData + PAYLOAD_OFFSET, sizeof( PackedData::payload ) );
-    return temp;
+    pl.fill( 0 );
+    std::copy( mData.payload, mData.payload + sizeof( PackedData::payload ), pl.begin() );
   }
 
   const uint8_t *const FrameType::peekPayload()

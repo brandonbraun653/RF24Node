@@ -46,6 +46,7 @@ namespace RF24::Network
     return temp;
   }
 
+
   Interface_uPtr createUnique( const RF24::Network::Config &cfg )
   {
     Driver_uPtr temp = std::make_unique<Driver>();
@@ -84,15 +85,18 @@ namespace RF24::Network
     }
   }
 
+
   Driver::~Driver()
   {
   }
+
 
   Chimera::Status_t Driver::attachLogger( uLog::SinkHandle sink )
   {
     mLogger = sink;
     return Chimera::CommonStatusCodes::OK;
   }
+
 
   Chimera::Status_t Driver::attachPhysicalDriver( RF24::Physical::Interface_sPtr physicalLayer )
   {
@@ -105,15 +109,18 @@ namespace RF24::Network
     return Chimera::CommonStatusCodes::OK;
   }
 
+
   Chimera::Status_t Driver::initAppRXQueue( void *buffer, const size_t size )
   {
     return mAppRXQueue.attachHeap( buffer, size );
   }
 
+
   Chimera::Status_t Driver::initNetTXQueue( void *buffer, const size_t size )
   {
     return mNetTXQueue.attachHeap( buffer, size );
   }
+
 
   Chimera::Status_t Driver::initialize( const RF24::Network::Config &cfg )
   {
@@ -133,6 +140,7 @@ namespace RF24::Network
 
     return configResult;
   }
+
 
   RF24::Network::HeaderMessage Driver::updateRX()
   {
@@ -203,10 +211,12 @@ namespace RF24::Network
     return sysMsg;
   }
 
+
   void Driver::updateTX()
   {
-    bool writeSuccess = false;
-
+    /*------------------------------------------------
+    Write any pending data that need to be transmitted
+    ------------------------------------------------*/
     while ( !mNetTXQueue.empty() )
     {
       /*------------------------------------------------
@@ -214,7 +224,7 @@ namespace RF24::Network
       ------------------------------------------------*/
       Frame::FrameType frame;
       Frame::Buffer tempBuffer;
-      auto element  = mNetTXQueue.peek();
+      auto element = mNetTXQueue.peek();
 
       if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
       {
@@ -222,44 +232,24 @@ namespace RF24::Network
       }
 
       /*------------------------------------------------
-      Fill the buffer with zeros since it's likely not a full packet
+      Build a new frame to transmit with
       ------------------------------------------------*/
       tempBuffer.fill( 0 );
       memcpy( tempBuffer.data(), element.payload, element.size );
-
-      /*------------------------------------------------
-      Refresh the user's frame with the buffer data and check the CRC
-      ------------------------------------------------*/
       frame = tempBuffer;
 
       /*------------------------------------------------
-      Figure out how the data needs to be sent
+      Determine where to send the frame to, then pull the
+      data off the queue so we don't retransmit it.
       ------------------------------------------------*/
-      auto route = ROUTE_DIRECT;
-      switch ( route )
-      {
-        case ROUTE_DIRECT:
-          writeSuccess = writeDirect( frame );
-          break;
-
-        case ROUTE_NORMALLY:
-          writeSuccess = writeRouted( frame );
-          break;
-
-        case ROUTE_MULTICAST:
-          writeSuccess = writeMulticast( frame );
-          break;
-      }
-
-      /*------------------------------------------------
-      Optionally pop the data off the queue
-      ------------------------------------------------*/
-      if ( writeSuccess )
+      auto jumpMeta = nextHop( frame.getDst() );
+      if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
       {
         mNetTXQueue.pop( element.payload, element.size );
       }
     }
   }
+
 
   void Driver::pollNetStack()
   {
@@ -282,20 +272,24 @@ namespace RF24::Network
     }
   }
 
+
   bool Driver::available()
   {
     return !mAppRXQueue.empty();
   }
+
 
   bool Driver::peek( Frame::FrameType &frame )
   {
     return readWithPop( frame, false );
   }
 
+
   bool Driver::read( Frame::FrameType &frame )
   {
     return readWithPop( frame, true );
   }
+
 
   bool Driver::write( Frame::FrameType &frame, const RoutingStyle route )
   {
@@ -303,36 +297,66 @@ namespace RF24::Network
     return true;
   }
 
+
   void Driver::removeRXFrame()
   {
     mAppRXQueue.removeFront();
   }
 
-  LogicalAddress Driver::nextHop( const LogicalAddress dst )
-  {
-    LogicalAddress ancestor;
 
-    if ( isConnectedTo( dst ) )
+  JumpType Driver::nextHop( const LogicalAddress dst )
+  {
+    JumpType meta;
+
+    /*------------------------------------------------
+    Destination must be valid!
+    ------------------------------------------------*/
+    if ( !isAddressValid( dst ) )
     {
-      // Next hop IS the destination node
-      return dst;
+      meta.hopAddress = RSVD_ADDR_INVALID;
+      meta.routing    = ROUTE_INVALID;
+      return meta;
     }
-    else if ( getLevel( dst ) >= mRouteTable.getCentralNode().getLevel() )
+    
+    /*------------------------------------------------
+    Next hop is the actual destination node
+    ------------------------------------------------*/
+    auto thisAddress    = thisNode();
+    auto isDirectChild  = isDirectDescendent( thisAddress, dst );
+    auto isDirectParent = isDirectDescendent( dst, thisAddress );
+
+    if ( isDirectChild || isDirectParent )
     {
-      // The data must be routed through the parent node to get data to a node
-      // at the same level or higher.
-      return mRouteTable.getParentNode().getLogicalAddress();
-    }
-    else if ( isDescendantOfRegisteredChild( dst, ancestor ) )
-    {
-      // This address is an ancestor of the destination node
-      return ancestor;
+      meta.hopAddress = dst;
+      meta.routing    = ROUTE_DIRECT;
     }
     else
     {
-      return Network::RSVD_ADDR_INVALID;
+      /*------------------------------------------------
+      Simple forwarding rule:
+        1) If destination node is a descendant of the 
+           current node, send to child for forwarding.
+
+        2) Else send directly to the parent. The data 
+           must go up the tree. Eventually a node that 
+           has the destination as a descendant will be hit.
+      ------------------------------------------------*/
+      if ( isDescendent( thisAddress, dst ) )
+      {
+        // Determine which child of this node to send the message to
+        meta.hopAddress = getAddressAtLevel( dst, getLevel( thisAddress ) + 1 );
+        meta.routing    = ROUTE_NORMALLY;
+      }
+      else
+      {
+        meta.hopAddress = getParent( thisAddress );
+        meta.routing    = ROUTE_NORMALLY;
+      }
     }
+
+    return meta;
   }
+
 
   bool Driver::updateRouteTable( const LogicalAddress address, const bool attach )
   {
@@ -347,15 +371,18 @@ namespace RF24::Network
     }
   }
 
+
   void Driver::setNodeAddress( const LogicalAddress address )
   {
     mRouteTable.updateCentralNode( address );
   }
 
+
   LogicalAddress Driver::thisNode()
   {
     return mRouteTable.getCentralNode().getLogicalAddress();
   }
+
 
   bool Driver::isConnectedTo( const LogicalAddress toCheck )
   {
@@ -415,6 +442,7 @@ namespace RF24::Network
     }
   }
 
+
   void Driver::getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb )
   {
     this->lock();
@@ -427,10 +455,12 @@ namespace RF24::Network
     this->unlock();
   }
 
+
   void Driver::getSCBUnsafe( SystemCB &scb )
   {
     scb = unsafe_DriverCB;
   }
+
 
   SystemCB Driver::getSCBSafe()
   {
@@ -484,22 +514,22 @@ namespace RF24::Network
       case RF24::Connection::Direction::CONNECT:
         if ( enabled )
         {
-          mConnectionsInProgress |= ( 1u << static_cast<size_t>( id ) );
+          mConnectionsInProgress |= ( static_cast<size_t>( 1u ) << static_cast<size_t>( id ) );
         }
         else
         {
-          mConnectionsInProgress &= ~( 1u << static_cast<size_t>( id ) );
+          mConnectionsInProgress &= ~( static_cast<size_t>( 1u ) << static_cast<size_t>( id ) );
         }
         break;
 
       case RF24::Connection::Direction::DISCONNECT:
         if ( enabled )
         {
-          mDisconnectsInProgress |= ( 1u << static_cast<size_t>( id ) );
+          mDisconnectsInProgress |= ( static_cast<size_t>( 1u ) << static_cast<size_t>( id ) );
         }
         else
         {
-          mDisconnectsInProgress &= ~( 1u << static_cast<size_t>( id ) );
+          mDisconnectsInProgress &= ~( static_cast<size_t>( 1u ) << static_cast<size_t>( id ) );
         }
         break;
 
@@ -507,6 +537,7 @@ namespace RF24::Network
         break;
     }
   }
+
 
   void Driver::setSCBUnsafe( const SystemCB &scb )
   {
@@ -540,6 +571,7 @@ namespace RF24::Network
     return false;
   }
 
+
   Hardware::PipeNumber Driver::getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source )
   {
     /*------------------------------------------------
@@ -571,6 +603,7 @@ namespace RF24::Network
     }
   }
 
+
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
     if ( !mAppRXQueue.full() )
@@ -583,6 +616,7 @@ namespace RF24::Network
       mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop RX Payload** Buffer Full\n", Chimera::millis() );
     }
   }
+
 
   void Driver::enqueueTXPacket( Frame::FrameType &frame )
   {
@@ -597,15 +631,18 @@ namespace RF24::Network
     }
   }
 
+
   void Driver::toggleSystemMessageReturn( const bool state )
   {
     mReturnSystemMessages = state;
   }
 
+
   void Driver::toggleMulticastRelay( const bool state )
   {
     mMulticastRelay = state;
   }
+
 
   HeaderMessage Driver::handleDestination( Frame::FrameType &frame )
   {
@@ -656,17 +693,19 @@ namespace RF24::Network
     return message;
   }
 
+
   HeaderMessage Driver::handlePassthrough( Frame::FrameType &frame )
   {
     return MSG_NETWORK_ERR;
   }
 
-  bool Driver::writeDirect( Frame::FrameType &frame )
+
+  bool Driver::writeDirect( Frame::FrameType &frame, const LogicalAddress hopAddress, const RoutingStyle routeType )
   {
     using namespace ::RF24::Physical::Conversion;
 
-    auto pipeOnParent    = getDestinationRXPipe( frame.getDst(), frame.getSrc() );
-    auto physicalAddress = getPhysicalAddress( frame.getDst(), static_cast<Hardware::PipeNumber>( pipeOnParent ) );
+    auto pipeOnParent    = getDestinationRXPipe( hopAddress, frame.getSrc() );
+    auto physicalAddress = getPhysicalAddress( hopAddress, static_cast<Hardware::PipeNumber>( pipeOnParent ) );
 
     frame.updateCRC();
 
@@ -676,54 +715,32 @@ namespace RF24::Network
       auto src  = frame.getSrc();
       auto dst  = frame.getDst();
       auto tick = Chimera::millis();
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", tick, type, src,
-                     dst );
+
+      switch ( routeType )
+      {
+        case ROUTE_DIRECT:
+          mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", tick, type,
+                         src, dst );
+          break;
+
+        case ROUTE_NORMALLY:
+          mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
+                         tick, type, src, dst, hopAddress );
+          break;
+
+        default:
+          break;
+      }
     }
 
-    //TODO: Update to use dynamic frame total lengths (maybe)
     /*------------------------------------------------
-    For the moment, the chinese clones of the RF24 chips won't work with
+    For the moment, the Chinese clones of the RF24 chips won't work with
     dynamic payload lengths, so default to the full payload size.
     ------------------------------------------------*/
     auto buffer = frame.toBuffer();
     return transferToPipe( physicalAddress, buffer, buffer.size(), false );
   }
 
-  bool Driver::writeRouted( Frame::FrameType &frame )
-  {
-    using namespace ::RF24::Physical::Conversion;
-
-    /*------------------------------------------------
-    Figure out where to send the packet along the tree
-    ------------------------------------------------*/
-    auto hopAddress = nextHop( frame.getDst() );
-    if ( hopAddress != RSVD_ADDR_INVALID )
-    {
-      frame.updateCRC();
-
-      if constexpr ( DBG_LOG_NET )
-      {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
-                       Chimera::millis(), frame.getType(), frame.getSrc(), frame.getDst(), hopAddress );
-      }
-
-      return transferToPipe( hopAddress, frame.toBuffer(), frame.getPayloadLength(), false );
-    }
-    else
-    {
-      if constexpr ( DBG_LOG_NET )
-      {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "Drop routed packet. Unable to deduce next destination.\n" );
-      }
-      return false;
-    }
-  }
-
-  bool Driver::writeMulticast( Frame::FrameType &frame )
-  {
-    mPhysicalDriver->startListening();
-    return false;
-  }
 
   bool Driver::transferToPipe( const ::RF24::PhysicalAddress address, const Frame::Buffer &buffer, const size_t length,
                                const bool autoAck )
@@ -743,6 +760,7 @@ namespace RF24::Network
 
     return ( result == Chimera::CommonStatusCodes::OK );
   }
+
 
   bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
   {

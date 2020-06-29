@@ -294,9 +294,9 @@ namespace RF24::Network
      *	is the next hop for a packet.
      *
      *	@param[in]	dst         The desired end destination node
-     *	@return RF24::LogicalAddress
+     *	@return RF24::JumpType
      */
-    virtual LogicalAddress nextHop( const LogicalAddress dst ) = 0;
+    virtual JumpType nextHop( const LogicalAddress dst ) = 0;
 
     /**
      *	Instructs the network driver to update it's table of devices that are immediately
