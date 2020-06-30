@@ -59,6 +59,9 @@
     <Filter Include="Device-specific files">
       <UniqueIdentifier>{47f69373-ef15-4caa-9d2f-3d6dfa9f3482}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\endpoint\runtime">
+      <UniqueIdentifier>{03d0a467-f1d5-4741-b115-6f1b086d5509}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="RF24NodeStaticLibrary-STM32F446RE-Debug.vgdbsettings">
@@ -127,16 +130,10 @@
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp">
       <Filter>src\endpoint\processes</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp">
-      <Filter>src\endpoint\processes</Filter>
-    </ClCompile>
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp">
       <Filter>src\endpoint\processes</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp">
-      <Filter>src\endpoint\processes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp">
       <Filter>src\endpoint\processes</Filter>
     </ClInclude>
     <ClCompile Include="..\..\..\src\hardware\driver.cpp">
@@ -282,5 +279,15 @@
     <Xml Include="stm32.xml">
       <Filter>VisualGDB settings</Filter>
     </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.cpp">
+      <Filter>src\endpoint\runtime</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.hpp">
+      <Filter>src\endpoint\runtime</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

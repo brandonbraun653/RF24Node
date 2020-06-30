@@ -512,7 +512,7 @@
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
       <CPPLanguageStandard>CPP2A</CPPLanguageStandard>
-      <Optimization>O0</Optimization>
+      <Optimization>Og</Optimization>
     </ClCompile>
     <ToolchainSettingsContainer>
       <InstructionSet>THUMB</InstructionSet>
@@ -618,13 +618,13 @@
     <ClInclude Include="..\..\..\src\endpoint\endpoint_factory.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\fwd.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\node.hpp" />
+    <ClInclude Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\types.hpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.cpp" />
     <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.cpp" />
-    <ClCompile Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.cpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_connection.hpp" />
     <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_ping.hpp" />
-    <ClInclude Include="..\..\..\src\endpoint\processes\rf24_endpoint_write.hpp" />
+    <ClCompile Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.cpp" />
     <ClCompile Include="..\..\..\src\hardware\driver.cpp" />
     <ClInclude Include="..\..\..\src\hardware\definitions.hpp" />
     <ClInclude Include="..\..\..\src\hardware\driver.hpp" />
