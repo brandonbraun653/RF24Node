@@ -572,6 +572,7 @@ namespace RF24::Network
   }
 
 
+  // TODO: Move this function to utility.hpp
   Hardware::PipeNumber Driver::getDestinationRXPipe( const LogicalAddress destination, const LogicalAddress source )
   {
     /*------------------------------------------------
@@ -696,7 +697,16 @@ namespace RF24::Network
 
   HeaderMessage Driver::handlePassthrough( Frame::FrameType &frame )
   {
-    return MSG_NETWORK_ERR;
+    if constexpr ( DBG_LOG_NET )
+    {
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Forwarding packet of type [%d] destined for [%04o]\n",
+                     Chimera::millis(), frame.getType(), frame.getDst() );
+    }
+
+    auto jumpMeta = nextHop( frame.getDst() );
+    writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing );
+
+    return frame.getType();
   }
 
 
@@ -704,7 +714,63 @@ namespace RF24::Network
   {
     using namespace ::RF24::Physical::Conversion;
 
-    auto pipeOnParent    = getDestinationRXPipe( hopAddress, frame.getSrc() );
+    // Getting the wrong pipe here because I'm not differentiating on the routing style
+
+    auto txFromAddress = RSVD_ADDR_INVALID;
+    auto originator = frame.getSrc();
+    auto sender = thisNode();
+
+    switch ( routeType )
+    {
+      case ROUTE_DIRECT:
+        /*------------------------------------------------
+        The current node is the last stop for this message
+        before it reaches its target. There are two possible
+        nodes that could be sending this kind of message:
+
+        1. The originator of the message also happens to be
+        directly connected to the receiver.
+
+        2. The originator is several nodes away, meaning the
+        message is hopping through this node to arrive at 
+        the receiver.
+        ------------------------------------------------*/
+        if ( originator != sender )
+        {
+          txFromAddress = sender;
+        }
+        else
+        {
+          txFromAddress = originator;
+        }
+        break;
+
+      case ROUTE_NORMALLY:
+        /*------------------------------------------------
+        The current node is just one hop along the route 
+        this message will take to arrive at its destination.
+        There are two nodes types that could transmit this way:
+
+        1. The originator IS the sender, meaning this is the
+        first time the message is being transmitted.
+
+        2. The current node is just passing the message along.
+
+        In either case, the transmitter is the same.
+        ------------------------------------------------*/
+        txFromAddress = sender;
+        break;
+
+      default:
+        /*------------------------------------------------
+        Unhandled condition. This shouldn't be happening
+        ------------------------------------------------*/
+        Chimera::insert_debug_breakpoint();
+        return false;
+        break;
+    }
+
+    auto pipeOnParent    = getDestinationRXPipe( hopAddress, txFromAddress );
     auto physicalAddress = getPhysicalAddress( hopAddress, static_cast<Hardware::PipeNumber>( pipeOnParent ) );
 
     frame.updateCRC();
@@ -712,7 +778,6 @@ namespace RF24::Network
     if constexpr ( DBG_LOG_NET )
     {
       auto type = frame.getType();
-      auto src  = frame.getSrc();
       auto dst  = frame.getDst();
       auto tick = Chimera::millis();
 
@@ -720,12 +785,12 @@ namespace RF24::Network
       {
         case ROUTE_DIRECT:
           mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX direct packet of type [%d] from [%04o] to [%04o]\n", tick, type,
-                         src, dst );
+                         txFromAddress, dst );
           break;
 
         case ROUTE_NORMALLY:
           mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: TX routed packet of type [%d] from [%04o] to [%04o] through [%04o]\n",
-                         tick, type, src, dst, hopAddress );
+                         tick, type, txFromAddress, dst, hopAddress );
           break;
 
         default:

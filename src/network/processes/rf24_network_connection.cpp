@@ -61,8 +61,13 @@ namespace RF24::Network::Internal::Processes::Connection
         obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Start connect\n", Chimera::millis() );
       }
 
-      auto connectID = getDirectConnectionID( node );
+      auto connectID = getDirectConnectionID( obj, node );
       auto index     = static_cast<size_t>( connectID );
+
+      //if ( obj.thisNode() == 012 )
+      //{
+      //  Chimera::insert_debug_breakpoint();
+      //}
 
       obj.unsafe_ConnectionList[ index ].bindId            = connectID;
       obj.unsafe_ConnectionList[ index ].toAddress         = ( connectToParent ? node : thisNode );
@@ -85,7 +90,6 @@ namespace RF24::Network::Internal::Processes::Connection
     ------------------------------------------------*/
     return false;
   }
-
 
   
   bool startDisconnect( RF24::Network::Interface &obj, RF24::Connection::BindSite id,
@@ -320,7 +324,7 @@ namespace RF24::Network::Internal::Processes::Connection
     /*------------------------------------------------
     Input & state protection
     ------------------------------------------------*/
-    auto connectTo = getDirectConnectionID( frame.getSrc() );
+    auto connectTo = getDirectConnectionID( obj, frame.getSrc() );
     if ( connectTo != connection.bindId )
     {
       /*------------------------------------------------
@@ -522,20 +526,36 @@ namespace RF24::Network::Internal::Processes::Connection
   }
 
 
-  RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address )
+  RF24::Connection::BindSite getDirectConnectionID( RF24::Network::Interface &obj, RF24::LogicalAddress address )
   {
     using namespace RF24::Connection;
 
-    // Can explicitly convert the pipe identifier (id at level) to a BindSite
-    auto level = static_cast<BindSite>( getIdAtLevel( address, getLevel( address ) ) );
-    auto id    = BindSite::PARENT;
+    BindSite connectSite = BindSite::INVALID;
 
-    if ( ( BindSite::CHILD_1 <= level ) && ( level <= BindSite::CHILD_5 ) )
+    /*------------------------------------------------
+    Figure out which direction this connection is being made
+    ------------------------------------------------*/
+    if ( address == getParent( obj.thisNode() ) )
     {
-      id = level;
+      connectSite = BindSite::PARENT;
     }
+    else if ( isDirectDescendent( obj.thisNode(), address ) )
+    {
+      /*------------------------------------------------
+      Otherwise, it's a possible child node. Convert the ID
+      at the connecting node's level directly into a bind site.
+      They are really the same thing anyways.
+      ------------------------------------------------*/
+      auto level = static_cast<BindSite>( getIdAtLevel( address, getLevel( address ) ) );
 
-    return id;
+      if ( ( BindSite::CHILD_1 <= level ) && ( level <= BindSite::CHILD_5 ) )
+      {
+        connectSite = level;
+      }
+    }
+    // Else invalid
+
+    return connectSite;
   }
 
 

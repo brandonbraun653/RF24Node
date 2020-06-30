@@ -54,11 +54,12 @@ namespace RF24::Network::Internal::Processes::Connection
    *
    *  @note Assumes that the address has already been validated to have a direct parent or 
    *        child relationship with the node that is executing this check.
-   *	
+   *
+   *	@param[in]	obj           The endpoint object that is processing the request
    *	@param[in]	address   The address to get the connection id for
    *	@return RF24::Network::ConnectionId
    */
-  RF24::Connection::BindSite getDirectConnectionID( RF24::LogicalAddress address );
+  RF24::Connection::BindSite getDirectConnectionID( RF24::Network::Interface &obj, RF24::LogicalAddress address );
 
   /**
    *	Modifies a received packet from some node and converts it into a connection
