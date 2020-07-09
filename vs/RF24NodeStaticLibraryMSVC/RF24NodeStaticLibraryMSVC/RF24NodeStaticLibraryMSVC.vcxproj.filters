@@ -220,7 +220,6 @@
     <None Include="..\..\..\src\network\message">
       <Filter>src\network</Filter>
     </None>
-    <None Include="packages.config" />
     <None Include="..\..\..\src\common\build.jam">
       <Filter>src\common</Filter>
     </None>
@@ -308,8 +307,6 @@
     <ClCompile Include="..\..\..\src\physical\mock\physical_mock.cpp">
       <Filter>src\physical\mock</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gtest\gtest-all.cc" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\lib\native\src\gmock\gmock-all.cc" />
     <ClCompile Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.cpp">
       <Filter>src\endpoint\runtime</Filter>
     </ClCompile>
