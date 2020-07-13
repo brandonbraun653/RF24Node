@@ -73,18 +73,13 @@ namespace RF24::Endpoint
     Chimera::Status_t read( void *const data, const size_t length ) final override;
     bool packetAvailable() final override;
     size_t nextPacketLength() final override;
-    Status getStatus() final override;
     SystemInit &getConfig() final override;
     LogicalAddress getLogicalAddress() final override;
     bool isConnected( const RF24::Connection::BindSite site ) final override;
     bool ping( const ::RF24::LogicalAddress node, const size_t timeout ) final override;
     void refreshConnection( const RF24::Connection::BindSite site ) final override;
-
     void setName( const std::string &name ) final override;
-
-
     RF24::Network::Interface_sPtr getNetworkingDriver() final override;
-
     SystemState getCurrentState() final override;
 
   protected:
@@ -94,13 +89,11 @@ namespace RF24::Endpoint
     RF24::Physical::Interface_sPtr mPhysicalDriver; /**< Physical layer object */
     RF24::Network::Interface_sPtr mNetworkDriver;   /**< Network layer object */
     uLog::SinkHandle mLogger;                       /**< Logger object */
+    SystemInit mEndpointInit;                       /**< User endpoint initial configuration for this node */
+    SystemState mState;                             /**< Current state of this node */
 
 
-    SystemInit mEndpointInit; /**< User endpoint initial configuration for this node */
-    SystemState mState;       /**< Current state of this node */
-
-
-    void initNetworkingStack(::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy );
+    void initNetworkingStack( ::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy );
 
   private:
     Chimera::Status_t initHardwareLayer();

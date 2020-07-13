@@ -54,7 +54,7 @@ namespace RF24::Network
   static_assert( sizeof( Config ) % sizeof( size_t ) == 0, "Struct not aligned properly" );
 
   /**
-   *  Consolidates metrics about where the next destination of 
+   *  Consolidates metrics about where the next destination of
    *  a frame should be transmitted and what routing style it should
    *  take.
    */
@@ -87,6 +87,9 @@ namespace RF24::Network
    */
   struct BindSiteCB
   {
+    /**
+     *  Indicates if the data present in this struct should be trusted
+     */
     bool valid;
 
     /**
@@ -95,6 +98,9 @@ namespace RF24::Network
      */
     bool enabled;
 
+    /**
+     *  Is the node described by this control block connected to the device?
+     */
     bool connected;
 
     /**
@@ -109,16 +115,15 @@ namespace RF24::Network
     size_t lastActive;
 
     /**
-     *  Number of milliseconds past lastActive that means the network connection is
+     *  Number of milliseconds past lastActive which implies the network connection is
      *  stale and needs to be refreshed.
      */
     size_t expirationDelta;
 
     /**
-     *  The address of the node at the other end of this bind site
+     *  The address of the node connected to this bind site
      */
     RF24::LogicalAddress address;
-
 
     /**
      *  Various event callbacks that can be executed

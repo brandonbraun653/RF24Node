@@ -1,11 +1,11 @@
 /********************************************************************************
- *   File Name:
+ *  File Name:
+ *    definitions.hpp
  *
+ *  Description:
+ *    Frame definitions
  *
- *   Description:
- *
- *
- *   2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once

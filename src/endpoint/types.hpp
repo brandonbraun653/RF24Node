@@ -3,9 +3,9 @@
  *    types.hpp
  *
  *  Description:
+ *    Endpoint types
  *
- *
- *  2019 | Brandon Braun | brandonbraun653@gmail.com
+ *  2019-2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
 #pragma once
@@ -25,7 +25,9 @@
 
 namespace RF24::Endpoint
 {
-
+  /**
+   *  System initialization data for configuring an Endpoint node
+   */
   struct SystemInit
   {
     uint8_t version;           /**< Version ID */
@@ -35,34 +37,24 @@ namespace RF24::Endpoint
 
     void clear()
     {
-      version = 0;
+      version     = 0;
       linkTimeout = std::numeric_limits<uint32_t>::max();
       physical.clear();
       memset( &network, 0, sizeof( Network::Config ) );
     }
   };
 
-  struct ConnectionStatus
-  {
-    bool connected;     /**< The endpoint is connected to the network */
-    size_t expiresAt; /**< Tick when the connection state is due to expire */
-  };
 
+  /**
+   *  Details information about the current system state, from a high level
+   */
   struct SystemState
   {
-    LogicalAddress parentAddress;
-    LogicalAddress endpointAddress;
-    ConnectionStatus linkStatus;
+    LogicalAddress endpointAddress;          /**< The address of this node */
+    Connection::BindSiteList connectedNodes; /**< The addresses of which this node is connected to */
 
     std::string name;
   };
-
-  struct Status
-  {
-    bool connected;
-  };
-
-  
-}
+}    // namespace RF24::Endpoint
 
 #endif /* !RF24_NODE_ENDPOINT_TYPES_HPP */

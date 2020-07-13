@@ -82,10 +82,12 @@ namespace RF24
      */
     using OnCompleteCallback = void ( * )( const Result result, const BindSite id );
 
+    using BindSiteList = std::array<LogicalAddress, static_cast<size_t>( BindSite::MAX )>;
+
   }    // namespace Connection
 
 
-  
+
   /**
    *  Function pointer callback to be invoked on an event occurrence
    */

@@ -40,11 +40,18 @@ namespace RF24::Endpoint
   public:
     virtual ~Interface() = default;
 
-    virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
-
     /*-------------------------------------------------
     Initialization and Configuration
     -------------------------------------------------*/
+    /**
+     *  Attaches the logging instance that should be used for printing
+     *  log messages generated internally.
+     *
+     *  @param[in]  sink      Logging sink to be attached
+     *  @return Chimera::Status_t
+     */
+    virtual Chimera::Status_t attachLogger( uLog::SinkHandle sink ) = 0;
+
     /**
      *  Initializes the endpoint with critical settings needed to operate
      *
@@ -210,6 +217,12 @@ namespace RF24::Endpoint
      */
     virtual Chimera::Status_t onEvent( const Event event, const EventFuncPtr_t function ) = 0;
 
+    /**
+     *  Processes the DCHP server on a received frame.
+     *
+     *  @param[in]  frame       The frame to be processed
+     *  @return Chimera::Status_t
+     */
     virtual Chimera::Status_t processDHCPServer( ::RF24::Network::Frame::FrameType &frame ) = 0;
 
     /**
@@ -220,6 +233,13 @@ namespace RF24::Endpoint
      */
     virtual Chimera::Status_t processMessageRequests( ::RF24::Network::Frame::FrameType &frame ) = 0;
 
+    /**
+     *  Processes registered event handlers that should be invoked when a particular
+     *  kind of frame is received.
+     *
+     *  @param[in]  frame       The frame to be processed
+     *  @return Chimera::Status_t
+     */
     virtual Chimera::Status_t processEventHandlers( ::RF24::Network::Frame::FrameType &frame ) = 0;
 
     /**
@@ -230,7 +250,14 @@ namespace RF24::Endpoint
      */
     virtual Chimera::Status_t processNetworking() = 0;
 
+    /**
+     *  Gets a handle to the network driver in use by the endpoint object. Only
+     *  intended for advance users.
+     *
+     *  @return RF24::Network::Interface_sPtr
+     */
     virtual RF24::Network::Interface_sPtr getNetworkingDriver() = 0;
+
 
     /*-------------------------------------------------
     Data Transfer IO
@@ -280,13 +307,6 @@ namespace RF24::Endpoint
     Information Getters
     -------------------------------------------------*/
     /**
-     *  Gets the latest system status of the endpoint node
-     *
-     *  @return EndpointStatus
-     */
-    virtual Status getStatus() = 0;
-
-    /**
      *  Gets the latest configuration information of the endpoint node
      *
      *  @return EndpointConfig
@@ -308,6 +328,12 @@ namespace RF24::Endpoint
      */
     virtual bool isConnected( const RF24::Connection::BindSite site ) = 0;
 
+    /**
+     *  Gets the current state of the endpoint. This is useful for some
+     *  high level metrics that summarize some runtime attributes.
+     *
+     *  @return SystemState
+     */
     virtual SystemState getCurrentState() = 0;
   };
 }    // namespace RF24::Endpoint

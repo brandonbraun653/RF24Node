@@ -64,11 +64,6 @@ namespace RF24::Network::Internal::Processes::Connection
       auto connectID = getDirectConnectionID( obj, node );
       auto index     = static_cast<size_t>( connectID );
 
-      //if ( obj.thisNode() == 012 )
-      //{
-      //  Chimera::insert_debug_breakpoint();
-      //}
-
       obj.unsafe_ConnectionList[ index ].bindId            = connectID;
       obj.unsafe_ConnectionList[ index ].toAddress         = ( connectToParent ? node : thisNode );
       obj.unsafe_ConnectionList[ index ].fromAddress       = ( connectToParent ? thisNode : node );
@@ -91,7 +86,7 @@ namespace RF24::Network::Internal::Processes::Connection
     return false;
   }
 
-  
+
   bool startDisconnect( RF24::Network::Interface &obj, RF24::Connection::BindSite id,
                         RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
@@ -105,7 +100,7 @@ namespace RF24::Network::Internal::Processes::Connection
     {
       return true;
     }
-    
+
     if constexpr ( DBG_LOG_NET_PROC_CONNECT )
     {
       obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Start disconnect\n", Chimera::millis() );
@@ -498,7 +493,7 @@ namespace RF24::Network::Internal::Processes::Connection
       if ( connection.direction == RF24::Connection::Direction::DISCONNECT )
       {
         obj.unsafe_BindSiteList[ bindIdx ].clear();
-        
+
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
           obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d disconnected\n", Chimera::millis(), bindIdx );
@@ -511,7 +506,7 @@ namespace RF24::Network::Internal::Processes::Connection
         obj.unsafe_BindSiteList[ bindIdx ].connected  = true;
         obj.unsafe_BindSiteList[ bindIdx ].lastActive = Chimera::millis();
         obj.unsafe_BindSiteList[ bindIdx ].valid      = true;
-        
+
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
           obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d connected\n", Chimera::millis(), bindIdx );

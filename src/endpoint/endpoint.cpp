@@ -32,17 +32,20 @@
 
 namespace RF24::Endpoint
 {
-  Device::Device() : mPhysicalDriver( nullptr ), mNetworkDriver( nullptr ),  mLogger( nullptr ), mEndpointInit( {} ), mState( {} )
+  Device::Device() :
+      mPhysicalDriver( nullptr ), mNetworkDriver( nullptr ), mLogger( nullptr ), mEndpointInit( {} ), mState( {} )
   {
   }
+
 
   Device::~Device()
   {
   }
 
+
   void Device::initNetworkingStack( ::RF24::Network::Interface_sPtr net, ::RF24::Physical::Interface_sPtr phy )
   {
-    mNetworkDriver = net;
+    mNetworkDriver  = net;
     mPhysicalDriver = phy;
 
     net->attachPhysicalDriver( phy );
@@ -61,6 +64,7 @@ namespace RF24::Endpoint
 
     return Chimera::CommonStatusCodes::LOCKED;
   }
+
 
   Chimera::Status_t Device::configure( const SystemInit &cfg )
   {
@@ -91,7 +95,7 @@ namespace RF24::Endpoint
 
     if ( mEndpointInit.linkTimeout < Minimum_LinkTimeout )
     {
-      inputParametersChanged = true;
+      inputParametersChanged    = true;
       mEndpointInit.linkTimeout = Default_LinkTimeout;
     }
 
@@ -112,40 +116,48 @@ namespace RF24::Endpoint
     return configResult;
   }
 
+
   void Device::setName( const std::string &name )
   {
     mState.name = name;
   }
+
 
   Chimera::Status_t Device::setNetworkingMode( const ::RF24::Network::Mode mode )
   {
     return Chimera::Status_t();
   }
 
+
   Chimera::Status_t Device::setEnpointStaticAddress( const ::RF24::LogicalAddress address )
   {
     return Chimera::Status_t();
   }
+
 
   Chimera::Status_t Device::setParentStaticAddress( const ::RF24::LogicalAddress address )
   {
     return Chimera::Status_t();
   }
 
+
   Chimera::Status_t Device::requestAddress()
   {
     return Chimera::Status_t();
   }
+
 
   Chimera::Status_t Device::renewAddressReservation()
   {
     return Chimera::Status_t();
   }
 
+
   Chimera::Status_t Device::releaseAddress()
   {
     return Chimera::Status_t();
   }
+
 
   Chimera::Status_t Device::connectAsync( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
@@ -172,8 +184,8 @@ namespace RF24::Endpoint
     switch ( mEndpointInit.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
-        mState.linkStatus.expiresAt = Chimera::millis() + mEndpointInit.linkTimeout;
-        return Internal::Processes::Connection::makeStaticConnection( *this, mEndpointInit.network.parentStaticAddress, callback, timeout );
+        return Internal::Processes::Connection::makeStaticConnection( *this, mEndpointInit.network.parentStaticAddress,
+                                                                      callback, timeout );
         break;
 
       case Network::Mode::NET_MODE_MESH:
@@ -187,10 +199,11 @@ namespace RF24::Endpoint
     }
   }
 
+
   Chimera::Status_t Device::connectBlocking( const size_t timeout )
   {
     const size_t startTime = Chimera::millis();
-    bool connected = false;
+    bool connected         = false;
 
     /*-------------------------------------------------
     Kick off the connection process
@@ -226,7 +239,7 @@ namespace RF24::Endpoint
     /*-------------------------------------------------
     Parse that result
     -------------------------------------------------*/
-    if( connected )
+    if ( connected )
     {
       return Chimera::CommonStatusCodes::OK;
     }
@@ -235,6 +248,7 @@ namespace RF24::Endpoint
       return Chimera::CommonStatusCodes::FAIL;
     }
   }
+
 
   Chimera::Status_t Device::disconnect()
   {
@@ -273,6 +287,7 @@ namespace RF24::Endpoint
     }
   }
 
+
   Chimera::Status_t Device::reconnect( RF24::Connection::OnCompleteCallback callback, const size_t timeout )
   {
     /*-------------------------------------------------
@@ -295,7 +310,6 @@ namespace RF24::Endpoint
     switch ( mEndpointInit.network.mode )
     {
       case Network::Mode::NET_MODE_STATIC:
-        mState.linkStatus.connected = false;
         mNetworkDriver->resetConnection( RF24::Connection::BindSite::PARENT );
         break;
 
@@ -312,10 +326,12 @@ namespace RF24::Endpoint
     return connectAsync( callback, timeout );
   }
 
+
   Chimera::Status_t Device::onEvent( const ::RF24::Event event, const ::RF24::EventFuncPtr_t function )
   {
     return Chimera::Status_t();
   }
+
 
   Chimera::Status_t Device::doAsyncProcessing()
   {
@@ -323,12 +339,13 @@ namespace RF24::Endpoint
     RF24::Network::Frame::FrameType frame;
 
     result |= processNetworking();
-    
+
     // Try not to read out data from the queues here unless you peek it first. It is corrupting
     // the expected data flow of many higher level processes.
 
     return result;
   }
+
 
   Chimera::Status_t Device::processDHCPServer( RF24::Network::Frame::FrameType &frame )
   {
@@ -336,6 +353,7 @@ namespace RF24::Endpoint
 
     return result;
   }
+
 
   Chimera::Status_t Device::processMessageRequests( RF24::Network::Frame::FrameType &frame )
   {
@@ -351,6 +369,7 @@ namespace RF24::Endpoint
     return result;
   }
 
+
   Chimera::Status_t Device::processEventHandlers( RF24::Network::Frame::FrameType &frame )
   {
     auto result = Chimera::CommonStatusCodes::OK;
@@ -358,26 +377,25 @@ namespace RF24::Endpoint
     return result;
   }
 
+
   Chimera::Status_t Device::processNetworking()
   {
     mNetworkDriver->pollNetStack();
     return Chimera::CommonStatusCodes::OK;
   }
 
-  Status Device::getStatus()
-  {
-    return Status();
-  }
 
   SystemInit &Device::getConfig()
   {
     return mEndpointInit;
   }
 
+
   ::RF24::LogicalAddress Device::getLogicalAddress()
   {
     return mState.endpointAddress;
   }
+
 
   bool Device::isConnected( const RF24::Connection::BindSite site )
   {
@@ -385,17 +403,19 @@ namespace RF24::Endpoint
     Device is connected if it hasn't expired and the
     control block says it's connected
     ------------------------------------------------*/
-    auto tmp = mNetworkDriver->getBindSiteCBSafe( site );
-    const bool expired = ( Chimera::millis() > ( tmp.lastActive + tmp.expirationDelta ) );
+    auto tmp             = mNetworkDriver->getBindSiteCBSafe( site );
+    const bool expired   = ( Chimera::millis() > ( tmp.lastActive + tmp.expirationDelta ) );
     const bool connected = tmp.connected && !expired;
 
     return connected;
   }
 
+
   Chimera::Status_t Device::initHardwareLayer()
   {
     return Chimera::CommonStatusCodes::OK;
   }
+
 
   Chimera::Status_t Device::initPhysicalLayer()
   {
@@ -419,7 +439,7 @@ namespace RF24::Endpoint
     ------------------------------------------------*/
     if constexpr ( DBG_LOG_APP )
     {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\n", Chimera::millis() );
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d: NET: Opening all pipes for listening\n", Chimera::millis() );
     }
 
     for ( size_t i = 0; i < RF24::Hardware::MAX_NUM_PIPES; i++ )
@@ -440,8 +460,8 @@ namespace RF24::Endpoint
       {
         // This section tends to be pretty fast, so give time for the log sink to write
         Chimera::delayMilliseconds( 100 );
-        mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n",
-                                      Chimera::millis(), pipe, nodeAddress, addr );
+        mLogger->flog( uLog::Level::LVL_INFO, "%d: NET Pipe %i on node 0%o has address [0x%.8X]\n", Chimera::millis(), pipe,
+                       nodeAddress, addr );
       }
 #endif
     }
@@ -453,23 +473,25 @@ namespace RF24::Endpoint
     return configResult;
   }
 
+
   Chimera::Status_t Device::initNetworkLayer()
   {
-    Chimera::Status_t configResult = Chimera::CommonStatusCodes::OK;
+    auto parentId = static_cast<size_t>( Connection::BindSite::PARENT );
 
-    /*------------------------------------------------
-    Track our current network address
-    ------------------------------------------------*/
-    if ( configResult == Chimera::CommonStatusCodes::OK )
-    {
-      mState.endpointAddress = mEndpointInit.network.nodeStaticAddress;
-      mState.parentAddress   = mEndpointInit.network.parentStaticAddress;
+    /*-------------------------------------------------
+    Initialize this node's address
+    -------------------------------------------------*/
+    mState.endpointAddress = mEndpointInit.network.nodeStaticAddress;
+    mNetworkDriver->setNodeAddress( mState.endpointAddress );
 
-      mNetworkDriver->setNodeAddress( mState.endpointAddress );
-    }
+    /*-------------------------------------------------
+    Initialize the connected nodes
+    -------------------------------------------------*/
+    mState.connectedNodes.fill( RF24::Network::RSVD_ADDR_INVALID );
 
-    return configResult;
+    return Chimera::CommonStatusCodes::OK;
   }
+
 
   Chimera::Status_t Device::initMeshLayer()
   {
@@ -482,22 +504,57 @@ namespace RF24::Endpoint
   }
 
 
-
   RF24::Network::Interface_sPtr Device::getNetworkingDriver()
-{
+  {
     return mNetworkDriver;
   }
 
+
   RF24::Endpoint::SystemState Device::getCurrentState()
   {
-    // TODO: Eventually transition this to a safe copy or something if it gets too big
-    return mState;
+    /*-------------------------------------------------
+    Initialize local variables and acquire net access
+    -------------------------------------------------*/
+    SystemState stateCopy;
+    Network::BindSiteCB tmpCB;
+
+    mNetworkDriver->lock();
+
+    /*-------------------------------------------------
+    Pull out the latest connection information
+    -------------------------------------------------*/
+    static constexpr size_t iterFirst = static_cast<size_t>( Connection::BindSite::FIRST );
+    static constexpr size_t iterMax = static_cast<size_t>( Connection::BindSite::MAX );
+
+    for( size_t bindSite = iterFirst; bindSite < iterMax; bindSite++ )
+    {
+      mNetworkDriver->getBindSiteStatus( static_cast<Connection::BindSite>( bindSite ), tmpCB );
+
+      if( tmpCB.valid )
+      {
+        mState.connectedNodes[ bindSite ] = tmpCB.address;
+      }
+      else
+      {
+        mState.connectedNodes[ bindSite ] = Network::RSVD_ADDR_INVALID;
+      }
+    }
+
+    /*-------------------------------------------------
+    Copy out the data and unlock the networking layer
+    -------------------------------------------------*/
+    stateCopy = mState;
+    mNetworkDriver->unlock();
+
+    return stateCopy;
   }
+
 
   bool Device::ping( const ::RF24::LogicalAddress node, const size_t timeout )
   {
     return Internal::Processes::dispatchPing( *this, node, timeout );
   }
+
 
   void Device::refreshConnection( const RF24::Connection::BindSite site )
   {
@@ -512,7 +569,7 @@ namespace RF24::Endpoint
     if ( tmp.valid && ping( tmp.address, Chimera::Threading::TIMEOUT_500MS ) )
     {
       auto lockGuard = Chimera::Threading::LockGuard( *mNetworkDriver );
-      auto idx = static_cast<size_t>( site );
+      auto idx       = static_cast<size_t>( site );
 
       mNetworkDriver->unsafe_BindSiteList[ idx ].lastActive = Chimera::millis();
     }

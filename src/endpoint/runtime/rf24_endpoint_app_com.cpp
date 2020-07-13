@@ -19,8 +19,9 @@
 
 namespace RF24::Endpoint
 {
-
-
+  /*-------------------------------------------------------------------------------
+  Public Functions
+  -------------------------------------------------------------------------------*/
   Chimera::Status_t Device::write( const ::RF24::LogicalAddress dst, const void *const data, const size_t length )
   {
     /*------------------------------------------------
@@ -39,7 +40,7 @@ namespace RF24::Endpoint
     Enforce packet limit. Currently fragmented packets
     aren't supported.
     ------------------------------------------------*/
-    if ( length >= Network::Frame::PAYLOAD_SIZE )
+    if ( length > Network::Frame::PAYLOAD_SIZE )
     {
       return Chimera::CommonStatusCodes::MEMORY;
     }
