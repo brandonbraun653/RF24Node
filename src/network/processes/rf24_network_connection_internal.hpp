@@ -50,9 +50,9 @@ namespace RF24::Network::Internal::Processes::Connection
   void nackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection );
 
   /**
-   *  Gets the connection identifier for the given node address. 
+   *  Gets the connection identifier for the given node address.
    *
-   *  @note Assumes that the address has already been validated to have a direct parent or 
+   *  @note Assumes that the address has already been validated to have a direct parent or
    *        child relationship with the node that is executing this check.
    *
    *	@param[in]	obj           The endpoint object that is processing the request
@@ -64,24 +64,30 @@ namespace RF24::Network::Internal::Processes::Connection
   /**
    *	Modifies a received packet from some node and converts it into a connection
    *  NACK packet that can be sent back to that node.
-   *	
+   *
    *	@param[in]	obj       The network driver that received the packet
    *	@param[in]	frame     The frame to be modified
    *	@param[in]  dir       The direction of the connection
+   *  @param[in]  state     Current state of the connection process
    *	@return void
    */
-  void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, const RF24::Connection::Direction dir );
+  void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame,
+                        const RF24::Connection::Direction dir,
+                        const RF24::Network::Internal::Processes::Connection::State state );
 
   /**
    *	Modifies a received packed from some node and converts it into a connection
    *  ACK packet that can be sent back to that node.
-   *	
+   *
    *	@param[in]	obj       The network driver that received the packet
    *	@param[in]	frame     The frame to be modified
    *	@param[in]  dir       The direction of the connection
+   *  @param[in]  state     Current state of the connection process
    *	@return void
    */
-  void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, const RF24::Connection::Direction dir );
+  void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame,
+                       const RF24::Connection::Direction dir,
+                       const RF24::Network::Internal::Processes::Connection::State state );
 
 }    // namespace RF24::Network::Internal::Processes
 

@@ -278,7 +278,8 @@ namespace RF24::Network::Internal::Processes::Connection
         ------------------------------------------------*/
         case State::CONNECT_SUCCESS_DIRECT:    // Child's perspective
         case State::CONNECT_SUCCESS_ASYNC:     // Parent's perspective
-        case State::CONNECT_TERMINATE: {       // Parent or Child perspective
+        case State::CONNECT_TERMINATE:
+        {    // Parent or Child perspective
           /*------------------------------------------------
           Inform the user that the connection completed
           ------------------------------------------------*/
@@ -334,7 +335,7 @@ namespace RF24::Network::Internal::Processes::Connection
       The connection is in the process of doing something else, so
       we can't allow the requesting node to start a connection.
       ------------------------------------------------*/
-      buildNackPacket( obj, frame, connection.direction );
+      buildNackPacket( obj, frame, connection.direction, connection.currentState );
       obj.write( frame, RF24::Network::RoutingStyle::ROUTE_DIRECT );
       return;
     }
@@ -342,55 +343,87 @@ namespace RF24::Network::Internal::Processes::Connection
     /*------------------------------------------------
     Try and bind/remove the requesting node on the network
     ------------------------------------------------*/
-    if ( frame.getType() == MSG_NET_REQUEST_CONNECT )
+    auto child            = frame.getSrc();
+    bool connectedAlready = obj.isConnectedTo( child );
+
+    switch ( frame.getType() )
     {
-      if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-      {
-        obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request\n", Chimera::millis() );
-      }
+      case MSG_NET_REQUEST_CONNECT:
+        /*-------------------------------------------------
+        Optional logging
+        -------------------------------------------------*/
+        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
+        {
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request\n", Chimera::millis() );
+        }
 
-      auto childToBind = frame.getSrc();
-      if ( obj.updateRouteTable( childToBind, true ) )
-      {
-        connection.toAddress   = childToBind;
-        connection.fromAddress = obj.thisNode();
-        connection.direction   = RF24::Connection::Direction::CONNECT;
+        /*-------------------------------------------------
+        Check on the current node connection status. Try and
+        attach if possible, otherwise NACK the process.
+        -------------------------------------------------*/
+        if ( connectedAlready )
+        {
+          connection.currentState = State::CONNECT_SUCCESS_DIRECT;
+          buildAckPacket( obj, frame, connection.direction, connection.currentState );
+        }
+        else if ( obj.updateRouteTable( child, true ) )
+        {
+          connection.toAddress    = child;
+          connection.fromAddress  = obj.thisNode();
+          connection.direction    = RF24::Connection::Direction::CONNECT;
+          connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
 
-        buildAckPacket( obj, frame, connection.direction );
-      }
-      else
-      {
-        buildNackPacket( obj, frame, connection.direction );
-      }
-    }
-    else if( frame.getType() == MSG_NET_REQUEST_DISCONNECT )
-    {
-      if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-      {
-        obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request\n", Chimera::millis() );
-      }
+          buildAckPacket( obj, frame, connection.direction, connection.currentState );
+          obj.setConnectionInProgress( connection.bindId, connection.direction, true );
+        }
+        else
+        {
+          connection.currentState = State::CONNECT_TERMINATE;
+          buildNackPacket( obj, frame, connection.direction, connection.currentState );
+        }
+        break;
 
-      auto childToRemove = frame.getSrc();
-      obj.updateRouteTable( childToRemove, false );
+      case MSG_NET_REQUEST_DISCONNECT:
+        /*-------------------------------------------------
+        Optional logging
+        -------------------------------------------------*/
+        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
+        {
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request\n", Chimera::millis() );
+        }
 
-      connection.toAddress   = childToRemove;
-      connection.fromAddress = obj.thisNode();
-      connection.direction   = RF24::Connection::Direction::DISCONNECT;
+        /*-------------------------------------------------
+        Check on the current node connection status. Try and
+        dettach if possible, otherwise NACK the process.
+        -------------------------------------------------*/
+        if ( !connectedAlready )
+        {
+          connection.currentState = State::CONNECT_SUCCESS_DIRECT;
+          buildAckPacket( obj, frame, connection.direction, connection.currentState );
+        }
+        else if ( obj.updateRouteTable( child, false ) )
+        {
+          connection.toAddress    = child;
+          connection.fromAddress  = obj.thisNode();
+          connection.direction    = RF24::Connection::Direction::DISCONNECT;
+          connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
 
-      buildAckPacket( obj, frame, connection.direction );
-    }
-    else
-    {
-      // TODO: Do I need to actually do anything here?
-    }
+          buildAckPacket( obj, frame, connection.direction, connection.currentState );
+          obj.setConnectionInProgress( connection.bindId, connection.direction, true );
+        }
+        else
+        {
+          connection.currentState = State::CONNECT_TERMINATE;
+          buildNackPacket( obj, frame, connection.direction, connection.currentState );
+        }
+        break;
 
-    /*------------------------------------------------
-    Inform the binding node of the result and transition
-    to waiting for their acknowledgment
-    ------------------------------------------------*/
-    connection.frameCache   = frame;
-    connection.currentState = State::CONNECT_WAIT_FOR_CHILD_ACK;
-    obj.setConnectionInProgress( connection.bindId, connection.direction, true );
+      default:
+        return;
+        break;
+    };
+
+    connection.frameCache = frame;
     obj.write( connection.frameCache, RF24::Network::RoutingStyle::ROUTE_DIRECT );
   }
 
@@ -411,12 +444,9 @@ namespace RF24::Network::Internal::Processes::Connection
     kind of connection that is in progress.
     ------------------------------------------------*/
     auto frameTypeACK = Network::HeaderMessage::MSG_NET_REQUEST_CONNECT_ACK;
-    auto frameTypeNACK = Network::HeaderMessage::MSG_NET_REQUEST_CONNECT_NACK;
-
     if ( connection.direction == RF24::Connection::Direction::DISCONNECT )
     {
       frameTypeACK = Network::HeaderMessage::MSG_NET_REQUEST_DISCONNECT_ACK;
-      frameTypeNACK = Network::HeaderMessage::MSG_NET_REQUEST_DISCONNECT_NACK;
     }
 
     /*------------------------------------------------
@@ -441,31 +471,20 @@ namespace RF24::Network::Internal::Processes::Connection
             obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: ACK\n", Chimera::millis() );
           }
         }
-        else if( frame.getType() == frameTypeNACK )
-        {
-          connection.currentState = State::CONNECT_TERMINATE;
-          connection.result       = RF24::Connection::Result::CONNECT_PROC_FAIL;
-
-          obj.unsafe_BindSiteList[ bindIdx ].clear();
-
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: NACK\n", Chimera::millis() );
-          }
-        }
         else
         {
           // Unexpected packet. Shouldn't be handled here at all.
           if constexpr ( DBG_LOG_NET_PROC_CONNECT )
           {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Unexpected Packet-%d\n", Chimera::millis(), frame.getType() );
+            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Unexpected Packet-%d\n", Chimera::millis(),
+                                   frame.getType() );
           }
           break;
         }
         /*------------------------------------------------
         Let the parent know we received the message
         ------------------------------------------------*/
-        buildAckPacket( obj, frame, connection.direction );
+        buildAckPacket( obj, frame, connection.direction, connection.currentState );
 
         connection.frameCache = frame;
         obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
@@ -518,6 +537,50 @@ namespace RF24::Network::Internal::Processes::Connection
 
   void nackHandler( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame, ControlBlock &connection )
   {
+    /*------------------------------------------------
+    If this particular connection control block isn't
+    the intended handler of the frame, exit early.
+    ------------------------------------------------*/
+    if ( frame.getSrc() != connection.toAddress )
+    {
+      return;
+    }
+
+    /*------------------------------------------------
+    Select the proper expected frame type based on the
+    kind of connection that is in progress.
+    ------------------------------------------------*/
+    auto frameTypeNACK = Network::HeaderMessage::MSG_NET_REQUEST_CONNECT_NACK;
+    if ( connection.direction == RF24::Connection::Direction::DISCONNECT )
+    {
+      frameTypeNACK = Network::HeaderMessage::MSG_NET_REQUEST_DISCONNECT_NACK;
+    }
+
+    /*------------------------------------------------
+    Process the NACK message
+    ------------------------------------------------*/
+    if ( frame.getType() == frameTypeNACK )
+    {
+      /*-------------------------------------------------
+      Move the connection process to the termination state
+      -------------------------------------------------*/
+      connection.currentState = State::CONNECT_TERMINATE;
+      connection.result       = RF24::Connection::Result::CONNECT_PROC_FAIL;
+
+      /*-------------------------------------------------
+      Ensure the bindsite won't show it's connected to anything
+      -------------------------------------------------*/
+      auto bindIdx = static_cast<size_t>( connection.bindId );
+      obj.unsafe_BindSiteList[ bindIdx ].clear();
+
+      /*-------------------------------------------------
+      Optionally log the event
+      -------------------------------------------------*/
+      if constexpr ( DBG_LOG_NET_PROC_CONNECT )
+      {
+        obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: NACK\n", Chimera::millis() );
+      }
+    }
   }
 
 
@@ -555,12 +618,13 @@ namespace RF24::Network::Internal::Processes::Connection
 
 
   void buildNackPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame,
-                        const RF24::Connection::Direction dir )
+                        const RF24::Connection::Direction dir,
+                        const RF24::Network::Internal::Processes::Connection::State state )
   {
     auto cachedSrc = frame.getSrc();
     frame.setSrc( obj.thisNode() );
     frame.setDst( cachedSrc );
-    frame.setPayload( nullptr, 0 );
+    frame.setPayload( &state, sizeof( state ) );
 
     if ( dir == RF24::Connection::Direction::CONNECT )
     {
@@ -574,12 +638,13 @@ namespace RF24::Network::Internal::Processes::Connection
 
 
   void buildAckPacket( RF24::Network::Interface &obj, RF24::Network::Frame::FrameType &frame,
-                       const RF24::Connection::Direction dir )
+                       const RF24::Connection::Direction dir,
+                       const RF24::Network::Internal::Processes::Connection::State state )
   {
     auto cachedSrc = frame.getSrc();
     frame.setSrc( obj.thisNode() );
     frame.setDst( cachedSrc );
-    frame.setPayload( nullptr, 0 );
+    frame.setPayload( &state, sizeof( state ) );
 
     if ( dir == RF24::Connection::Direction::CONNECT )
     {
@@ -590,4 +655,5 @@ namespace RF24::Network::Internal::Processes::Connection
       frame.setType( Network::MSG_NET_REQUEST_DISCONNECT_ACK );
     }
   }
+
 }    // namespace RF24::Network::Internal::Processes::Connection
