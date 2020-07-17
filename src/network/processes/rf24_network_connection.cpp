@@ -19,6 +19,7 @@
 #include <RF24Node/src/network/processes/rf24_network_connection.hpp>
 #include <RF24Node/src/network/processes/rf24_network_connection_internal.hpp>
 
+
 namespace RF24::Network::Internal::Processes::Connection
 {
   /*-------------------------------------------------------------------------------
@@ -278,8 +279,8 @@ namespace RF24::Network::Internal::Processes::Connection
         ------------------------------------------------*/
         case State::CONNECT_SUCCESS_DIRECT:    // Child's perspective
         case State::CONNECT_SUCCESS_ASYNC:     // Parent's perspective
-        case State::CONNECT_TERMINATE:
-        {    // Parent or Child perspective
+        case State::CONNECT_TERMINATE:         // Parent or Child perspective
+        {
           /*------------------------------------------------
           Inform the user that the connection completed
           ------------------------------------------------*/
@@ -300,7 +301,7 @@ namespace RF24::Network::Internal::Processes::Connection
 
           if constexpr ( DBG_LOG_NET_PROC_CONNECT )
           {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Connection proc exit\n", Chimera::millis() );
+            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Proc exit\n", Chimera::millis() );
           }
           break;
         }
@@ -354,7 +355,7 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request\n", Chimera::millis() );
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request from [%04o]\n", Chimera::millis(), frame.getSrc() );
         }
 
         /*-------------------------------------------------
@@ -364,7 +365,15 @@ namespace RF24::Network::Internal::Processes::Connection
         if ( connectedAlready )
         {
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
+          connection.lastEventTime = Chimera::millis();
+          connection.startTime     = Chimera::millis();
+
           buildAckPacket( obj, frame, connection.direction, connection.currentState );
+
+          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
+          {
+            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Node [%04o] already connected\n", Chimera::millis(), frame.getDst() );
+          }
         }
         else if ( obj.updateRouteTable( child, true ) )
         {
@@ -389,7 +398,7 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request\n", Chimera::millis() );
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request from [%04o]\n", Chimera::millis(), frame.getSrc() );
         }
 
         /*-------------------------------------------------
@@ -481,6 +490,7 @@ namespace RF24::Network::Internal::Processes::Connection
           }
           break;
         }
+
         /*------------------------------------------------
         Let the parent know we received the message
         ------------------------------------------------*/

@@ -22,6 +22,9 @@
 
 namespace RF24::Network
 {
+  /*-------------------------------------------------------------------------------
+  Enumerations
+  -------------------------------------------------------------------------------*/
   enum class Mode : size_t
   {
     NET_MODE_INVALID,
@@ -35,10 +38,23 @@ namespace RF24::Network
     NET_SERVICE_MSG_FORWARDING
   };
 
+  enum class StatusFlag : uint8_t
+  {
+    SF_IDLE,
+    SF_IN_PROGRESS,
+
+    NUM_OPTIONS
+  };
+
+  /*-------------------------------------------------------------------------------
+  Structures
+  -------------------------------------------------------------------------------*/
   struct TransferControlBlock
   {
-    // Frame? Pointer to frame buffer?
-    // Mode?
+    StatusFlag flag;  /**< Flags indicating current status */
+    size_t startTime; /**< When this packet was first tx'd */
+    size_t lastTime;  /**< Last time this packet was touched */
+    size_t timeout;   /**< Computed packet timeout value */
   };
 
   struct Config

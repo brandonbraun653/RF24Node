@@ -156,20 +156,20 @@ namespace RF24::Network
 
       void clear()
       {
-        bindId             = RF24::Connection::BindSite::FIRST;
-        direction          = RF24::Connection::Direction::CONNECT;
-        toAddress   = RF24::Network::RSVD_ADDR_INVALID;
-        fromAddress = RF24::Network::RSVD_ADDR_INVALID;
-        currentState       = State::CONNECT_IDLE;
-        onConnectComplete  = nullptr;
-        startTime          = 0;
-        lastEventTime      = 0;
-        attempts    = 0;
-        maxAttempts        = 10;
-        processTimeout     = 60000;    // 60 seconds
-        netTimeout         = 500;      // 100 milliseconds
-        result             = RF24::Connection::Result::CONNECT_PROC_UNKNOWN;
-        frameCache         = RF24::Network::Frame::FrameType();
+        bindId            = RF24::Connection::BindSite::FIRST;
+        direction         = RF24::Connection::Direction::CONNECT;
+        toAddress         = RF24::Network::RSVD_ADDR_INVALID;
+        fromAddress       = RF24::Network::RSVD_ADDR_INVALID;
+        currentState      = State::CONNECT_IDLE;
+        onConnectComplete = nullptr;
+        startTime         = 0;
+        lastEventTime     = 0;
+        attempts          = 0;
+        maxAttempts       = 10;
+        processTimeout    = 60000;    // 60 seconds
+        netTimeout        = 1000;      // 100 milliseconds
+        result            = RF24::Connection::Result::CONNECT_PROC_UNKNOWN;
+        frameCache        = RF24::Network::Frame::FrameType();
       }
     };
 
@@ -403,7 +403,8 @@ namespace RF24::Network
      *  @param[in]  enabled     If enabled, marks the process as beginning. If not, marks as completed.
      *  @return void
      */
-    virtual void setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled ) = 0;
+    virtual void setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir,
+                                          const bool enabled ) = 0;
 
     /**
      *  Updates the system control block with new data.
@@ -431,7 +432,6 @@ namespace RF24::Network
      *	@return void
      */
     virtual void onNodeHasBound( const RF24::Connection::BindSite id, RF24::Connection::OnCompleteCallback listener ) = 0;
-
 
 
     /*-------------------------------------------------------------------------------
