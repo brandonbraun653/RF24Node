@@ -67,6 +67,13 @@ namespace RF24::Network
 
     unsafe_DriverCB.clear();
 
+    /*-------------------------------------------------
+    Initialize the transfer control blocks
+    -------------------------------------------------*/
+    mNetTXTCB.flag      = StatusFlag::SF_IDLE;
+    mNetTXTCB.lastTime  = 0;
+    mNetTXTCB.startTime = 0;
+
     /*------------------------------------------------
     Initialize the connection tracker with the proper data
     ------------------------------------------------*/
@@ -217,20 +224,120 @@ namespace RF24::Network
     /*------------------------------------------------
     Write any pending data that need to be transmitted
     ------------------------------------------------*/
-    while ( !mNetTXQueue.empty() )
+    // while ( !mNetTXQueue.empty() )
+    // {
+    //   /*------------------------------------------------
+    //   Peek the next element and verify it contains data
+    //   ------------------------------------------------*/
+    //   Frame::FrameType frame;
+    //   Frame::Buffer tempBuffer;
+    //   auto element = mNetTXQueue.peek();
+
+    //   if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
+    //   {
+    //     break;
+    //   }
+
+    //   /*------------------------------------------------
+    //   Build a new frame to transmit with
+    //   ------------------------------------------------*/
+    //   tempBuffer.fill( 0 );
+    //   memcpy( tempBuffer.data(), element.payload, element.size );
+    //   frame = tempBuffer;
+
+    //   /*------------------------------------------------
+    //   Determine where to send the frame to, then pull the
+    //   data off the queue so we don't retransmit it.
+    //   ------------------------------------------------*/
+    //   auto jumpMeta = nextHop( frame.getDst() );
+    //   if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
+    //   {
+    //     mNetTXQueue.pop( element.payload, element.size );
+    //   }
+
+    //   #pragma message("Need to remove this!!")
+    //   Chimera::delayMilliseconds( 5 );
+    // }
+
+    /*-------------------------------------------------
+    Don't process anything if we don't have to
+    -------------------------------------------------*/
+    if ( mNetTXQueue.empty() )
     {
-      /*------------------------------------------------
-      Peek the next element and verify it contains data
-      ------------------------------------------------*/
-      Frame::FrameType frame;
-      Frame::Buffer tempBuffer;
-      auto element = mNetTXQueue.peek();
+      return;
+    }
 
-      if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
-      {
-        break;
-      }
+    /*------------------------------------------------
+    Peek the next element and verify it contains data
+    ------------------------------------------------*/
+    Frame::FrameType frame;
+    Frame::Buffer tempBuffer;
+    Queue::Element &element = mNetTXQueue.peek();
 
+    if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
+    {
+      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: TX queue contains garbage\n", Chimera::millis() );
+      return;
+    }
+
+    /*-------------------------------------------------
+    Gather information about the current state of the TX
+    -------------------------------------------------*/
+    /*
+    Only check the stuff below if the AUTO ACK functionality is enabled. Otherwise
+    just immediately transmit the packet in the queue.
+
+    This will effectively serialize the communication, but that's ok. We want
+    reliability, not throughput.
+
+      1. Check software TX status. Need to implement some kind of transfer status field
+         that tracks what has been happening with transfers.
+        a. Status of the transfer, if any
+        b. Expected ACK timeout (calculate from the ARD and ARC)
+
+      2. Check hardware TX status:
+        a.  TX_DS -> If this is not set after packet ACK timeout, we have a problem.
+        b.  MAX_RT -> If this is set, we have problems
+        c.  PLOS_CNT -> Should be 1 if we hit the retry limit for a single packet.
+        d.  ARC_CNT -> How many times a packet has failed to be ACK'd
+        e.
+
+    */
+    /*-------------------------------------------------
+    Ensure we can read the status data. This should
+    never go invalid, but if it does, be noisy.
+    -------------------------------------------------*/
+    auto sts = mPhysicalDriver->getStatus();
+    if( !sts.validity )
+    {
+      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Failed to read radio status\n", Chimera::millis() );
+    }
+
+    /*-------------------------------------------------
+    Is the transfer state machine waiting on HW?
+      1. Transfer is in progress
+      2. The HW flag indicating data has been ACK'd is not set
+      3. The max retry timeout has elapsed
+    -------------------------------------------------*/
+    /* clang-format off */
+    if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS ) &&
+        !( sts.flags & Physical::StatusFlag::SF_TX_DATA_SENT ) &&
+         ( ( Chimera::millis() - mNetTXTCB.startTime ) > mNetTXTCB.timeout ) )
+    /* clang-format on */
+    {
+      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: No ACK. Max retry timeout.\n", Chimera::millis() );
+      mNetTXQueue.pop( element.payload, element.size );
+      mNetTXTCB.flag = StatusFlag::SF_IDLE;
+
+      // on error?
+      #pragma message("Need to call an 'on-error' message here")
+    }
+
+    /*-------------------------------------------------
+    First time through? Set the status and transmit.
+    -------------------------------------------------*/
+    if( mNetTXTCB.flag == StatusFlag::SF_IDLE )
+    {
       /*------------------------------------------------
       Build a new frame to transmit with
       ------------------------------------------------*/
@@ -245,9 +352,19 @@ namespace RF24::Network
       auto jumpMeta = nextHop( frame.getDst() );
       if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
       {
-        mNetTXQueue.pop( element.payload, element.size );
+        mNetTXTCB.flag = StatusFlag::SF_IN_PROGRESS;
+        mNetTXTCB.startTime = Chimera::millis();
+      }
+      else
+      {
+        mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Frame TX failed\n", Chimera::millis() );
       }
     }
+    else
+    {
+      mNetTXTCB.lastTime = Chimera::millis();
+    }
+
   }
 
 
@@ -317,7 +434,7 @@ namespace RF24::Network
       meta.routing    = ROUTE_INVALID;
       return meta;
     }
-    
+
     /*------------------------------------------------
     Next hop is the actual destination node
     ------------------------------------------------*/
@@ -334,11 +451,11 @@ namespace RF24::Network
     {
       /*------------------------------------------------
       Simple forwarding rule:
-        1) If destination node is a descendant of the 
+        1) If destination node is a descendant of the
            current node, send to child for forwarding.
 
-        2) Else send directly to the parent. The data 
-           must go up the tree. Eventually a node that 
+        2) Else send directly to the parent. The data
+           must go up the tree. Eventually a node that
            has the destination as a descendant will be hit.
       ------------------------------------------------*/
       if ( isDescendent( thisAddress, dst ) )
@@ -732,7 +849,7 @@ namespace RF24::Network
         directly connected to the receiver.
 
         2. The originator is several nodes away, meaning the
-        message is hopping through this node to arrive at 
+        message is hopping through this node to arrive at
         the receiver.
         ------------------------------------------------*/
         if ( originator != sender )
@@ -747,7 +864,7 @@ namespace RF24::Network
 
       case ROUTE_NORMALLY:
         /*------------------------------------------------
-        The current node is just one hop along the route 
+        The current node is just one hop along the route
         this message will take to arrive at its destination.
         There are two nodes types that could transmit this way:
 

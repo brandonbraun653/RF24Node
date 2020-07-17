@@ -166,6 +166,7 @@ namespace RF24::Network
      *  Queue for storing packets awaiting transmission
      */
     RF24::Network::Queue::ManagedFIFO mNetTXQueue;
+    TransferControlBlock mNetTXTCB;
 
     /**
      *  Queue for storing packets waiting to be read by the application layer

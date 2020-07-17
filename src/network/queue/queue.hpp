@@ -27,12 +27,18 @@
 
 namespace RF24::Network::Queue
 {
+  /*-------------------------------------------------------------------------------
+  Structures
+  -------------------------------------------------------------------------------*/
   struct Element
   {
-    size_t size;    /**< Number of bytes in the queue element */
-    void *payload;  /**< Pointer to the data */
+    size_t size;      /**< Number of bytes in the queue element */
+    void *payload;    /**< Pointer to the data */
   };
 
+  /*-------------------------------------------------------------------------------
+  Classes
+  -------------------------------------------------------------------------------*/
   class ManagedFIFO : public Chimera::Threading::Lockable
   {
   public:
@@ -51,7 +57,7 @@ namespace RF24::Network::Queue
 
     Chimera::Status_t removeFront();
 
-    Element peek();
+    Element &peek();
 
     bool empty();
 

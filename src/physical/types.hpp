@@ -27,8 +27,29 @@
 
 namespace RF24::Physical
 {
+  /*-------------------------------------------------------------------------------
+  Typedefs
+  -------------------------------------------------------------------------------*/
   using RFChannel = uint8_t;
 
+  /*-------------------------------------------------------------------------------
+  Enumerations
+  -------------------------------------------------------------------------------*/
+  enum StatusFlag : uint32_t
+  {
+    SF_RX_DATA_READY = ( 1u << 0),
+    SF_TX_DATA_SENT  = ( 1u << 1 ),
+    SF_TX_MAX_RETRY  = ( 1u << 2 ),
+    SF_TX_FIFO_FULL  = ( 1u << 3 ),
+    SF_TX_FIFO_EMPTY = ( 1u << 4 ),
+    SF_RX_FIFO_FULL  = ( 1u << 5 ),
+    SF_RX_FIFO_EMPTY = ( 1u << 6 )
+
+  };
+
+  /*-------------------------------------------------------------------------------
+  Structures
+  -------------------------------------------------------------------------------*/
   struct Config
   {
     RFChannel rfChannel; /**< Radio's RF channel used for communication */
@@ -49,6 +70,19 @@ namespace RF24::Physical
       spiConfig.clear();
       chipEnableConfig.clear();
     }
+  };
+
+
+  /**
+   * Status information about the radio
+   */
+  struct Status
+  {
+    bool validity;
+    uint32_t flags;
+
+    uint8_t lostPacketCount;  /**< Reg OBSERVE_TX: PLOS_CNT */
+    uint8_t retransmitCount;  /**< Reg OBSERVE_TX: ARC_CNT */
   };
 
 }    // namespace RF24::Physical

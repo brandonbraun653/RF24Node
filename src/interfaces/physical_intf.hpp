@@ -339,6 +339,8 @@ namespace RF24::Physical
 
     virtual Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) = 0;
 
+    virtual Physical::Status getStatus() = 0;
+
   protected:
     /**
      *   Initialize the chip and verify correct setup

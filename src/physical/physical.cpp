@@ -111,6 +111,7 @@ namespace RF24::Physical
     Set 1500uS timeout and 3 retry attempts. Don't lower
     or the 250KBS mode will break.
     -------------------------------------------------*/
+    mHWDriver->toggleAutoAck( true, RF24::Hardware::PIPE_NUM_ALL );
     setRetries( RF24::Hardware::AutoRetransmitDelay::ART_DELAY_1500uS, 3 );
 
     /*-------------------------------------------------
@@ -616,14 +617,6 @@ namespace RF24::Physical
     return startFastWrite( buffer.data(), length, false, false );
   }
 
-  /********************************************************************************************************************
-   *  @copydoc HardwareDriver::startFastWrite(const void*const, const size_t, const bool, const bool)
-   *
-   *  Copies over the buffer of data into the TX FIFO of the RF24 device. IF desired, will optionally enable
-   *  an ACK request from the receiver just for this transfer and then start the transfer. This is a pretty low level
-   *  function that requires a fair amount of setup before use.
-   *
-   *******************************************************************************************************************/
   Chimera::Status_t HardwareDriver::startFastWrite( const void *const buffer, const size_t len, const bool multicast,
                                                     const bool startTX )
   {
@@ -847,6 +840,88 @@ namespace RF24::Physical
   {
     mHWDriver->toggleAutoAck( state, pipe );
     return Chimera::CommonStatusCodes::OK;
+  }
+
+  Physical::Status HardwareDriver::getStatus()
+  {
+    /*-------------------------------------------------
+    Initialize the return structure
+    -------------------------------------------------*/
+    Physical::Status tmp;
+    memset( &tmp, 0, sizeof( Physical::Status ) );
+    tmp.validity = true;
+
+    /*-------------------------------------------------
+    Read out the various registers needed
+    -------------------------------------------------*/
+    const uint8_t regStatus     = mHWDriver->readRegister( Hardware::REG_STATUS );
+    const uint8_t regObserveTx  = mHWDriver->readRegister( Hardware::REG_OBSERVE_TX );
+    const uint8_t regFifoStatus = mHWDriver->readRegister( Hardware::REG_FIFO_STATUS );
+
+    /*-------------------------------------------------
+    Pack the flags into the status structure
+    -------------------------------------------------*/
+    tmp.flags = 0;
+
+    // Data Ready RX FIFO Interrupt
+    if( regStatus & Hardware::STATUS_RX_DR )
+    {
+      tmp.flags |= StatusFlag::SF_RX_DATA_READY;
+    }
+
+    // Data Sent TX FIFO Interrupt
+    if( regStatus & Hardware::STATUS_TX_DS )
+    {
+      tmp.flags |= StatusFlag::SF_TX_DATA_SENT;
+    }
+
+    // Max Number TX Retransmit Interrupt
+    if( regStatus & Hardware::STATUS_MAX_RT )
+    {
+      tmp.flags |= StatusFlag::SF_TX_MAX_RETRY;
+    }
+
+    // TX FIFO Full
+    if( regStatus & Hardware::STATUS_TX_FULL )
+    {
+      tmp.flags |= StatusFlag::SF_TX_FIFO_FULL;
+    }
+
+    // TX FIFO Empty
+    if( regFifoStatus & Hardware::FIFO_STATUS_TX_EMPTY )
+    {
+      tmp.flags |= StatusFlag::SF_TX_FIFO_EMPTY;
+    }
+
+    // RX FIFO Full
+    if( regFifoStatus & Hardware::FIFO_STATUS_RX_FULL )
+    {
+      tmp.flags |= StatusFlag::SF_RX_FIFO_FULL;
+    }
+
+    // RX FIFO Empty
+    if( regFifoStatus & Hardware::FIFO_STATUS_RX_EMPTY )
+    {
+      tmp.flags |= StatusFlag::SF_RX_FIFO_EMPTY;
+    }
+
+    /*-------------------------------------------------
+    Pack the other data fields
+    -------------------------------------------------*/
+    uint8_t mask = 0;
+    uint8_t shift = 0;
+
+    // Lost Packet Count
+    mask = Hardware::OBSERVE_TX_PLOS_CNT_Msk;
+    shift = Hardware::OBSERVE_TX_PLOS_CNT_Pos;
+    tmp.lostPacketCount = ( regObserveTx & mask ) >> shift;
+
+    // Retransmit Count
+    mask = Hardware::OBSERVE_TX_ARC_CNT_Msk;
+    shift = Hardware::OBSERVE_TX_ARC_CNT_Pos;
+    tmp.retransmitCount = ( regObserveTx & mask ) >> shift;
+
+    return tmp;
   }
 }    // namespace RF24::Physical
 
