@@ -37,7 +37,7 @@ namespace RF24::Physical
   -------------------------------------------------------------------------------*/
   enum StatusFlag : uint32_t
   {
-    SF_RX_DATA_READY = ( 1u << 0),
+    SF_RX_DATA_READY = ( 1u << 0 ),
     SF_TX_DATA_SENT  = ( 1u << 1 ),
     SF_TX_MAX_RETRY  = ( 1u << 2 ),
     SF_TX_FIFO_FULL  = ( 1u << 3 ),
@@ -81,8 +81,20 @@ namespace RF24::Physical
     bool validity;
     uint32_t flags;
 
-    uint8_t lostPacketCount;  /**< Reg OBSERVE_TX: PLOS_CNT */
-    uint8_t retransmitCount;  /**< Reg OBSERVE_TX: ARC_CNT */
+    uint8_t lostPacketCount;      /**< Reg OBSERVE_TX: PLOS_CNT */
+    uint8_t retransmitCount;      /**< Reg OBSERVE_TX: ARC_CNT */
+    uint8_t autoRetransmitCount;  /**< Reg SETUP_RETR: ARC */
+    uint16_t autoRetransmitDelay; /**< Reg SETUP_RETR: ARD */
+
+    void clear()
+    {
+      validity            = false;
+      flags               = 0;
+      lostPacketCount     = 0;
+      retransmitCount     = 0;
+      autoRetransmitCount = 0;
+      autoRetransmitDelay = 0;
+    }
   };
 
 }    // namespace RF24::Physical

@@ -341,6 +341,8 @@ namespace RF24::Physical
 
     virtual Physical::Status getStatus() = 0;
 
+    virtual void clearFlag( Physical::StatusFlag flag ) = 0;
+
   protected:
     /**
      *   Initialize the chip and verify correct setup

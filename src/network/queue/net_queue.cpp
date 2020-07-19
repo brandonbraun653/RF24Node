@@ -116,7 +116,7 @@ namespace RF24::Network::Queue
     return Chimera::CommonStatusCodes::OK;
   }
 
-  RF24::Network::Queue::Element &ManagedFIFO::peek()
+  RF24::Network::Queue::Element ManagedFIFO::peek()
   {
     if ( ringBuffer.empty() )
     {

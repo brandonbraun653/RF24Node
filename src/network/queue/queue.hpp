@@ -57,7 +57,7 @@ namespace RF24::Network::Queue
 
     Chimera::Status_t removeFront();
 
-    Element &peek();
+    Element peek();
 
     bool empty();
 

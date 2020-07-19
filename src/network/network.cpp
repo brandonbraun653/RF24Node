@@ -151,15 +151,9 @@ namespace RF24::Network
 
   RF24::Network::HeaderMessage Driver::updateRX()
   {
-    if ( !mInitialized )
-    {
-      if constexpr ( DBG_LOG_NET )
-      {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Not initialized\n", Chimera::millis() );
-      }
-      return MSG_NETWORK_ERR;
-    }
-
+    /*-------------------------------------------------
+    Initialize the RX proc
+    -------------------------------------------------*/
     size_t payloadSize              = 0u;
     HeaderMessage sysMsg            = MSG_TX_NORMAL;
     RF24::Hardware::PipeNumber pipe = mPhysicalDriver->payloadAvailable();
@@ -170,7 +164,7 @@ namespace RF24::Network
     while ( pipe < RF24::Hardware::PIPE_NUM_MAX )
     {
       /*------------------------------------------------
-      Get the raw data and validate that CRC
+      Get the raw data and validate its CRC
       ------------------------------------------------*/
       Frame::Buffer buffer;
       buffer.fill( 0 );
@@ -190,7 +184,7 @@ namespace RF24::Network
       }
 
       /*------------------------------------------------
-      Assuming the frame is valid, handle the message appropriately
+      Handle the message or pass it on to the next node
       ------------------------------------------------*/
       auto frame = Frame::FrameType( buffer );
 
@@ -200,7 +194,7 @@ namespace RF24::Network
                        frame.getType(), pipe );
       }
 
-      if ( frame.getDst() == mRouteTable.getCentralNode().getLogicalAddress() )
+      if ( frame.getDst() == thisNode() )
       {
         sysMsg = handleDestination( frame );
       }
@@ -221,46 +215,8 @@ namespace RF24::Network
 
   void Driver::updateTX()
   {
-    /*------------------------------------------------
-    Write any pending data that need to be transmitted
-    ------------------------------------------------*/
-    // while ( !mNetTXQueue.empty() )
-    // {
-    //   /*------------------------------------------------
-    //   Peek the next element and verify it contains data
-    //   ------------------------------------------------*/
-    //   Frame::FrameType frame;
-    //   Frame::Buffer tempBuffer;
-    //   auto element = mNetTXQueue.peek();
-
-    //   if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
-    //   {
-    //     break;
-    //   }
-
-    //   /*------------------------------------------------
-    //   Build a new frame to transmit with
-    //   ------------------------------------------------*/
-    //   tempBuffer.fill( 0 );
-    //   memcpy( tempBuffer.data(), element.payload, element.size );
-    //   frame = tempBuffer;
-
-    //   /*------------------------------------------------
-    //   Determine where to send the frame to, then pull the
-    //   data off the queue so we don't retransmit it.
-    //   ------------------------------------------------*/
-    //   auto jumpMeta = nextHop( frame.getDst() );
-    //   if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
-    //   {
-    //     mNetTXQueue.pop( element.payload, element.size );
-    //   }
-
-    //   #pragma message("Need to remove this!!")
-    //   Chimera::delayMilliseconds( 5 );
-    // }
-
     /*-------------------------------------------------
-    Don't process anything if we don't have to
+    Don't process anything if not necessary
     -------------------------------------------------*/
     if ( mNetTXQueue.empty() )
     {
@@ -272,7 +228,7 @@ namespace RF24::Network
     ------------------------------------------------*/
     Frame::FrameType frame;
     Frame::Buffer tempBuffer;
-    Queue::Element &element = mNetTXQueue.peek();
+    Queue::Element element = mNetTXQueue.peek();
 
     if ( !element.payload || !element.size || ( element.size > tempBuffer.size() ) )
     {
@@ -281,62 +237,20 @@ namespace RF24::Network
     }
 
     /*-------------------------------------------------
-    Gather information about the current state of the TX
-    -------------------------------------------------*/
-    /*
-    Only check the stuff below if the AUTO ACK functionality is enabled. Otherwise
-    just immediately transmit the packet in the queue.
-
-    This will effectively serialize the communication, but that's ok. We want
-    reliability, not throughput.
-
-      1. Check software TX status. Need to implement some kind of transfer status field
-         that tracks what has been happening with transfers.
-        a. Status of the transfer, if any
-        b. Expected ACK timeout (calculate from the ARD and ARC)
-
-      2. Check hardware TX status:
-        a.  TX_DS -> If this is not set after packet ACK timeout, we have a problem.
-        b.  MAX_RT -> If this is set, we have problems
-        c.  PLOS_CNT -> Should be 1 if we hit the retry limit for a single packet.
-        d.  ARC_CNT -> How many times a packet has failed to be ACK'd
-        e.
-
-    */
-    /*-------------------------------------------------
     Ensure we can read the status data. This should
     never go invalid, but if it does, be noisy.
     -------------------------------------------------*/
     auto sts = mPhysicalDriver->getStatus();
-    if( !sts.validity )
+    if ( !sts.validity )
     {
       mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Failed to read radio status\n", Chimera::millis() );
     }
 
     /*-------------------------------------------------
-    Is the transfer state machine waiting on HW?
-      1. Transfer is in progress
-      2. The HW flag indicating data has been ACK'd is not set
-      3. The max retry timeout has elapsed
-    -------------------------------------------------*/
-    /* clang-format off */
-    if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS ) &&
-        !( sts.flags & Physical::StatusFlag::SF_TX_DATA_SENT ) &&
-         ( ( Chimera::millis() - mNetTXTCB.startTime ) > mNetTXTCB.timeout ) )
-    /* clang-format on */
-    {
-      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: No ACK. Max retry timeout.\n", Chimera::millis() );
-      mNetTXQueue.pop( element.payload, element.size );
-      mNetTXTCB.flag = StatusFlag::SF_IDLE;
-
-      // on error?
-      #pragma message("Need to call an 'on-error' message here")
-    }
-
-    /*-------------------------------------------------
     First time through? Set the status and transmit.
     -------------------------------------------------*/
-    if( mNetTXTCB.flag == StatusFlag::SF_IDLE )
+    if ( ( mNetTXTCB.flag == StatusFlag::SF_IDLE ) &&
+         ( ( Chimera::millis() - mNetTXTCB.lastTime ) >= 25 ) )
     {
       /*------------------------------------------------
       Build a new frame to transmit with
@@ -345,26 +259,84 @@ namespace RF24::Network
       memcpy( tempBuffer.data(), element.payload, element.size );
       frame = tempBuffer;
 
+      /*-------------------------------------------------
+      Clear status bits to allow hardware to TX
+      -------------------------------------------------*/
+      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_DATA_SENT );
+      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_MAX_RETRY );
+
       /*------------------------------------------------
-      Determine where to send the frame to, then pull the
-      data off the queue so we don't retransmit it.
+      Determine next hop and kick off the transfer
       ------------------------------------------------*/
       auto jumpMeta = nextHop( frame.getDst() );
       if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
       {
-        mNetTXTCB.flag = StatusFlag::SF_IN_PROGRESS;
+        /*-------------------------------------------------
+        Calculate the max delay that can occur when sending
+        this packet based on the current ARD & ARC settings.
+
+        The '250' is the multiple (in microseconds) in which
+        delays can be incremented, per datasheet specs.
+        -------------------------------------------------*/
+        size_t usDelayPerPkt = ( ( sts.autoRetransmitDelay * 250 ) + 250 );
+        size_t usMaxDelay    = usDelayPerPkt * sts.autoRetransmitCount;
+
+        /*-------------------------------------------------
+        Expect a remainder to occur and round up. It won't
+        hurt if the delay isn't exactly right.
+        -------------------------------------------------*/
+        size_t maxDelay = ( usDelayPerPkt / 1000 ) + 1;
+
+        /*-------------------------------------------------
+        Set flags describing the state of the transfer
+        -------------------------------------------------*/
+        mNetTXTCB.flag      = StatusFlag::SF_IN_PROGRESS;
         mNetTXTCB.startTime = Chimera::millis();
+        mNetTXTCB.lastTime  = Chimera::millis();
+        mNetTXTCB.timeout   = mNetTXTCB.startTime + maxDelay;
       }
       else
       {
         mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Frame TX failed\n", Chimera::millis() );
       }
-    }
-    else
-    {
-      mNetTXTCB.lastTime = Chimera::millis();
-    }
+    } /* clang-format off */
+    else if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS                    ) &&
+              ( sts.flags & Physical::StatusFlag::SF_TX_MAX_RETRY               ) &&
+              ( ( Chimera::millis() - mNetTXTCB.startTime ) > mNetTXTCB.timeout ) )
+    { /* clang-format on */
+      /*-------------------------------------------------
+      Is the TX state machine waiting on HW?
+        1. Transfer is in progress
+        2. The HW bit indicating max retries is set
+        3. The max retry timeout has elapsed
+      -------------------------------------------------*/
+      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: No ACK. Max retry timeout.\n", Chimera::millis() );
+      mNetTXQueue.pop( element.payload, element.size );
+      mNetTXTCB.flag = StatusFlag::SF_IDLE;
 
+      /*-------------------------------------------------
+      Reset the hardware flags so communication can continue
+      -------------------------------------------------*/
+      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_MAX_RETRY );
+
+// on error?
+#pragma message( "Need to call an 'on-error' message here" )
+
+    } /* clang-format off */
+    else if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS ) &&
+              ( sts.flags & ( Physical::StatusFlag::SF_TX_DATA_SENT | Physical::StatusFlag::SF_TX_FIFO_EMPTY ) ) )
+    { /* clang-format on */
+      /*-------------------------------------------------
+      Transfer succeeded. Reset the registers.
+      -------------------------------------------------*/
+      mNetTXQueue.pop( element.payload, element.size );
+      mNetTXTCB.flag = StatusFlag::SF_IDLE;
+
+      if constexpr ( DBG_LOG_NET )
+      {
+        mLogger->flog( uLog::Level::LVL_INFO, "%d-NET: TX packet ACK'd\n", Chimera::millis() );
+      }
+    }
   }
 
 
@@ -383,7 +355,8 @@ namespace RF24::Network
 
     TODO: Collapse this into a single call
     ------------------------------------------------*/
-    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) || connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
+    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) ||
+         connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
     {
       Connection::runConnectProcess( *this, nullptr );
     }
@@ -568,6 +541,10 @@ namespace RF24::Network
     {
       cb = unsafe_BindSiteList[ static_cast<size_t>( id ) ];
     }
+    else
+    {
+      cb.valid = false;
+    }
 
     this->unlock();
   }
@@ -597,7 +574,7 @@ namespace RF24::Network
     /*------------------------------------------------
     Make sure an invalid bind site isn't accessed
     ------------------------------------------------*/
-    if( site >= Connection::BindSite::MAX )
+    if ( site >= Connection::BindSite::MAX )
     {
       return {};
     }
@@ -624,7 +601,8 @@ namespace RF24::Network
   /*------------------------------------------------
   Data Setters
   ------------------------------------------------*/
-  void Driver::setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir, const bool enabled )
+  void Driver::setConnectionInProgress( const RF24::Connection::BindSite id, const RF24::Connection::Direction dir,
+                                        const bool enabled )
   {
     switch ( dir )
     {
@@ -765,7 +743,7 @@ namespace RF24::Network
   HeaderMessage Driver::handleDestination( Frame::FrameType &frame )
   {
     bool handledInternally = true;
-    HeaderMessage message = frame.getType();
+    HeaderMessage message  = frame.getType();
 
     /*------------------------------------------------
     Handle whatever messages can/should be handled immediately at the network layer.
@@ -816,8 +794,8 @@ namespace RF24::Network
   {
     if constexpr ( DBG_LOG_NET )
     {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Forwarding packet of type [%d] destined for [%04o]\n",
-                     Chimera::millis(), frame.getType(), frame.getDst() );
+      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Forwarding packet of type [%d] destined for [%04o]\n", Chimera::millis(),
+                     frame.getType(), frame.getDst() );
     }
 
     auto jumpMeta = nextHop( frame.getDst() );
@@ -834,8 +812,8 @@ namespace RF24::Network
     // Getting the wrong pipe here because I'm not differentiating on the routing style
 
     auto txFromAddress = RSVD_ADDR_INVALID;
-    auto originator = frame.getSrc();
-    auto sender = thisNode();
+    auto originator    = frame.getSrc();
+    auto sender        = thisNode();
 
     switch ( routeType )
     {
@@ -892,7 +870,7 @@ namespace RF24::Network
 
     frame.updateCRC();
 
-    if constexpr ( DBG_LOG_NET )
+    if constexpr ( DBG_LOG_NET_TRACE )
     {
       auto type = frame.getType();
       auto dst  = frame.getDst();

@@ -112,7 +112,7 @@ namespace RF24::Physical
     or the 250KBS mode will break.
     -------------------------------------------------*/
     mHWDriver->toggleAutoAck( true, RF24::Hardware::PIPE_NUM_ALL );
-    setRetries( RF24::Hardware::AutoRetransmitDelay::ART_DELAY_1500uS, 3 );
+    setRetries( RF24::Hardware::AutoRetransmitDelay::ART_DELAY_3000uS, 5 );
 
     /*-------------------------------------------------
     If we can set the data rate to 250kbps, we have a
@@ -848,7 +848,7 @@ namespace RF24::Physical
     Initialize the return structure
     -------------------------------------------------*/
     Physical::Status tmp;
-    memset( &tmp, 0, sizeof( Physical::Status ) );
+    tmp.clear();
     tmp.validity = true;
 
     /*-------------------------------------------------
@@ -857,6 +857,7 @@ namespace RF24::Physical
     const uint8_t regStatus     = mHWDriver->readRegister( Hardware::REG_STATUS );
     const uint8_t regObserveTx  = mHWDriver->readRegister( Hardware::REG_OBSERVE_TX );
     const uint8_t regFifoStatus = mHWDriver->readRegister( Hardware::REG_FIFO_STATUS );
+    const uint8_t regSetupRetry = mHWDriver->readRegister( Hardware::REG_SETUP_RETR );
 
     /*-------------------------------------------------
     Pack the flags into the status structure
@@ -921,7 +922,30 @@ namespace RF24::Physical
     shift = Hardware::OBSERVE_TX_ARC_CNT_Pos;
     tmp.retransmitCount = ( regObserveTx & mask ) >> shift;
 
+    // Auto Retransmit Count
+    mask = Hardware::SETUP_RETR_ARC_Msk;
+    shift = Hardware::SETUP_RETR_ARC_Pos;
+    tmp.autoRetransmitCount = ( regSetupRetry & mask ) >> shift;
+
+    // Auto Retransmit Delay
+    mask = Hardware::SETUP_RETR_ARD_Msk;
+    shift = Hardware::SETUP_RETR_ARD_Pos;
+    tmp.autoRetransmitDelay = ( regSetupRetry & mask ) >> shift;
+
     return tmp;
+  }
+
+  void HardwareDriver::clearFlag( Physical::StatusFlag flag )
+  {
+    switch( flag )
+    {
+      case Physical::StatusFlag::SF_TX_DATA_SENT:
+        mHWDriver->setRegisterBits( Hardware::REG_STATUS, Hardware::STATUS_TX_DS, false );
+        break;
+
+      default:
+        break;
+    }
   }
 }    // namespace RF24::Physical
 
