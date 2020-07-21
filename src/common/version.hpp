@@ -17,7 +17,7 @@
 
 namespace Chimera
 {
-  static constexpr std::string_view version = "1.1.0";
+  static constexpr std::string_view version = "1.2.0";
 }
 
 #endif	/* !RF24_NODE_VERSION_HPP */
