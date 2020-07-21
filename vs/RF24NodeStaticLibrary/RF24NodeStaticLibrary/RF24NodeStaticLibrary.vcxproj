@@ -512,7 +512,7 @@
       <PreprocessorDefinitions>%(ClCompile.PreprocessorDefinitions);DEBUG=1;$(ChimeraCompilerDefines);$(ProjectCompilerDefines);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(AuroraIncDir);$(BoostIncDir);$(ChimeraCfgDir);$(ChimeraIncDir);$(ChimeraPortDir);$(CRCIncDir);$(FreeRTOSCfgDir);$(FreeRTOSPortDir);$(FreeRTOSIncDir);$(ThorIncDir);$(uLogIncDir);$(ProjectDir)../../../../;$(ProjectDir)../;D:\git\GitHub\RF24NodeDev\lib\Chimera\Chimera\standalone\config\chimera</AdditionalIncludeDirectories>
       <CPPLanguageStandard>CPP2A</CPPLanguageStandard>
-      <Optimization>Og</Optimization>
+      <Optimization>O1</Optimization>
     </ClCompile>
     <ToolchainSettingsContainer>
       <InstructionSet>THUMB</InstructionSet>

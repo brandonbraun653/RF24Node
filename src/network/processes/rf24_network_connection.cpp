@@ -185,6 +185,7 @@ namespace RF24::Network::Internal::Processes::Connection
       switch ( connection.currentState )
       {
         case State::CONNECT_IDLE:
+          connection.lastEventTime = Chimera::millis();
           continue;
           break;
 
@@ -248,16 +249,16 @@ namespace RF24::Network::Internal::Processes::Connection
             ------------------------------------------------*/
             if ( connection.attempts < connection.maxAttempts )
             {
-              obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
-
-              connection.lastEventTime = Chimera::millis();
               connection.attempts += 1;
+              obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
             }
             else
             {
               connection.currentState = State::CONNECT_TERMINATE;
               connection.result       = RF24::Connection::Result::CONNECT_PROC_NO_RESPONSE;
             }
+
+            connection.lastEventTime = Chimera::millis();
           }
           break;
 
@@ -265,8 +266,9 @@ namespace RF24::Network::Internal::Processes::Connection
         The process timed out
         ------------------------------------------------*/
         case State::CONNECT_TIMEOUT:
-          connection.result       = RF24::Connection::Result::CONNECT_PROC_TIMEOUT;
-          connection.currentState = State::CONNECT_TERMINATE;
+          connection.result        = RF24::Connection::Result::CONNECT_PROC_TIMEOUT;
+          connection.currentState  = State::CONNECT_TERMINATE;
+          connection.lastEventTime = Chimera::millis();
 
           if constexpr ( DBG_LOG_NET_PROC_CONNECT )
           {
@@ -303,8 +305,8 @@ namespace RF24::Network::Internal::Processes::Connection
           {
             obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Proc exit\n", Chimera::millis() );
           }
-          break;
         }
+        break;
 
         default:
           break;
@@ -332,6 +334,8 @@ namespace RF24::Network::Internal::Processes::Connection
     }
     else if ( connection.currentState != State::CONNECT_IDLE )
     {
+      connection.lastEventTime = Chimera::millis();
+
       /*------------------------------------------------
       The connection is in the process of doing something else, so
       we can't allow the requesting node to start a connection.
@@ -355,7 +359,8 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request from [%04o]\n", Chimera::millis(), frame.getSrc() );
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request from [%04o]\n", Chimera::millis(),
+                                 frame.getSrc() );
         }
 
         /*-------------------------------------------------
@@ -364,19 +369,22 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if ( connectedAlready )
         {
+          /*-------------------------------------------------
+          Transition to the completion state. ACK the sender
+          to let them know they've "connected".
+          -------------------------------------------------*/
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
-          connection.lastEventTime = Chimera::millis();
-          connection.startTime     = Chimera::millis();
+          connection.startTime    = Chimera::millis();
 
           buildAckPacket( obj, frame, connection.direction, connection.currentState );
-
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Node [%04o] already connected\n", Chimera::millis(), frame.getDst() );
-          }
         }
         else if ( obj.updateRouteTable( child, true ) )
         {
+          /*-------------------------------------------------
+          The sender wasn't originally connected, but now is.
+          Have them go through the full connection process to
+          ensure they know they're connected.
+          -------------------------------------------------*/
           connection.toAddress    = child;
           connection.fromAddress  = obj.thisNode();
           connection.direction    = RF24::Connection::Direction::CONNECT;
@@ -387,6 +395,10 @@ namespace RF24::Network::Internal::Processes::Connection
         }
         else
         {
+          /*-------------------------------------------------
+          Error fall through case. Could not add them to the
+          network for some reason. NACK the sender.
+          -------------------------------------------------*/
           connection.currentState = State::CONNECT_TERMINATE;
           buildNackPacket( obj, frame, connection.direction, connection.currentState );
         }
@@ -398,7 +410,8 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request from [%04o]\n", Chimera::millis(), frame.getSrc() );
+          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request from [%04o]\n",
+                                 Chimera::millis(), frame.getSrc() );
         }
 
         /*-------------------------------------------------
@@ -407,11 +420,20 @@ namespace RF24::Network::Internal::Processes::Connection
         -------------------------------------------------*/
         if ( !connectedAlready )
         {
+          /*-------------------------------------------------
+          Transition to the completion state. ACK the sender
+          to let them know they've "disconnected".
+          -------------------------------------------------*/
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
           buildAckPacket( obj, frame, connection.direction, connection.currentState );
         }
         else if ( obj.updateRouteTable( child, false ) )
         {
+          /*-------------------------------------------------
+          The sender was originally connected, but now is not.
+          Have them go through the full connection process to
+          ensure they know they're disconnected.
+          -------------------------------------------------*/
           connection.toAddress    = child;
           connection.fromAddress  = obj.thisNode();
           connection.direction    = RF24::Connection::Direction::DISCONNECT;
@@ -422,6 +444,10 @@ namespace RF24::Network::Internal::Processes::Connection
         }
         else
         {
+          /*-------------------------------------------------
+          Error fall through case. Could not remove them from
+          the network for some reason. NACK the sender.
+          -------------------------------------------------*/
           connection.currentState = State::CONNECT_TERMINATE;
           buildNackPacket( obj, frame, connection.direction, connection.currentState );
         }
@@ -432,7 +458,15 @@ namespace RF24::Network::Internal::Processes::Connection
         break;
     };
 
-    connection.frameCache = frame;
+    /*-------------------------------------------------
+    Update the tracking data for the connection
+    -------------------------------------------------*/
+    connection.lastEventTime = Chimera::millis();
+    connection.frameCache    = frame;
+
+    /*-------------------------------------------------
+    Write the result of the request event processing
+    -------------------------------------------------*/
     obj.write( connection.frameCache, RF24::Network::RoutingStyle::ROUTE_DIRECT );
   }
 
@@ -479,25 +513,21 @@ namespace RF24::Network::Internal::Processes::Connection
           {
             obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: ACK\n", Chimera::millis() );
           }
-        }
-        else
-        {
-          // Unexpected packet. Shouldn't be handled here at all.
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Unexpected Packet-%d\n", Chimera::millis(),
-                                   frame.getType() );
-          }
-          break;
-        }
 
-        /*------------------------------------------------
-        Let the parent know we received the message
-        ------------------------------------------------*/
-        buildAckPacket( obj, frame, connection.direction, connection.currentState );
+          /*------------------------------------------------
+          Let the parent know we received the message
+          ------------------------------------------------*/
+          buildAckPacket( obj, frame, connection.direction, connection.currentState );
 
-        connection.frameCache = frame;
-        obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+          /*-------------------------------------------------
+          Update the tracking data for the connection
+          -------------------------------------------------*/
+          connection.lastEventTime = Chimera::millis();
+          connection.frameCache    = frame;
+
+          obj.write( connection.frameCache, Network::RoutingStyle::ROUTE_DIRECT );
+        }
+        // Else allow the process to simply timeout due to not receiving the right packet
         break;
 
       /*------------------------------------------------
@@ -505,24 +535,34 @@ namespace RF24::Network::Internal::Processes::Connection
       just acknowledged the bind status we sent them.
       ------------------------------------------------*/
       case State::CONNECT_WAIT_FOR_CHILD_ACK:
-        connection.currentState = State::CONNECT_SUCCESS_ASYNC;
-        connection.result       = RF24::Connection::Result::CONNECT_PROC_SUCCESS;
+        connection.lastEventTime = Chimera::millis();
+        connection.currentState  = State::CONNECT_SUCCESS_ASYNC;
+        connection.result        = RF24::Connection::Result::CONNECT_PROC_SUCCESS;
         break;
 
       default:
+        // Error, nothing should happen
         return;
         break;
     }
 
     /*------------------------------------------------
-    Update the bind site's notion of connection status
+    If this is the last ACK in the connection process
+    update the local records of connection status.
     ------------------------------------------------*/
     if ( connection.result == RF24::Connection::Result::CONNECT_PROC_SUCCESS )
     {
       if ( connection.direction == RF24::Connection::Direction::DISCONNECT )
       {
+        /*-------------------------------------------------
+        Ensure the connection site info has been reset
+        -------------------------------------------------*/
         obj.unsafe_BindSiteList[ bindIdx ].clear();
+        obj.unsafe_BindSiteList[ bindIdx ].valid = false;
 
+        /*-------------------------------------------------
+        Optional Logging
+        -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
           obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d disconnected\n", Chimera::millis(), bindIdx );
@@ -530,12 +570,18 @@ namespace RF24::Network::Internal::Processes::Connection
       }
       else
       {
+        /*-------------------------------------------------
+        Record the new conection information
+        -------------------------------------------------*/
         obj.unsafe_BindSiteList[ bindIdx ].bindId     = connection.bindId;
         obj.unsafe_BindSiteList[ bindIdx ].address    = connection.toAddress;
         obj.unsafe_BindSiteList[ bindIdx ].connected  = true;
         obj.unsafe_BindSiteList[ bindIdx ].lastActive = Chimera::millis();
         obj.unsafe_BindSiteList[ bindIdx ].valid      = true;
 
+        /*-------------------------------------------------
+        Optional Logging
+        -------------------------------------------------*/
         if constexpr ( DBG_LOG_NET_PROC_CONNECT )
         {
           obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d connected\n", Chimera::millis(), bindIdx );
@@ -574,14 +620,16 @@ namespace RF24::Network::Internal::Processes::Connection
       /*-------------------------------------------------
       Move the connection process to the termination state
       -------------------------------------------------*/
-      connection.currentState = State::CONNECT_TERMINATE;
-      connection.result       = RF24::Connection::Result::CONNECT_PROC_FAIL;
+      connection.lastEventTime = Chimera::millis();
+      connection.currentState  = State::CONNECT_TERMINATE;
+      connection.result        = RF24::Connection::Result::CONNECT_PROC_FAIL;
 
       /*-------------------------------------------------
       Ensure the bindsite won't show it's connected to anything
       -------------------------------------------------*/
       auto bindIdx = static_cast<size_t>( connection.bindId );
       obj.unsafe_BindSiteList[ bindIdx ].clear();
+      obj.unsafe_BindSiteList[ bindIdx ].valid = false;
 
       /*-------------------------------------------------
       Optionally log the event
@@ -591,6 +639,7 @@ namespace RF24::Network::Internal::Processes::Connection
         obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: NACK\n", Chimera::millis() );
       }
     }
+    // Else not much to do. Allow a timeout to occur.
   }
 
 

@@ -692,16 +692,12 @@ namespace RF24::Physical
     while ( !mHWDriver->txFifoEmpty() )
     {
       /*------------------------------------------------
-      If max retries interrupt occurs, retry transmission. The data is
-      automatically kept in the TX FIFO.
+      If max retries interrupt occurs abandon the TX
       ------------------------------------------------*/
       if ( _registerIsBitmaskSet( REG_STATUS, STATUS_MAX_RT ) )
       {
-        toggleChipEnablePin( false );
-        mHWDriver->setRegisterBits( REG_STATUS, STATUS_MAX_RT );
-
-        Chimera::delayMilliseconds( 1 );
-        toggleChipEnablePin( true );
+        mHWDriver->setRegisterBits( REG_STATUS, STATUS_MAX_RT, false );
+        startTime = 0;
       }
 
       /*------------------------------------------------
@@ -709,12 +705,22 @@ namespace RF24::Physical
       ------------------------------------------------*/
       if ( ( Chimera::millis() - startTime ) > timeout )
       {
+        if constexpr ( DBG_LOG_PHY )
+        {
+          logger->flog( uLog::Level::LVL_INFO, "%d-PHY: TX packet NACK'd\n", Chimera::millis() );
+        }
+
         toggleChipEnablePin( false );
         flushTX();
         mFailureCode = Chimera::CommonStatusCodes::TIMEOUT;
         mCurrentMode = MODE_STANDBY_I;
         return mFailureCode;
       }
+
+      /*------------------------------------------------
+      Allow other threads to process
+      ------------------------------------------------*/
+      Chimera::Threading::this_thread::yield();
     }
 
     /*------------------------------------------------

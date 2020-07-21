@@ -246,97 +246,23 @@ namespace RF24::Network
       mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Failed to read radio status\n", Chimera::millis() );
     }
 
-    /*-------------------------------------------------
-    First time through? Set the status and transmit.
-    -------------------------------------------------*/
-    if ( ( mNetTXTCB.flag == StatusFlag::SF_IDLE ) &&
-         ( ( Chimera::millis() - mNetTXTCB.lastTime ) >= 25 ) )
+    /*------------------------------------------------
+    Build a new frame to transmit with
+    ------------------------------------------------*/
+    tempBuffer.fill( 0 );
+    memcpy( tempBuffer.data(), element.payload, element.size );
+    frame = tempBuffer;
+
+    /*------------------------------------------------
+    Determine next hop and kick off the transfer
+    ------------------------------------------------*/
+    auto jumpMeta = nextHop( frame.getDst() );
+    if ( !writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) ) 
     {
-      /*------------------------------------------------
-      Build a new frame to transmit with
-      ------------------------------------------------*/
-      tempBuffer.fill( 0 );
-      memcpy( tempBuffer.data(), element.payload, element.size );
-      frame = tempBuffer;
-
-      /*-------------------------------------------------
-      Clear status bits to allow hardware to TX
-      -------------------------------------------------*/
-      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_DATA_SENT );
-      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_MAX_RETRY );
-
-      /*------------------------------------------------
-      Determine next hop and kick off the transfer
-      ------------------------------------------------*/
-      auto jumpMeta = nextHop( frame.getDst() );
-      if ( writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
-      {
-        /*-------------------------------------------------
-        Calculate the max delay that can occur when sending
-        this packet based on the current ARD & ARC settings.
-
-        The '250' is the multiple (in microseconds) in which
-        delays can be incremented, per datasheet specs.
-        -------------------------------------------------*/
-        size_t usDelayPerPkt = ( ( sts.autoRetransmitDelay * 250 ) + 250 );
-        size_t usMaxDelay    = usDelayPerPkt * sts.autoRetransmitCount;
-
-        /*-------------------------------------------------
-        Expect a remainder to occur and round up. It won't
-        hurt if the delay isn't exactly right.
-        -------------------------------------------------*/
-        size_t maxDelay = ( usDelayPerPkt / 1000 ) + 1;
-
-        /*-------------------------------------------------
-        Set flags describing the state of the transfer
-        -------------------------------------------------*/
-        mNetTXTCB.flag      = StatusFlag::SF_IN_PROGRESS;
-        mNetTXTCB.startTime = Chimera::millis();
-        mNetTXTCB.lastTime  = Chimera::millis();
-        mNetTXTCB.timeout   = mNetTXTCB.startTime + maxDelay;
-      }
-      else
-      {
-        mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Frame TX failed\n", Chimera::millis() );
-      }
-    } /* clang-format off */
-    else if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS                    ) &&
-              ( sts.flags & Physical::StatusFlag::SF_TX_MAX_RETRY               ) &&
-              ( ( Chimera::millis() - mNetTXTCB.startTime ) > mNetTXTCB.timeout ) )
-    { /* clang-format on */
-      /*-------------------------------------------------
-      Is the TX state machine waiting on HW?
-        1. Transfer is in progress
-        2. The HW bit indicating max retries is set
-        3. The max retry timeout has elapsed
-      -------------------------------------------------*/
-      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: No ACK. Max retry timeout.\n", Chimera::millis() );
-      mNetTXQueue.pop( element.payload, element.size );
-      mNetTXTCB.flag = StatusFlag::SF_IDLE;
-
-      /*-------------------------------------------------
-      Reset the hardware flags so communication can continue
-      -------------------------------------------------*/
-      mPhysicalDriver->clearFlag( Physical::StatusFlag::SF_TX_MAX_RETRY );
-
-// on error?
-#pragma message( "Need to call an 'on-error' message here" )
-
-    } /* clang-format off */
-    else if ( ( mNetTXTCB.flag == StatusFlag::SF_IN_PROGRESS ) &&
-              ( sts.flags & ( Physical::StatusFlag::SF_TX_DATA_SENT | Physical::StatusFlag::SF_TX_FIFO_EMPTY ) ) )
-    { /* clang-format on */
-      /*-------------------------------------------------
-      Transfer succeeded. Reset the registers.
-      -------------------------------------------------*/
-      mNetTXQueue.pop( element.payload, element.size );
-      mNetTXTCB.flag = StatusFlag::SF_IDLE;
-
-      if constexpr ( DBG_LOG_NET )
-      {
-        mLogger->flog( uLog::Level::LVL_INFO, "%d-NET: TX packet ACK'd\n", Chimera::millis() );
-      }
+      mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Frame TX failed\n", Chimera::millis() );
     }
+
+    mNetTXQueue.pop( element.payload, element.size );
   }
 
 
@@ -898,7 +824,7 @@ namespace RF24::Network
     dynamic payload lengths, so default to the full payload size.
     ------------------------------------------------*/
     auto buffer = frame.toBuffer();
-    return transferToPipe( physicalAddress, buffer, buffer.size(), false );
+    return transferToPipe( physicalAddress, buffer, buffer.size(), true );
   }
 
 
@@ -915,12 +841,11 @@ namespace RF24::Network
     result |= mPhysicalDriver->toggleAutoAck( autoAck, RF24::Hardware::PIPE_NUM_0 );
     result |= mPhysicalDriver->openWritePipe( address );
     result |= mPhysicalDriver->immediateWrite( buffer, length );
-    result |= mPhysicalDriver->txStandBy( 10, true );
+    result |= mPhysicalDriver->txStandBy( Hardware::MAX_DELAY_AUTO_RETRY + 6, true );
     result |= mPhysicalDriver->startListening();
 
     return ( result == Chimera::CommonStatusCodes::OK );
   }
-
 
   bool Driver::readWithPop( Frame::FrameType &frame, const bool pop )
   {

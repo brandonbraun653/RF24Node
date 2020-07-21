@@ -430,8 +430,8 @@ namespace RF24::Endpoint
     configResult |= mPhysicalDriver->setChannel( mEndpointInit.physical.rfChannel );
     configResult |= mPhysicalDriver->setPALevel( mEndpointInit.physical.powerAmplitude );
     configResult |= mPhysicalDriver->setDataRate( mEndpointInit.physical.dataRate );
-    configResult |= mPhysicalDriver->toggleAutoAck( false, RF24::Hardware::PIPE_NUM_0 );
     configResult |= mPhysicalDriver->toggleDynamicPayloads( false );
+    configResult |= mPhysicalDriver->toggleAutoAck( true, RF24::Hardware::PIPE_NUM_ALL );
     configResult |= mPhysicalDriver->setStaticPayloadSize( RF24::Hardware::MAX_PAYLOAD_WIDTH );
 
     /*------------------------------------------------
