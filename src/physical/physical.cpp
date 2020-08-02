@@ -386,6 +386,11 @@ namespace RF24::Physical
   {
     using namespace RF24::Hardware;
 
+    if constexpr( DBG_LOG_PHY )
+    {
+      logger->flog( uLog::Level::LVL_INFO, "%d-PHY: Opening write pipe to address [0x%.8X]\n", Chimera::millis(), address );
+    }
+
     /*-------------------------------------------------
     Set pipe 0 RX address == TX address. This allows the
     reception of an ACK packet from the node at the TX
