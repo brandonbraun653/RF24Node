@@ -484,6 +484,15 @@ namespace RF24::Physical
     txComplete = true;
   }
 
+  Physical::Status SimulatorDriver::getStatus()
+  {
+    return Physical::Status();
+  }
+
+  void SimulatorDriver::clearFlag( Physical::StatusFlag flag )
+  {
+  }
+
 }    // namespace RF24::Physical
 
 #endif /* RF24_SIMULATOR */

@@ -217,7 +217,54 @@ namespace RF24
 
   LogicalAddress getChild( const LogicalAddress parent, const Connection::BindSite which )
   {
+    LogicalLevel level    = getLevel( parent );
+    LogicalAddress retVal = RF24::Network::RSVD_ADDR_INVALID;
 
+    /*------------------------------------------------
+    If the device falls into the proper level move forward
+    ------------------------------------------------*/
+    if ( ( level >= NODE_LEVEL_0 ) && ( level <= NODE_LEVEL_MAX ) )
+    {
+      size_t bitShift = RF24::Network::BITS_PER_LEVEL * static_cast<size_t>( level );
+      size_t childNum = std::numeric_limits<size_t>::max();
+
+      switch ( which )
+      {
+        case Connection::BindSite::CHILD_1:
+          childNum = 1u;
+          break;
+
+        case Connection::BindSite::CHILD_2:
+          childNum = 2u;
+          break;
+
+        case Connection::BindSite::CHILD_3:
+          childNum = 3u;
+          break;
+
+        case Connection::BindSite::CHILD_4:
+          childNum = 4u;
+          break;
+
+        case Connection::BindSite::CHILD_5:
+          childNum = 5u;
+          break;
+
+        default:
+          // Nothing as the default value is sufficient
+          break;
+      };
+
+      /*------------------------------------------------
+      Build up the child address
+      ------------------------------------------------*/
+      if ( childNum != std::numeric_limits<size_t>::max() )
+      {
+        retVal = ( parent + ( childNum << bitShift ) ) & RF24::Network::FULL_LEVEL_MASK;
+      }
+    }
+
+    return retVal;
   }
 
   LogicalLevel getLevel( LogicalAddress address )

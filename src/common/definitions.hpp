@@ -47,6 +47,7 @@ namespace RF24
   static constexpr LogicalLevel NODE_LEVEL_5       = 5u;
   static constexpr LogicalLevel NODE_LEVEL_MAX     = NODE_LEVEL_5;
   static constexpr LogicalLevel NODE_LEVEL_MIN     = NODE_LEVEL_1;
+  static constexpr LogicalLevel NODE_LEVEL_ABS_MIN = NODE_LEVEL_0;
   static constexpr LogicalLevel NODE_LEVEL_INVALID = NODE_LEVEL_MAX + 1u;
 
   static constexpr LogicalID NODE_ID_ROOT    = 0u;
