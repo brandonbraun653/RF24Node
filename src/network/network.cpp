@@ -23,6 +23,7 @@
 
 /* RF24 Includes */
 #include <RF24Node/src/common/conversion.hpp>
+#include <RF24Node/src/common/logging.hpp>
 #include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/common/utility.hpp>
 #include <RF24Node/src/network/frame/frame.hpp>
@@ -88,7 +89,7 @@ namespace RF24::Network
     ------------------------------------------------*/
     for ( size_t x = 0; x < unsafe_BindSiteList.size(); x++ )
     {
-      unsafe_BindSiteList[ x ].clear();
+      unsafe_BindSiteList[ x ].reset();
     }
   }
 
@@ -176,10 +177,7 @@ namespace RF24::Network
       auto calculatedCRC = Frame::calculateCRCFromBuffer( buffer );
       if ( reportedCRC != calculatedCRC )
       {
-        if constexpr ( DBG_LOG_NET )
-        {
-          mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() );
-        }
+        DBG_MSG_NET( mLogger, "%d-NET: Pkt dropped due to CRC failure\n", Chimera::millis() );
         continue;
       }
 
@@ -187,12 +185,7 @@ namespace RF24::Network
       Handle the message or pass it on to the next node
       ------------------------------------------------*/
       auto frame = Frame::FrameType( buffer );
-
-      if constexpr ( DBG_LOG_NET_TRACE )
-      {
-        mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Processing RX packet of type [%d] from pipe %d\n", Chimera::millis(),
-                       frame.getType(), pipe );
-      }
+      DBG_MSG_NET( mLogger, "%d-NET: Process RX pkt of type [%d] from pipe %d\n", Chimera::millis(), frame.getType(), pipe )
 
       if ( frame.getDst() == thisNode() )
       {
@@ -257,7 +250,7 @@ namespace RF24::Network
     Determine next hop and kick off the transfer
     ------------------------------------------------*/
     auto jumpMeta = nextHop( frame.getDst() );
-    if ( !writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) ) 
+    if ( !writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing ) )
     {
       mLogger->flog( uLog::Level::LVL_ERROR, "%d-NET: Frame TX failed\n", Chimera::millis() );
     }
@@ -277,15 +270,18 @@ namespace RF24::Network
     updateTX();
 
     /*------------------------------------------------
-    Process any ongoing connection processes if they are running
-
-    TODO: Collapse this into a single call
+    Handle any ongoing connection state machines
     ------------------------------------------------*/
-    if ( connectionsInProgress( RF24::Connection::Direction::CONNECT ) ||
-         connectionsInProgress( RF24::Connection::Direction::DISCONNECT ) )
+    if ( connectionsInProgress() )
     {
       Connection::runConnectProcess( *this, nullptr );
     }
+
+    /*-------------------------------------------------
+    Handle network connection timeouts
+    -------------------------------------------------*/
+    processStaleConnections();
+    processRefreshConnection();
   }
 
 
@@ -428,17 +424,16 @@ namespace RF24::Network
   void Driver::resetConnection( const RF24::Connection::BindSite id )
   {
     this->lock();
-
-    /*-------------------------------------------------
-    The connection control block manages the runtime process for
-    connecting to a new node. Clearing this data allows for a new
-    process to begin and create a new connection.
-    -------------------------------------------------*/
     if ( id < Connection::BindSite::MAX )
     {
-      unsafe_BindSiteList[ static_cast<size_t>( id ) ].clear();
-    }
+      size_t idx = static_cast<size_t>( id );
 
+      /*-------------------------------------------------
+      Erase all notion that this bind site had a connection
+      -------------------------------------------------*/
+      mRouteTable.detach( unsafe_BindSiteList[ idx ].address );
+      unsafe_BindSiteList[ idx ].reset();
+    }
     this->unlock();
   }
 
@@ -446,35 +441,72 @@ namespace RF24::Network
   /*------------------------------------------------
   Data Getters
   ------------------------------------------------*/
-  bool Driver::connectionsInProgress( const RF24::Connection::Direction dir )
+  bool Driver::connectionsInProgress()
   {
-    if ( dir == RF24::Connection::Direction::CONNECT )
-    {
-      return static_cast<bool>( mConnectionsInProgress );
-    }
-    else
-    {
-      return static_cast<bool>( mDisconnectsInProgress );
-    }
+    return static_cast<bool>( mConnectionsInProgress ) || static_cast<bool>( mDisconnectsInProgress );
   }
 
 
-  void Driver::getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb )
+  bool Driver::bindSiteConnected( const RF24::Connection::BindSite site )
   {
-    this->lock();
+    /*------------------------------------------------
+    Device is connected if:
+    1. The site received a ping from the connected node in an appropriate amount of time
+    2. The site has previously connected to the network
+    ------------------------------------------------*/
+    auto tmp             = getBindSiteCBSafe( site );
+    const size_t  time   = Chimera::millis();
+    const bool expired   = ( time > ( tmp.lastRXActive + tmp.staleExpirationDelta ) );
+    const bool connected = tmp.connected && !expired;
 
-    if ( id < Connection::BindSite::MAX )
-    {
-      cb = unsafe_BindSiteList[ static_cast<size_t>( id ) ];
-    }
-    else
-    {
-      cb.valid = false;
-    }
-
-    this->unlock();
+    return connected;
   }
 
+
+  RF24::Network::BindSiteCB Driver::getBindSiteCBSafe( const RF24::Connection::BindSite site )
+  {
+    /*------------------------------------------------
+    Make sure an invalid bind site isn't accessed
+    ------------------------------------------------*/
+    if ( site >= Connection::BindSite::MAX )
+    {
+      return {};
+    }
+
+    /*-------------------------------------------------
+    Grab the latest network status
+    -------------------------------------------------*/
+    RF24::Network::BindSiteCB tmp;
+    tmp.reset();
+
+    lock();
+    tmp = unsafe_BindSiteList[ static_cast<size_t>( site ) ];
+    unlock();
+
+    return tmp;
+  }
+
+
+  RF24::Connection::BindSite Driver::getBindSite( const RF24::LogicalAddress address )
+  {
+    lock();
+    RF24::Connection::BindSite siteCopy = RF24::Connection::BindSite::INVALID;
+    for ( size_t x = 0; x < unsafe_BindSiteList.size(); x++ )
+    {
+      if ( unsafe_BindSiteList[ x ].address != address )
+      {
+        continue;
+      }
+      else
+      {
+        siteCopy = unsafe_BindSiteList[ x ].bindId;
+        break;
+      }
+    }
+    unlock();
+
+    return siteCopy;
+  }
 
   void Driver::getSCBUnsafe( SystemCB &scb )
   {
@@ -494,29 +526,6 @@ namespace RF24::Network
     return scbCopy;
   }
 
-
-  RF24::Network::BindSiteCB Driver::getBindSiteCBSafe( const RF24::Connection::BindSite site )
-  {
-    /*------------------------------------------------
-    Make sure an invalid bind site isn't accessed
-    ------------------------------------------------*/
-    if ( site >= Connection::BindSite::MAX )
-    {
-      return {};
-    }
-
-    /*-------------------------------------------------
-    Grab the latest network status
-    -------------------------------------------------*/
-    RF24::Network::BindSiteCB tmp;
-    tmp.clear();
-
-    lock();
-    tmp = unsafe_BindSiteList[ static_cast<size_t>( RF24::Connection::BindSite::PARENT ) ];
-    unlock();
-
-    return tmp;
-  }
 
 
   uLog::SinkHandle Driver::getLogger()
@@ -626,6 +635,9 @@ namespace RF24::Network
   }
 
 
+  /*-------------------------------------------------------------------------------
+  Private Functions
+  -------------------------------------------------------------------------------*/
   void Driver::enqueueRXPacket( Frame::FrameType &frame )
   {
     if ( !mAppRXQueue.full() )
@@ -633,9 +645,9 @@ namespace RF24::Network
       auto buffer = frame.toBuffer();
       mAppRXQueue.push( buffer.data(), buffer.size() );
     }
-    else if constexpr ( DBG_LOG_NET )
+    else
     {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop RX Payload** Buffer Full\n", Chimera::millis() );
+      DBG_MSG_NET( mLogger, "%d-NET: **Drop RX Payload** Buffer Full\n", Chimera::millis() );
     }
   }
 
@@ -647,9 +659,9 @@ namespace RF24::Network
       auto buffer = frame.toBuffer();
       mNetTXQueue.push( buffer.data(), buffer.size() );
     }
-    else if constexpr ( DBG_LOG_NET )
+    else
     {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: **Drop TX Payload** Buffer Full\n", Chimera::millis() );
+      DBG_MSG_NET( mLogger, "%d-NET: **Drop TX Payload** Buffer Full\n", Chimera::millis() );
     }
   }
 
@@ -670,6 +682,26 @@ namespace RF24::Network
   {
     bool handledInternally = true;
     HeaderMessage message  = frame.getType();
+    LogicalAddress source  = frame.getSrc();
+
+    /*-------------------------------------------------
+    Check if we can receive the packet
+    -------------------------------------------------*/
+    const bool connectedToSource = isConnectedTo( source );
+
+    if( !connectedToSource && ( message != MSG_NET_REQUEST_CONNECT ) && ( message == MSG_NET_REQUEST_DISCONNECT ) )
+    {
+      DBG_MSG_NET( mLogger, "%d-NET: Rejected packet at destination. Not connected to sender.\n", Chimera::millis() );
+      return MSG_INVALID;
+    }
+
+    /*-------------------------------------------------
+    Update activity stats assuming connection is ok
+    -------------------------------------------------*/
+    if ( auto site = getBindSite( source ); site != RF24::Connection::BindSite::INVALID )
+    {
+      unsafe_BindSiteList[ static_cast<size_t>( site ) ].lastRXActive = Chimera::millis();
+    }
 
     /*------------------------------------------------
     Handle whatever messages can/should be handled immediately at the network layer.
@@ -685,6 +717,11 @@ namespace RF24::Network
         {
           Internal::Processes::handlePingRequest( *this, frame );
         }
+        else if( Messages::Ping::isPingResponse( frame ) )
+        {
+          Internal::Processes::handlePingResponse( *this, frame );
+        }
+        // Else unhandled
         break;
 
       /*-------------------------------------------------
@@ -718,11 +755,7 @@ namespace RF24::Network
 
   HeaderMessage Driver::handlePassthrough( Frame::FrameType &frame )
   {
-    if constexpr ( DBG_LOG_NET )
-    {
-      mLogger->flog( uLog::Level::LVL_DEBUG, "%d-NET: Forwarding packet of type [%d] destined for [%04o]\n", Chimera::millis(),
-                     frame.getType(), frame.getDst() );
-    }
+    DBG_MSG_NET( mLogger, "%d-NET: Fwd pkt type [%d] dst for [%04o]\n", Chimera::millis(), frame.getType(), frame.getDst() );
 
     auto jumpMeta = nextHop( frame.getDst() );
     writeDirect( frame, jumpMeta.hopAddress, jumpMeta.routing );
@@ -796,6 +829,9 @@ namespace RF24::Network
 
     frame.updateCRC();
 
+    /*-------------------------------------------------
+    Spit out some debug info to help development
+    -------------------------------------------------*/
     if constexpr ( DBG_LOG_NET_TRACE )
     {
       auto type = frame.getType();
@@ -888,4 +924,74 @@ namespace RF24::Network
 
     return false;
   }
+
+
+  void Driver::processStaleConnections()
+  {
+//    RF24::Connection::BindSite bs = RF24::Connection::BindSite::INVALID;
+    RF24::Connection::BindSite bs = RF24::Connection::BindSite::PARENT;
+
+    /*-------------------------------------------------
+    Check if each connected node has been pinged recently
+    -------------------------------------------------*/
+    //    for ( size_t x = 0; x < unsafe_BindSiteList.size(); x++ )
+    //    {
+    //    bs = static_cast<RF24::Connection::BindSite>( x );
+    if ( bindSiteConnected( bs ) )
+    {
+      //continue;
+      return;
+    }
+
+    /*-------------------------------------------------
+    Reset the connection block, but only if previously
+    connected. This node went AWOL.
+    -------------------------------------------------*/
+    this->lock();
+    if ( unsafe_BindSiteList[ static_cast<size_t>( bs ) ].connected )
+    {
+      resetConnection( bs );
+      DBG_MSG_NET( mLogger, "%d-NET: Lost connection on site %d due to timeout\n", Chimera::millis(), bs );
+    }
+    this->unlock();
+    //    }
+  }
+
+
+  void Driver::processRefreshConnection()
+  {
+    static size_t lastRefresh = Chimera::millis();
+
+    /*-------------------------------------------------
+    Nothing to refresh if a root node
+    -------------------------------------------------*/
+    if ( isAddressRoot( thisNode() ) )
+    {
+      return;
+    }
+
+    /*-------------------------------------------------
+    Ping the parent node so it keeps our connection
+    -------------------------------------------------*/
+    auto parentNode = getParent( thisNode() );
+
+    if ( isConnectedTo( parentNode ) )
+    {
+      if ( ( Chimera::millis() - lastRefresh ) > DFLT_CONNECTION_REFRESH_PERIOD )
+      {
+        lastRefresh = Chimera::millis();
+        DBG_MSG_NET( mLogger, "%d-NET: Refreshing network connection\n", Chimera::millis() );
+
+        Network::Frame::FrameType frame;
+        ::RF24::Network::Messages::Ping::requestFactory( frame, parentNode, thisNode() );
+        write( frame, Network::RoutingStyle::ROUTE_DIRECT );
+      }
+      else
+      {
+        return;
+      }
+    }
+
+  }
+
 }    // namespace RF24::Network

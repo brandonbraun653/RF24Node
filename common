@@ -1,10 +1,10 @@
 /********************************************************************************
  *  File Name:
  *    common
- * 
+ *
  *  Description:
  *    RF24 Node Common
- * 
+ *
  *  2020 | Brandon Braun | brandonbraun653@gmail.com
  ********************************************************************************/
 
@@ -15,6 +15,7 @@
 #include <RF24Node/src/common/conversion.hpp>
 #include <RF24Node/src/common/definitions.hpp>
 #include <RF24Node/src/common/environment.hpp>
+#include <RF24Node/src/common/logging.hpp>
 #include <RF24Node/src/common/types.hpp>
 #include <RF24Node/src/common/utility.hpp>
 

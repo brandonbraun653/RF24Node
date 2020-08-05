@@ -607,6 +607,7 @@
     <ClCompile Include="..\..\..\src\common\utility.cpp" />
     <ClInclude Include="..\..\..\src\common\conversion.hpp" />
     <ClInclude Include="..\..\..\src\common\definitions.hpp" />
+    <ClInclude Include="..\..\..\src\common\logging.hpp" />
     <ClInclude Include="..\..\..\src\common\types.hpp" />
     <ClInclude Include="..\..\..\src\common\utility.hpp" />
     <ClInclude Include="..\..\..\src\common\version.hpp" />

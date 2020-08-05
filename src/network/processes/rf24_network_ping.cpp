@@ -33,4 +33,9 @@ namespace RF24::Network::Internal::Processes
     ::RF24::Network::Messages::Ping::responseFactory( frame, tmp.dispatcher, obj.thisNode(), true );
     return obj.write( frame, ROUTE_NORMALLY );
   }
+
+
+  void handlePingResponse( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame )
+  {
+  }
 }    // namespace RF24::Network::Internal::Processes

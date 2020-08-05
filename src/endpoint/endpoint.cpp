@@ -399,15 +399,7 @@ namespace RF24::Endpoint
 
   bool Device::isConnected( const RF24::Connection::BindSite site )
   {
-    /*------------------------------------------------
-    Device is connected if it hasn't expired and the
-    control block says it's connected
-    ------------------------------------------------*/
-    auto tmp             = mNetworkDriver->getBindSiteCBSafe( site );
-    const bool expired   = ( Chimera::millis() > ( tmp.lastActive + tmp.expirationDelta ) );
-    const bool connected = tmp.connected && !expired;
-
-    return connected;
+    return mNetworkDriver->bindSiteConnected( site );
   }
 
 
@@ -528,7 +520,7 @@ namespace RF24::Endpoint
 
     for( size_t bindSite = iterFirst; bindSite < iterMax; bindSite++ )
     {
-      mNetworkDriver->getBindSiteStatus( static_cast<Connection::BindSite>( bindSite ), tmpCB );
+      tmpCB = mNetworkDriver->getBindSiteCBSafe( static_cast<Connection::BindSite>( bindSite ) );
 
       if( tmpCB.valid )
       {
@@ -566,13 +558,7 @@ namespace RF24::Endpoint
     /*------------------------------------------------
     Ping the configured node to see if it says hello
     ------------------------------------------------*/
-    if ( tmp.valid && ping( tmp.address, Chimera::Threading::TIMEOUT_500MS ) )
-    {
-      auto lockGuard = Chimera::Threading::LockGuard( *mNetworkDriver );
-      auto idx       = static_cast<size_t>( site );
-
-      mNetworkDriver->unsafe_BindSiteList[ idx ].lastActive = Chimera::millis();
-    }
+    ping( tmp.address, Chimera::Threading::TIMEOUT_500MS );
   }
 
 }    // namespace RF24::Endpoint

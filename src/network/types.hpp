@@ -125,16 +125,15 @@ namespace RF24::Network
     RF24::Connection::BindSite bindId;
 
     /**
-     *  Marks the system time at which the site was last active on the network.
-     *  This could be updated by any event that generates network traffic.
+     *  Marks the system time at which the site had any sort of activity
      */
-    size_t lastActive;
+    size_t lastRXActive;
 
     /**
-     *  Number of milliseconds past lastActive which implies the network connection is
-     *  stale and needs to be refreshed.
+     *  Number of milliseconds past lastPing which implies the network connection is
+     *  stale and the node no longer is confident of its connection.
      */
-    size_t expirationDelta;
+    size_t staleExpirationDelta;
 
     /**
      *  The address of the node connected to this bind site
@@ -149,21 +148,21 @@ namespace RF24::Network
 
     BindSiteCB()
     {
-      clear();
+      reset();
     }
 
     /**
      *  Clears the control block data back to defaults
      */
-    void clear()
+    void reset()
     {
-      valid           = false;
-      enabled         = false;
-      connected       = false;
-      bindId          = Connection::BindSite::INVALID;
-      lastActive      = 0;
-      expirationDelta = 1000 * 60 * 60; // 1hr
-      address         = RF24::Network::RSVD_ADDR_INVALID;
+      valid                = false;
+      enabled              = false;
+      connected            = false;
+      bindId               = Connection::BindSite::INVALID;
+      lastRXActive         = 0;
+      staleExpirationDelta = RF24::Network::DFLT_CONNECTION_TIMEOUT;
+      address              = RF24::Network::RSVD_ADDR_INVALID;
 
       onConnect    = nullptr;
       onDisconnect = nullptr;

@@ -254,9 +254,9 @@ namespace RF24::Network
      */
     virtual bool available() = 0;
 
-    /*------------------------------------------------
+    /*-------------------------------------------------------------------------------
     Actions
-    ------------------------------------------------*/
+    -------------------------------------------------------------------------------*/
     /**
      *  Peeks the next available frame if it exists.
      *
@@ -343,26 +343,40 @@ namespace RF24::Network
     virtual void resetConnection( const RF24::Connection::BindSite id ) = 0;
 
 
-    /*------------------------------------------------
+    /*-------------------------------------------------------------------------------
     Data Getters
-    ------------------------------------------------*/
+    -------------------------------------------------------------------------------*/
     /**
-     *  Checks if a connection process in the given direction is ongoing for any node
-     *  in the connection list.
+     *  Checks if a connection process is ongoing. This could be either a
+     *  disconnect or connect type of process.
      *
-     *  @param[in]  dir         Which connect direction to look up
      *  @return bool
      */
-    virtual bool connectionsInProgress( const RF24::Connection::Direction dir ) = 0;
+    virtual bool connectionsInProgress() = 0;
+
+    /**
+     *  Checks if the a particular site is still connected to the network.
+     *
+     *  @param[in]  site        The bind site to check
+     *  @return bool
+     */
+    virtual bool bindSiteConnected( const RF24::Connection::BindSite site ) = 0;
+
+    /**
+     *  Gets the bind site associated with a particular network address
+     *
+     *  @param[in]  address     The address to check
+     *  @return RF24::Connection::BindSite
+     */
+    virtual RF24::Connection::BindSite getBindSite( const RF24::LogicalAddress address ) = 0;
 
     /**
      *  Copies out the latest bind site control block data
      *
      *  @param[in]  id          The bind site to get the data for
-     *  @param[in]  cb          The control block structure to copy into
      *  @return void
      */
-    virtual void getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb ) = 0;
+    virtual RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) = 0;
 
     /**
      *  Gets the current system control block
@@ -381,7 +395,6 @@ namespace RF24::Network
      */
     virtual SystemCB getSCBSafe() = 0;
 
-    virtual RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) = 0;
 
     /**
      *	Gets the logger registered with the network
@@ -391,9 +404,9 @@ namespace RF24::Network
     virtual uLog::SinkHandle getLogger() = 0;
 
 
-    /*------------------------------------------------
+    /*-------------------------------------------------------------------------------
     Data Setters
-    ------------------------------------------------*/
+    -------------------------------------------------------------------------------*/
     /**
      *  Updates the connection control blocks for the given bind site so
      *  that it knows a new process has begun.
@@ -418,9 +431,9 @@ namespace RF24::Network
     virtual void setSCBUnsafe( const SystemCB &scb ) = 0;
 
 
-    /*------------------------------------------------
+    /*-------------------------------------------------------------------------------
     Callbacks
-    ------------------------------------------------*/
+    -------------------------------------------------------------------------------*/
     /**
      *	Registers a callback to be invoked when an external node successfully
      *	binds to a particular site.

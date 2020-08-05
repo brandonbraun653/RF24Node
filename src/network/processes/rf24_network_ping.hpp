@@ -26,6 +26,15 @@ namespace RF24::Network::Internal::Processes
    *	@return bool
    */
   bool handlePingRequest( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
+
+  /**
+   *  Handles the ACK message associated with a ping event
+   *
+   *	@param[in]	obj     The network driver doing the handling
+   *  @param[in]  frame   The ping frame that was received
+   *	@return void
+   */
+  void handlePingResponse( ::RF24::Network::Interface &obj, ::RF24::Network::Frame::FrameType &frame );
 }    // namespace RF24::Network::Internal::Processes
 
 #endif /* !RF24_NODE_NETWORK_PING_HPP */

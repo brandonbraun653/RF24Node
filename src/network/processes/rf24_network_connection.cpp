@@ -57,10 +57,7 @@ namespace RF24::Network::Internal::Processes::Connection
 
     if ( connectToParent || connectToChild )
     {
-      if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-      {
-        obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Start connect\n", Chimera::millis() );
-      }
+      DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: Start connect\n", Chimera::millis() );
 
       auto connectID = getDirectConnectionID( obj, node );
       auto index     = static_cast<size_t>( connectID );
@@ -102,10 +99,7 @@ namespace RF24::Network::Internal::Processes::Connection
       return true;
     }
 
-    if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-    {
-      obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Start disconnect\n", Chimera::millis() );
-    }
+    DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: Start disconnect\n", Chimera::millis() );
 
     /*------------------------------------------------
     Process the connection request only
@@ -200,20 +194,12 @@ namespace RF24::Network::Internal::Processes::Connection
           if ( isConnect )
           {
             connection.frameCache.setType( MSG_NET_REQUEST_CONNECT );
-
-            if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-            {
-              obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: TX connect request \n", Chimera::millis() );
-            }
+            DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: TX connect request \n", Chimera::millis() );
           }
           else
           {
             connection.frameCache.setType( MSG_NET_REQUEST_DISCONNECT );
-
-            if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-            {
-              obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: TX disconnect request\n", Chimera::millis() );
-            }
+            DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: TX disconnect request\n", Chimera::millis() );
           }
 
           /*------------------------------------------------
@@ -270,10 +256,7 @@ namespace RF24::Network::Internal::Processes::Connection
           connection.currentState  = State::CONNECT_TERMINATE;
           connection.lastEventTime = Chimera::millis();
 
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Connection proc timeout\n", Chimera::millis() );
-          }
+          DBG_MSG_NET_CONNECT( obj.getLogger(),  "%d-NET-Connect: Connection proc timeout\n", Chimera::millis() );
           break;
 
         /*------------------------------------------------
@@ -301,10 +284,7 @@ namespace RF24::Network::Internal::Processes::Connection
           connection.bindId       = cachedId;
           connection.currentState = State::CONNECT_IDLE;
 
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Proc exit\n", Chimera::millis() );
-          }
+          DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: Proc exit\n", Chimera::millis() );
         }
         break;
 
@@ -354,14 +334,8 @@ namespace RF24::Network::Internal::Processes::Connection
     switch ( frame.getType() )
     {
       case MSG_NET_REQUEST_CONNECT:
-        /*-------------------------------------------------
-        Optional logging
-        -------------------------------------------------*/
-        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-        {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX connect request from [%04o]\n", Chimera::millis(),
-                                 frame.getSrc() );
-        }
+        DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: RX connect request from [%04o]\n", Chimera::millis(),
+                             frame.getSrc() );
 
         /*-------------------------------------------------
         Check on the current node connection status. Try and
@@ -405,14 +379,8 @@ namespace RF24::Network::Internal::Processes::Connection
         break;
 
       case MSG_NET_REQUEST_DISCONNECT:
-        /*-------------------------------------------------
-        Optional logging
-        -------------------------------------------------*/
-        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-        {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: RX disconnect request from [%04o]\n",
-                                 Chimera::millis(), frame.getSrc() );
-        }
+        DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: RX disconnect request from [%04o]\n", Chimera::millis(),
+                             frame.getSrc() );
 
         /*-------------------------------------------------
         Check on the current node connection status. Try and
@@ -508,11 +476,7 @@ namespace RF24::Network::Internal::Processes::Connection
         {
           connection.currentState = State::CONNECT_SUCCESS_DIRECT;
           connection.result       = RF24::Connection::Result::CONNECT_PROC_SUCCESS;
-
-          if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-          {
-            obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: ACK\n", Chimera::millis() );
-          }
+          DBG_MSG_NET_CONNECT( obj.getLogger(),  "%d-NET-Connect: ACK\n", Chimera::millis() );
 
           /*------------------------------------------------
           Let the parent know we received the message
@@ -554,38 +518,25 @@ namespace RF24::Network::Internal::Processes::Connection
     {
       if ( connection.direction == RF24::Connection::Direction::DISCONNECT )
       {
-        /*-------------------------------------------------
-        Ensure the connection site info has been reset
-        -------------------------------------------------*/
-        obj.unsafe_BindSiteList[ bindIdx ].clear();
-        obj.unsafe_BindSiteList[ bindIdx ].valid = false;
-
-        /*-------------------------------------------------
-        Optional Logging
-        -------------------------------------------------*/
-        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-        {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d disconnected\n", Chimera::millis(), bindIdx );
-        }
+        obj.resetConnection( connection.bindId );
+        DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: Site %d disconnected\n", Chimera::millis(), bindIdx );
       }
       else
       {
         /*-------------------------------------------------
         Record the new conection information
         -------------------------------------------------*/
-        obj.unsafe_BindSiteList[ bindIdx ].bindId     = connection.bindId;
-        obj.unsafe_BindSiteList[ bindIdx ].address    = connection.toAddress;
-        obj.unsafe_BindSiteList[ bindIdx ].connected  = true;
-        obj.unsafe_BindSiteList[ bindIdx ].lastActive = Chimera::millis();
-        obj.unsafe_BindSiteList[ bindIdx ].valid      = true;
+        obj.unsafe_BindSiteList[ bindIdx ].bindId       = connection.bindId;
+        obj.unsafe_BindSiteList[ bindIdx ].address      = connection.toAddress;
+        obj.unsafe_BindSiteList[ bindIdx ].connected    = true;
+        obj.unsafe_BindSiteList[ bindIdx ].lastRXActive = Chimera::millis();
+        obj.unsafe_BindSiteList[ bindIdx ].valid        = true;
 
         /*-------------------------------------------------
-        Optional Logging
+        Update the route table
         -------------------------------------------------*/
-        if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-        {
-          obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: Site %d connected\n", Chimera::millis(), bindIdx );
-        }
+        obj.updateRouteTable( connection.toAddress, true );
+        DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: Site %d connected\n", Chimera::millis(), bindIdx );
       }
     }
   }
@@ -627,17 +578,8 @@ namespace RF24::Network::Internal::Processes::Connection
       /*-------------------------------------------------
       Ensure the bindsite won't show it's connected to anything
       -------------------------------------------------*/
-      auto bindIdx = static_cast<size_t>( connection.bindId );
-      obj.unsafe_BindSiteList[ bindIdx ].clear();
-      obj.unsafe_BindSiteList[ bindIdx ].valid = false;
-
-      /*-------------------------------------------------
-      Optionally log the event
-      -------------------------------------------------*/
-      if constexpr ( DBG_LOG_NET_PROC_CONNECT )
-      {
-        obj.getLogger()->flog( uLog::Level::LVL_DEBUG, "%d-NET-Connect: NACK\n", Chimera::millis() );
-      }
+      obj.resetConnection( connection.bindId );
+      DBG_MSG_NET_CONNECT( obj.getLogger(), "%d-NET-Connect: NACK\n", Chimera::millis() );
     }
     // Else not much to do. Allow a timeout to occur.
   }

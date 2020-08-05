@@ -79,11 +79,12 @@ namespace RF24::Network
     /*------------------------------------------------
     Data Getters
     ------------------------------------------------*/
-    bool connectionsInProgress( const RF24::Connection::Direction dir ) final override;
-    void getBindSiteStatus( const RF24::Connection::BindSite id, BindSiteCB &cb ) final override;
+    bool connectionsInProgress() final override;
+    RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) final override;
+    RF24::Connection::BindSite getBindSite( const RF24::LogicalAddress address ) final override;
+    bool bindSiteConnected( const RF24::Connection::BindSite site ) final override;
     void getSCBUnsafe( SystemCB &scb ) final override;
     SystemCB getSCBSafe() final override;
-    RF24::Network::BindSiteCB getBindSiteCBSafe( const RF24::Connection::BindSite site ) final override;
     uLog::SinkHandle getLogger() final override;
 
     /*------------------------------------------------
@@ -184,8 +185,9 @@ namespace RF24::Network
     uLog::SinkHandle mLogger;
 
 
-
-
+    /*-------------------------------------------------------------------------------
+    Private Functions
+    -------------------------------------------------------------------------------*/
     void enqueueRXPacket( Frame::FrameType &frame );
     void enqueueTXPacket( Frame::FrameType &frame );
     bool transferToPipe( const PhysicalAddress address, const Frame::Buffer &buffer, const size_t length, const bool autoAck );
@@ -195,6 +197,9 @@ namespace RF24::Network
 
     bool writeDirect( Frame::FrameType &frame, const LogicalAddress hopAddress, const RoutingStyle routeType );
     bool readWithPop( Frame::FrameType &frame, const bool pop );
+
+    void processStaleConnections();
+    void processRefreshConnection();
 
     /*------------------------------------------------
     Internal C-style functions that need access to object

@@ -24,6 +24,13 @@
 
 namespace RF24::Network
 {
+  /*-------------------------------------------------------------------------------
+  Configuration Parameters
+  -------------------------------------------------------------------------------*/
+  static constexpr size_t DFLT_CONNECTION_REFRESH_PERIOD = 1000 * 15;    // 15 seconds
+  static constexpr size_t DFLT_CONNECTION_TIMEOUT        = 4 * DFLT_CONNECTION_REFRESH_PERIOD;
+
+
   /**
    *   The default network address
    */
@@ -46,7 +53,7 @@ namespace RF24::Network
 
 
   /*------------------------------------------------
-  Logical Address Encoding 
+  Logical Address Encoding
   ------------------------------------------------*/
   static constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
   static constexpr LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
@@ -114,7 +121,7 @@ namespace RF24::Network
 
     /**
      *  Indicates that the data in the payload is destined for the application layer. This is
-     *  a transmission that was started by the user application and can send around any kind 
+     *  a transmission that was started by the user application and can send around any kind
      *  of binary data desired.
      */
     MSG_APP_DATA = 10,
@@ -240,7 +247,6 @@ namespace RF24::Network
      */
     MSG_INVALID = 255
   };
-
 
 
   enum RoutingStyle : uint8_t

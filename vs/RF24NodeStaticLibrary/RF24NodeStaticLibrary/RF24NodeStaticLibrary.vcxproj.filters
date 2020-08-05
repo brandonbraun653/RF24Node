@@ -289,5 +289,8 @@
     <ClInclude Include="..\..\..\src\endpoint\runtime\rf24_endpoint_app_com.hpp">
       <Filter>src\endpoint\runtime</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\common\logging.hpp">
+      <Filter>src\common</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
