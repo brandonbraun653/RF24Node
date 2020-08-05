@@ -55,8 +55,9 @@ namespace RF24::Network
   /*------------------------------------------------
   Logical Address Encoding
   ------------------------------------------------*/
-  static constexpr uint16_t BITS_PER_LEVEL        = 3u;  /**< Aka we are encoding the LogicalAddress in an octal format */
-  static constexpr LogicalAddress BASE_LEVEL_MASK = 0x7; /**< Masks off enough bits to represent an octal number */
+  static constexpr size_t BITS_PER_LEVEL        = 3u;     /**< Aka we are encoding the LogicalAddress in an octal format */
+  static constexpr LogicalAddress BASE_LEVEL_MASK = 0x7;    /**< Masks off enough bits to represent an octal number */
+  static constexpr LogicalAddress FULL_LEVEL_MASK = 0x7FFF; /**< Masks off enough bits to represent a full address */
 
   static constexpr LogicalAddress ADDR_LEVEL1_Pos = 0 * BITS_PER_LEVEL;
   static constexpr LogicalAddress ADDR_LEVEL1_Msk = BASE_LEVEL_MASK << ADDR_LEVEL1_Pos;

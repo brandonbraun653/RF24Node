@@ -79,8 +79,9 @@ namespace RF24::Physical
     Chimera::Status_t setDataRate( const RF24::Hardware::DataRate speed ) final override;
     RF24::Hardware::DataRate getDataRate() final override;
     Chimera::Status_t toggleAutoAck( const bool state, const RF24::Hardware::PipeNumber pipe ) final override;
-
     Chimera::Status_t attachLogger( uLog::SinkHandle sink ) final override;
+    virtual Physical::Status getStatus() final  override;
+    virtual void clearFlag( Physical::StatusFlag flag ) final override;
 
   protected:
     friend Interface_sPtr createShared( const RF24::Physical::Config &cfg );
@@ -129,6 +130,8 @@ namespace RF24::Physical
 
     std::atomic<bool> txComplete;
     void TxPipeOnCompleteCallback();
+
+    // Inherited via Interface
   };
 }    // namespace RF24::Physical
 
