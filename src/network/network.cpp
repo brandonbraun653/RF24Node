@@ -277,11 +277,11 @@ namespace RF24::Network
       Connection::runConnectProcess( *this, nullptr );
     }
 
-    /*-------------------------------------------------
-    Handle network connection timeouts
-    -------------------------------------------------*/
-    processStaleConnections();
-    processRefreshConnection();
+    // /*-------------------------------------------------
+    // Handle network connection timeouts
+    // -------------------------------------------------*/
+    // processStaleConnections();
+    // processRefreshConnection();
   }
 
 

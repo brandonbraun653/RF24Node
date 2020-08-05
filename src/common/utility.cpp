@@ -215,6 +215,11 @@ namespace RF24
     }
   }
 
+  LogicalAddress getChild( const LogicalAddress parent, const Connection::BindSite which )
+  {
+
+  }
+
   LogicalLevel getLevel( LogicalAddress address )
   {
     /*------------------------------------------------
@@ -280,7 +285,7 @@ namespace RF24
     using namespace RF24::Network;
 
     /*------------------------------------------------
-    Handle edge cases 
+    Handle edge cases
     ------------------------------------------------*/
     if ( !isAddressValid( address ) )
     {
@@ -312,11 +317,11 @@ namespace RF24
     }
 
     /*------------------------------------------------
-    Apply the mask and if the resulting address has the 
-    same level as the requested level, it is valid. 
-    
-    Don't need to check for valid resulting addresses 
-    because invalid base addresses are rejected at the 
+    Apply the mask and if the resulting address has the
+    same level as the requested level, it is valid.
+
+    Don't need to check for valid resulting addresses
+    because invalid base addresses are rejected at the
     start of the function.
     ------------------------------------------------*/
     LogicalAddress resultAddress = address & mask;

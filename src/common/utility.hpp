@@ -95,6 +95,15 @@ namespace RF24
   LogicalAddress getParent( const LogicalAddress child );
 
   /**
+   *  Generates a child address of the parent node
+   *
+   *  @param[in]  parent        The parent address
+   *  @param[in]  which         Which bindsite to generate the address for
+   *  @return LogicalAddress
+   */
+  LogicalAddress getChild( const LogicalAddress parent, const Connection::BindSite which );
+
+  /**
    *	Gets the tree structure level associated with the given address
    *
    *	@warning  This function assumes the address is valid
@@ -115,9 +124,9 @@ namespace RF24
 
   /**
    *  Masks the given address to the appropriate level
-   *  
+   *
    *  For example, node 04325's address at level 2 would be 0025.
-   *  
+   *
    *  @param[in]  address       The address to be masked
    *  @param[in]  level         The level to mask to
    *  @return LogicalAddress
